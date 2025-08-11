@@ -314,131 +314,394 @@
           <!-- お問い合わせフォーム（右側） -->
           <v-col cols="12" lg="8">
             <v-card elevation="4" class="contact-form-card">
-              <v-card-title class="contact-form-header">
-                <v-icon color="white" class="mr-2">mdi-message-text</v-icon>
-                お問い合わせフォーム
+              <v-card-title class="contact-form-header d-flex justify-space-between align-center">
+                <div class="d-flex align-center">
+                  <v-icon color="white" class="mr-2">mdi-message-text</v-icon>
+                  お問い合わせフォーム
+                </div>
+                <!-- 進捗表示 -->
+                <div class="text-body-2" v-if="contactProgressText">
+                  {{ contactProgressText }}
+                </div>
               </v-card-title>
 
               <v-card-text class="pa-8">
-                <v-form ref="contactForm" @submit.prevent="submitContactForm">
-                  <v-row>
-                    <!-- お名前 -->
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contactForm.name"
-                        label="お名前"
-                        :rules="[rules.required]"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-inner-icon="mdi-account"
-                        placeholder="山田 太郎"
-                        required
-                      ></v-text-field>
-                    </v-col>
+                <v-form ref="contactFormRef" @submit.prevent="submitContactForm">
+                  <!-- 必須項目エリア（常時表示） -->
+                  <div class="form-section mb-6">
+                    <h3 class="section-header required-section">
+                      <v-icon color="red" class="mr-2">mdi-asterisk</v-icon>
+                      必須項目
+                    </h3>
+                    
+                    <v-row>
+                      <!-- 閉店検討理由 -->
+                      <v-col cols="12">
+                        <div class="mb-2">
+                          <label class="text-body-1 font-weight-medium">閉店検討理由</label>
+                          <span class="text-red ml-1">*</span>
+                        </div>
+                        <div class="chips-wrap">
+                          <v-chip
+                            v-for="option in reasonOptions"
+                            :key="option"
+                            :color="(contactForm.reason && contactForm.reason.includes(option)) ? 'primary' : 'default'"
+                            :variant="(contactForm.reason && contactForm.reason.includes(option)) ? 'flat' : 'outlined'"
+                            @click="toggleReason(option)"
+                            class="cursor-pointer"
+                          >
+                            {{ option }}
+                          </v-chip>
+                        </div>
+                        <!-- その他詳細 -->
+                        <v-text-field
+                          v-if="contactForm.reason && Array.isArray(contactForm.reason) && contactForm.reason.includes('その他')"
+                          v-model="contactForm.reasonOther"
+                          label="その他の詳細"
+                          variant="outlined"
+                          density="comfortable"
+                          class="mt-3"
+                          placeholder="詳細を入力してください"
+                        ></v-text-field>
+                      </v-col>
 
-                    <!-- メールアドレス -->
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contactForm.email"
-                        label="メールアドレス"
-                        :rules="[rules.required, rules.email]"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-inner-icon="mdi-email"
-                        placeholder="example@email.com"
-                        required
-                      ></v-text-field>
-                    </v-col>
+                      <!-- 解約予告状況 -->
+                      <v-col cols="12">
+                        <div class="mb-2">
+                          <label class="text-body-1 font-weight-medium">解約予告状況</label>
+                          <span class="text-red ml-1">*</span>
+                        </div>
+                        <div class="chips-wrap">
+                          <v-chip
+                            v-for="option in cancelStatusOptions"
+                            :key="option"
+                            :color="contactForm.cancel_status === option ? 'primary' : 'default'"
+                            :variant="contactForm.cancel_status === option ? 'flat' : 'outlined'"
+                            @click="contactForm.cancel_status = option"
+                            class="cursor-pointer"
+                          >
+                            {{ option }}
+                          </v-chip>
+                        </div>
+                      </v-col>
 
-                    <!-- 電話番号 -->
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contactForm.phone"
-                        label="電話番号"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-inner-icon="mdi-phone"
-                        placeholder="03-1234-5678"
-                        hint="お電話での連絡をご希望の場合"
-                        persistent-hint
-                      ></v-text-field>
-                    </v-col>
+                      <!-- 退店時期 -->
+                      <v-col cols="12">
+                        <div class="mb-2">
+                          <label class="text-body-1 font-weight-medium">退店時期</label>
+                          <span class="text-red ml-1">*</span>
+                        </div>
+                        <div class="chips-wrap">
+                          <v-chip
+                            v-for="option in exitWhenOptions"
+                            :key="option"
+                            :color="contactForm.exit_when === option ? 'primary' : 'default'"
+                            :variant="contactForm.exit_when === option ? 'flat' : 'outlined'"
+                            @click="contactForm.exit_when = option"
+                            class="cursor-pointer"
+                          >
+                            {{ option }}
+                          </v-chip>
+                        </div>
+                      </v-col>
 
-                    <!-- 相談内容のカテゴリ -->
-                    <v-col cols="12" sm="6">
-                      <v-select
-                        v-model="contactForm.category"
-                        :items="contactCategories"
-                        label="ご相談内容"
-                        :rules="[rules.required]"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-inner-icon="mdi-format-list-bulleted"
-                        required
-                      ></v-select>
-                    </v-col>
+                      <!-- お問い合わせ内容 -->
+                      <v-col cols="12">
+                        <v-textarea
+                          v-model="contactForm.inquiry"
+                          label="お問い合わせ内容"
+                          :rules="[rules.required]"
+                          variant="outlined"
+                          density="comfortable"
+                          prepend-inner-icon="mdi-message-text"
+                          placeholder="査定結果について詳しく聞きたい、売却を検討している等、お気軽にご記入ください"
+                          required
+                          rows="3"
+                          counter="1000"
+                          maxlength="1000"
+                        >
+                          <template v-slot:label>
+                            お問い合わせ内容 <span class="text-red">*</span>
+                          </template>
+                        </v-textarea>
+                      </v-col>
 
-                    <!-- 物件情報（任意） -->
-                    <v-col cols="12">
-                      <v-textarea
-                        v-model="contactForm.propertyInfo"
-                        label="物件情報（任意）"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-inner-icon="mdi-home"
-                        placeholder="所在地、面積、業態など分かる範囲で"
-                        hint="より具体的なアドバイスのために"
-                        persistent-hint
-                        rows="2"
-                      ></v-textarea>
-                    </v-col>
+                      <!-- お名前 -->
+                      <v-col cols="12" sm="6">
+                        <v-text-field
+                          v-model="contactForm.name"
+                          label="氏名"
+                          :rules="[rules.required]"
+                          variant="outlined"
+                          density="comfortable"
+                          prepend-inner-icon="mdi-account"
+                          placeholder="山田 太郎"
+                          required
+                        >
+                          <template v-slot:label>
+                            氏名 <span class="text-red">*</span>
+                          </template>
+                        </v-text-field>
+                      </v-col>
 
-                    <!-- メッセージ -->
-                    <v-col cols="12">
-                      <v-textarea
-                        v-model="contactForm.message"
-                        label="メッセージ"
-                        :rules="[rules.required]"
-                        variant="outlined"
-                        density="comfortable"
-                        prepend-inner-icon="mdi-message-text"
-                        placeholder="査定結果について詳しく聞きたい、売却を検討している等、お気軽にご記入ください"
-                        required
-                        rows="4"
-                      ></v-textarea>
-                    </v-col>
+                      <!-- ふりがな -->
+                      <v-col cols="12" sm="6">
+                        <v-text-field
+                          v-model="contactForm.kana"
+                          label="ふりがな"
+                          :rules="[rules.required, rules.kana]"
+                          variant="outlined"
+                          density="comfortable"
+                          prepend-inner-icon="mdi-alphabetical"
+                          placeholder="やまだ たろう"
+                          required
+                        >
+                          <template v-slot:label>
+                            ふりがな <span class="text-red">*</span>
+                          </template>
+                        </v-text-field>
+                      </v-col>
 
-                    <!-- プライバシーポリシー同意 -->
-                    <v-col cols="12">
-                      <v-checkbox
-                        v-model="contactForm.privacy"
-                        :rules="[rules.required]"
-                        required
-                        label="プライバシーポリシーに同意する"
-                      >
-                      </v-checkbox>
-                    </v-col>
+                      <!-- メールアドレス -->
+                      <v-col cols="12">
+                        <v-text-field
+                          v-model="contactForm.email"
+                          label="メールアドレス"
+                          :rules="[rules.required, rules.email]"
+                          variant="outlined"
+                          density="comfortable"
+                          prepend-inner-icon="mdi-email"
+                          placeholder="example@email.com"
+                          required
+                        >
+                          <template v-slot:label>
+                            メールアドレス <span class="text-red">*</span>
+                          </template>
+                        </v-text-field>
+                      </v-col>
+                    </v-row>
+                  </div>
 
-                    <!-- 送信ボタン -->
-                    <v-col cols="12" class="text-center">
-                      <v-btn
-                        type="submit"
-                        color="primary"
-                        size="x-large"
-                        elevation="4"
-                        :loading="submitting"
-                        :disabled="!isContactFormValid"
-                        class="contact-submit-btn"
-                      >
-                        <v-icon start>mdi-send</v-icon>
-                        お問い合わせを送信
-                      </v-btn>
-                      
-                      <p class="text-body-2 text-grey-darken-2 mt-4 mb-0">
-                        通常1営業日以内にご返信いたします
-                      </p>
-                    </v-col>
-                  </v-row>
+                  <!-- おすすめ項目エリア（アコーディオン） -->
+                  <v-expansion-panels class="mb-6">
+                    <v-expansion-panel>
+                      <v-expansion-panel-title>
+                        <div class="d-flex align-center">
+                          <v-icon color="orange" class="mr-2">mdi-star</v-icon>
+                          <span class="text-h6">あると助かる項目</span>
+                          <v-chip size="small" color="orange" variant="tonal" class="ml-3">
+                            ＋精度↑
+                          </v-chip>
+                        </div>
+                      </v-expansion-panel-title>
+                      <v-expansion-panel-text>
+                        <v-row class="mt-4">
+                          <!-- お店の賃料 -->
+                          <v-col cols="12" sm="6">
+                            <div class="mb-2">
+                              <label class="text-body-2 font-weight-medium">お店の賃料</label>
+                            </div>
+                            <div class="chips-wrap">
+                              <v-chip
+                                v-for="option in rentRangeOptions"
+                                :key="option"
+                                :color="contactForm.rent_range === option ? 'orange' : 'default'"
+                                :variant="contactForm.rent_range === option ? 'flat' : 'outlined'"
+                                @click="contactForm.rent_range = option"
+                                size="small"
+                                class="cursor-pointer"
+                              >
+                                {{ option }}
+                              </v-chip>
+                            </div>
+                          </v-col>
+
+                          <!-- お店の坪数 -->
+                          <v-col cols="12" sm="6">
+                            <div class="mb-2">
+                              <label class="text-body-2 font-weight-medium">お店の坪数</label>
+                            </div>
+                            <div class="chips-wrap">
+                              <v-chip
+                                v-for="option in tsuboRangeOptions"
+                                :key="option"
+                                :color="contactForm.tsubo_range === option ? 'orange' : 'default'"
+                                :variant="contactForm.tsubo_range === option ? 'flat' : 'outlined'"
+                                @click="contactForm.tsubo_range = option"
+                                size="small"
+                                class="cursor-pointer"
+                              >
+                                {{ option }}
+                              </v-chip>
+                            </div>
+                          </v-col>
+
+                          <!-- 郵便番号 -->
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              v-model="contactForm.address_zip"
+                              label="郵便番号"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-map-marker"
+                              placeholder="123-4567"
+                            ></v-text-field>
+                          </v-col>
+
+                          <!-- お店の住所 -->
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              v-model="contactForm.address"
+                              label="お店の住所"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-home"
+                              placeholder="市区町村・番地（任意）"
+                            ></v-text-field>
+                          </v-col>
+
+                          <!-- お店の屋号名 -->
+                          <v-col cols="12">
+                            <v-text-field
+                              v-model="contactForm.shop_name"
+                              label="お店の屋号名"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-store"
+                              placeholder="例：居酒屋○○"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                      </v-expansion-panel-text>
+                    </v-expansion-panel>
+                  </v-expansion-panels>
+
+                  <!-- 詳細項目エリア（アコーディオン） -->
+                  <v-expansion-panels class="mb-6">
+                    <v-expansion-panel>
+                      <v-expansion-panel-title>
+                        <div class="d-flex align-center">
+                          <v-icon color="blue" class="mr-2">mdi-clipboard-list</v-icon>
+                          <span class="text-h6">詳細項目</span>
+                          <v-chip size="small" color="blue" variant="tonal" class="ml-3">
+                            後でOK
+                          </v-chip>
+                        </div>
+                      </v-expansion-panel-title>
+                      <v-expansion-panel-text>
+                        <v-row class="mt-4">
+                          <!-- 法人として申し込む -->
+                          <v-col cols="12">
+                            <div class="d-flex align-center">
+                              <v-switch
+                                v-model="contactForm.corp_flag"
+                                color="blue"
+                                hide-details
+                                inset
+                                @change="console.log('法人フラグ変化:', contactForm.corp_flag)"
+                              ></v-switch>
+                              <label class="ml-3 text-body-1">法人として申し込む</label>
+                            </div>
+                          </v-col>
+
+                          <!-- 法人名 -->
+                          <v-col cols="12" v-if="contactForm.corp_flag">
+                            <v-text-field
+                              v-model="contactForm.corp_name"
+                              label="法人名"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-domain"
+                              placeholder="株式会社○○"
+                            ></v-text-field>
+                          </v-col>
+
+                          <!-- 売却希望金額 -->
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              v-model.number="contactForm.ask_price"
+                              label="売却希望金額"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-currency-jpy"
+                              prefix="¥"
+                              type="number"
+                              placeholder="3000000"
+                            ></v-text-field>
+                          </v-col>
+
+                          <!-- 電話番号 -->
+                          <v-col cols="12" sm="6">
+                            <v-text-field
+                              v-model="contactForm.phone"
+                              label="電話番号"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-phone"
+                              placeholder="03-1234-5678"
+                              hint="お電話での連絡をご希望の場合"
+                              persistent-hint
+                            ></v-text-field>
+                          </v-col>
+
+                          <!-- 設備リース有無 -->
+                          <v-col cols="12">
+                            <div class="d-flex align-center">
+                              <v-switch
+                                v-model="contactForm.lease_flag"
+                                color="blue"
+                                hide-details
+                                inset
+                                @change="console.log('リースフラグ変化:', contactForm.lease_flag)"
+                              ></v-switch>
+                              <label class="ml-3 text-body-1">設備リースあり</label>
+                            </div>
+                          </v-col>
+
+                          <!-- リースの内容 -->
+                          <v-col cols="12" v-if="contactForm.lease_flag">
+                            <v-text-field
+                              v-model="contactForm.lease_note"
+                              label="リースの内容"
+                              variant="outlined"
+                              density="comfortable"
+                              prepend-inner-icon="mdi-file-document"
+                              placeholder="例：厨房機器、レジスター等"
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                      </v-expansion-panel-text>
+                    </v-expansion-panel>
+                  </v-expansion-panels>
+
+                  <!-- プライバシーポリシー同意 -->
+                  <v-checkbox
+                    v-model="contactForm.privacy"
+                    :rules="[rules.required]"
+                    required
+                    label="プライバシーポリシーに同意する"
+                    class="mb-4"
+                  ></v-checkbox>
+
+                  <!-- 送信ボタン -->
+                  <div class="text-center">
+                    <v-btn
+                      type="submit"
+                      color="primary"
+                      size="x-large"
+                      elevation="4"
+                      :loading="submitting"
+                      :disabled="!isContactFormValid"
+                      class="contact-submit-btn"
+                    >
+                      <v-icon start>mdi-send</v-icon>
+                      お問い合わせを送信
+                    </v-btn>
+                    
+                    <p class="text-body-2 text-grey-darken-2 mt-4 mb-0">
+                      通常1営業日以内にご返信いたします
+                    </p>
+                  </div>
                 </v-form>
               </v-card-text>
             </v-card>
@@ -463,7 +726,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import QuickEstimate from '@/components/QuickEstimate.vue'
 
 // 簡易査定セクションへのスムーズスクロール
@@ -477,27 +740,72 @@ const scrollToQuickEstimate = () => {
   }
 }
 
-// 問い合わせフォーム関連
-const contactForm = ref({
-  name: '',
-  email: '',
-  phone: '',
-  category: '',
-  propertyInfo: '',
-  message: '',
-  privacy: false
+// 問い合わせフォーム関連 - YAMLのIDと完全一致させる
+const contactForm = reactive({
+  // 必須項目 (YAMLのidと一致)
+  reason: [] as string[], // 閉店検討理由（複数選択）
+  cancel_status: '', // 解約予告状況
+  exit_when: '', // 退店時期
+  inquiry: '', // お問い合わせ内容
+  station_id: '', // お店の最寄駅（今回は未実装）
+  name: '', // 氏名
+  kana: '', // ふりがな
+  email: '', // メールアドレス
+  email_confirm: '', // メールアドレス（確認）
+  
+  // おすすめ項目
+  rent_range: '', // お店の賃料
+  tsubo_range: '', // お店の坪数
+  address_zip: '', // 郵便番号
+  address: '', // お店の住所
+  shop_name: '', // お店の屋号名
+  
+  // 詳細項目
+  corp_flag: false, // 法人として申し込む
+  corp_name: '', // 法人名
+  ask_price: null, // 売却希望金額
+  lease_flag: false, // 設備リース有無
+  lease_note: '', // リースの内容
+  phone: '', // 電話番号
+  
+  // その他
+  reasonOther: '', // その他詳細（UIコントロール用）
+  privacy: false // プライバシーポリシー同意
 })
 
 const submitting = ref(false)
+const contactFormRef = ref() // v-formのDOM参照用
 
-// 相談内容のカテゴリ
-const contactCategories = [
-  { title: '査定結果について詳しく聞きたい', value: 'assessment' },
-  { title: '売却を検討している', value: 'sell' },
-  { title: '出店場所を探している', value: 'rent' },
-  { title: 'サービス内容について', value: 'service' },
-  { title: 'その他のご相談', value: 'other' }
-]
+// デバッグ用: フォームデータの変化を監視 (開発環境のみ)
+if (import.meta.env.DEV) {
+  watch(() => contactForm, (newVal) => {
+    console.log('フォームデータ変化:', newVal)
+  }, { deep: true })
+}
+
+// フォーム選択肢データ
+const reasonOptions = ['売上不振', '人材不足', '他事業集中', '引退', 'その他']
+const cancelStatusOptions = ['未提出', '提出予定', '提出済']
+const exitWhenOptions = ['今月', '来月', '3ヶ月以内', '半年以内', '1年以内', '未定']
+const rentRangeOptions = ['〜10万円', '10〜20万円', '20〜30万円', '30万円〜']
+const tsuboRangeOptions = ['〜10坪', '10〜20坪', '20〜30坪', '30坪〜']
+
+// 閉店検討理由の複数選択トグル関数
+const toggleReason = (option: string) => {
+  // reason配列の初期化確認
+  if (!Array.isArray(contactForm.reason)) {
+    contactForm.reason = []
+  }
+  
+  const index = contactForm.reason.indexOf(option)
+  if (index > -1) {
+    contactForm.reason.splice(index, 1)
+  } else {
+    contactForm.reason.push(option)
+  }
+  
+  console.log('理由選択更新:', contactForm.reason)
+}
 
 // バリデーションルール
 const rules = {
@@ -506,17 +814,59 @@ const rules = {
     if (!v) return 'この項目は必須です'
     const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return pattern.test(v) || '正しいメールアドレスを入力してください'
+  },
+  kana: (v: string) => {
+    if (!v) return 'この項目は必須です'
+    const pattern = /^[ぁ-ゖー\s]+$/
+    return pattern.test(v) || 'ひらがなで入力してください'
   }
 }
 
+// 必須項目の入力状況チェック
+const requiredFieldsCount = computed(() => {
+  let count = 0
+  // reason配列のundefinedチェック
+  if (contactForm.reason && Array.isArray(contactForm.reason) && contactForm.reason.length > 0) count++
+  if (contactForm.cancel_status) count++
+  if (contactForm.exit_when) count++
+  if (contactForm.inquiry) count++
+  if (contactForm.name) count++
+  if (contactForm.kana) count++
+  if (contactForm.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactForm.email)) count++
+  return count
+})
+
+// おすすめ項目の入力状況チェック
+const helpfulFieldsCount = computed(() => {
+  let count = 0
+  if (contactForm.rent_range) count++
+  if (contactForm.tsubo_range) count++
+  if (contactForm.address_zip) count++
+  if (contactForm.address) count++
+  if (contactForm.shop_name) count++
+  return count
+})
+
+// 進捗表示テキスト
+const contactProgressText = computed(() => {
+  const required = requiredFieldsCount.value
+  const helpful = helpfulFieldsCount.value
+  
+  if (required === 7) {
+    if (helpful > 0) {
+      return '必須項目完了！精度がアップしました✨'
+    } else {
+      return '必須項目完了！あと2項目で精度UP'
+    }
+  } else {
+    const remaining = 7 - required
+    return `あと${remaining}項目で送信できます`
+  }
+})
+
 // フォームの妥当性チェック
 const isContactFormValid = computed(() => {
-  return contactForm.value.name &&
-         contactForm.value.email &&
-         contactForm.value.category &&
-         contactForm.value.message &&
-         contactForm.value.privacy &&
-         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactForm.value.email)
+  return requiredFieldsCount.value === 7 && contactForm.privacy
 })
 
 // 問い合わせ方法選択
@@ -542,6 +892,15 @@ const submitContactForm = async () => {
   submitting.value = true
   
   try {
+    // 送信データの準備
+    const submitData = {
+      ...contactForm,
+      // reason配列を文字列に変換
+      reason: Array.isArray(contactForm.reason) ? contactForm.reason.join(', ') : ''
+    }
+    
+    console.log('送信データ:', submitData)
+    
     // 実際の実装では API エンドポイントに送信
     await new Promise(resolve => setTimeout(resolve, 2000)) // デモ用
     
@@ -549,15 +908,37 @@ const submitContactForm = async () => {
     alert('お問い合わせありがとうございます。1営業日以内にご返信いたします。')
     
     // フォームリセット
-    contactForm.value = {
+    Object.assign(contactForm, {
+      // 必須項目
+      reason: [],
+      cancel_status: '',
+      exit_when: '',
+      inquiry: '',
+      station_id: '',
       name: '',
+      kana: '',
       email: '',
+      email_confirm: '',
+      
+      // おすすめ項目
+      rent_range: '',
+      tsubo_range: '',
+      address_zip: '',
+      address: '',
+      shop_name: '',
+      
+      // 詳細項目
+      corp_flag: false,
+      corp_name: '',
+      ask_price: null,
+      lease_flag: false,
+      lease_note: '',
       phone: '',
-      category: '',
-      propertyInfo: '',
-      message: '',
+      
+      // その他
+      reasonOther: '',
       privacy: false
-    }
+    })
     
   } catch (error) {
     alert('送信中にエラーが発生しました。しばらく経ってから再度お試しください。')
@@ -576,6 +957,18 @@ useHead({
 </script>
 
 <style scoped>
+/* カーソルポインタ */
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+/* チップのラッパー */
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 /* ヒーローセクション */
 .hero-section {
   background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);

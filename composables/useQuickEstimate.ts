@@ -162,26 +162,26 @@ export const useQuickEstimate = () => {
   // 入力データの初期化
   const formData = reactive<QuickEstimateData>({
     // 設備関連
-    equipCost: 0,
-    usedEquipYr: 0,
+    equipCost: 3000000,        // デフォルト300万円
+    usedEquipYr: 3,            // デフォルト3年使用
     equipDepreciationYears: 6, // デフォルト値（5-7年の中間）
     equipCoefficient: 0.65,    // デフォルト値（0.5-0.8の中間）
     
     // 内装関連
-    interiorCost: 0,
-    usedInteriorYr: 0,
+    interiorCost: 5000000,     // デフォルト500万円
+    usedInteriorYr: 3,         // デフォルト3年使用
     interiorDepreciationYears: 12, // デフォルト値（10-15年の中間）
     interiorCoefficient: 0.35,     // デフォルト値（0.2-0.5の中間）
     
     // 立地関連
-    unitPrice: 0,
-    floorArea: 0,
-    locationRank: '3B',
+    unitPrice: 150000,         // デフォルト15万円/坪
+    floorArea: 20,             // デフォルト20坪
+    locationRank: '2B',        // デフォルト2等地B
     
     // 売上関連
-    monthlySales: 0,
-    costRate: 60,
-    sganda: 0,
+    monthlySales: 3000000,     // デフォルト300万円
+    costRate: 30,              // デフォルト30%
+    sganda: 500000,            // デフォルト50万円
     salesEvaluationYears: 2.5, // デフォルト値（2-3年の中間）
     
     // 重み配分
@@ -347,30 +347,30 @@ export const useQuickEstimate = () => {
     return calculateQuickEstimate(formData)
   })
 
-  // フォームリセット
+  // フォームリセット（初期値に戻す）
   const resetForm = () => {
     Object.assign(formData, {
       // 設備関連
-      equipCost: 0,
-      usedEquipYr: 0,
+      equipCost: 3000000,
+      usedEquipYr: 3,
       equipDepreciationYears: 6,
       equipCoefficient: 0.65,
       
       // 内装関連
-      interiorCost: 0,
-      usedInteriorYr: 0,
+      interiorCost: 5000000,
+      usedInteriorYr: 3,
       interiorDepreciationYears: 12,
       interiorCoefficient: 0.35,
       
       // 立地関連
-      unitPrice: 0,
-      floorArea: 0,
-      locationRank: '3B',
+      unitPrice: 150000,
+      floorArea: 20,
+      locationRank: '2B',
       
       // 売上関連
-      monthlySales: 0,
-      costRate: 60,
-      sganda: 0,
+      monthlySales: 3000000,
+      costRate: 30,
+      sganda: 500000,
       salesEvaluationYears: 2.5,
       
       // 重み配分
