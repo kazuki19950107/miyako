@@ -949,7 +949,7 @@ const submitContactForm = async () => {
 
 // ページのメタデータ設定
 useHead({
-  title: 'みやこ - 飲食店居抜き物件マッチングシステム',
+  title: 'みやこ不動産企画 - 飲食店居抜き物件マッチングシステム',
   meta: [
     { name: 'description', content: '飲食店の居抜き物件をスムーズにマッチング。60秒で分かる簡易査定で物件価値を即座に算出。' }
   ]

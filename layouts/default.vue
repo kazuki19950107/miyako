@@ -13,8 +13,16 @@
 
         <!-- ロゴ/タイトル -->
         <div class="d-flex align-center cursor-pointer" @click="go('/')">
-          <v-icon size="26" class="mr-2">mdi-store-outline</v-icon>
-          <div class="font-weight-bold">みやこ</div>
+          <!-- <v-icon size="26" class="mr-2">mdi-store-outline</v-icon> -->
+          <!-- 画像ロゴに変更。縦横を合わせてテキストと揃える -->
+          <v-img
+            src="/miyako-logo.png"
+            width="26" height="26"
+            class="mr-2"
+            alt="MIYAKO ロゴ"
+            cover
+          />
+          <div class="font-weight-bold">みやこ不動産企画</div>
         </div>
 
         <v-spacer />
@@ -50,7 +58,7 @@
         />
 
         <!-- 右側アイコン群 -->
-        <v-btn icon @click="toggleTheme" :aria-label="`テーマ切替`"><v-icon>mdi-theme-light-dark</v-icon></v-btn>
+        <!-- <v-btn icon @click="toggleTheme" :aria-label="`テーマ切替`"><v-icon>mdi-theme-light-dark</v-icon></v-btn> -->
         <v-btn icon @click="go('/notifications')" aria-label="通知"><v-icon>mdi-bell-outline</v-icon></v-btn>
         
 
@@ -104,10 +112,10 @@
     <!-- PC：クイックアクション列 -->
     <v-sheet class="border-b-thin d-none d-md-block">
       <v-container class="py-1 d-flex align-center">
-        <v-btn size="small" variant="tonal" @click="go('/sell/quick')">
+        <v-btn size="small" variant="tonal" @click="go('/admin/exit-form')">
           <v-icon start>mdi-calculator-variant</v-icon> 簡易査定
         </v-btn>
-        <v-btn size="small" variant="tonal" class="ml-2" @click="go('/entry/resume')">
+        <v-btn size="small" variant="tonal" class="ml-2" @click="go('/admin/entry-form')">
           <v-icon start>mdi-file-account</v-icon> 出店履歴書
         </v-btn>
         <v-btn size="small" variant="tonal" class="ml-2" @click="go('/matches')">
@@ -141,11 +149,11 @@
         <v-divider class="my-2" />
 
         <v-list-subheader>クイック</v-list-subheader>
-        <v-list-item @click="go('/sell/quick', true)">
+        <v-list-item @click="go('/admin/exit-form', true)">
           <template #prepend><v-icon>mdi-calculator-variant</v-icon></template>
           <v-list-item-title>簡易査定</v-list-item-title>
         </v-list-item>
-        <v-list-item @click="go('/entry/resume', true)">
+        <v-list-item @click="go('/admin/entry-form', true)">
           <template #prepend><v-icon>mdi-file-account</v-icon></template>
           <v-list-item-title>出店履歴書</v-list-item-title>
         </v-list-item>
@@ -260,8 +268,8 @@ const isStaff = computed(() => false) // ←必要に応じて接続
 type MenuItem = { title: string; to: string; icon: string }
 const userMenu: MenuItem[] = [
   { title: 'マイページ', to: '/mypage', icon: 'mdi-home-outline' },
-  { title: '退店査定', to: '/sell', icon: 'mdi-store-remove-outline' },
-  { title: '出店登録', to: '/entry', icon: 'mdi-store-plus-outline' },
+  { title: '退店査定', to: '/admin/exit-form', icon: 'mdi-store-remove-outline' },
+  { title: '出店登録', to: '/admin/entry-form', icon: 'mdi-store-plus-outline' },
   { title: 'メッセージ', to: '/messages', icon: 'mdi-email-outline' }
 ]
 const staffMenu: MenuItem[] = [
