@@ -971,7 +971,7 @@ useHead({
 
 /* ヒーローセクション */
 .hero-section {
-  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  background: linear-gradient(135deg, #1e50a2 0%, #3d7bc5 100%);
   color: white;
   padding: 120px 0 100px;
   position: relative;
@@ -1020,7 +1020,7 @@ useHead({
   letter-spacing: 0.5px;
   text-transform: none;
   border: 2px solid white;
-  color: #2e7d32;
+  color: #1e50a2;
   border-radius: 12px;
 }
 
@@ -1038,7 +1038,7 @@ useHead({
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #2e7d32 0%, #4caf50 50%, #2e7d32 100%);
+  background: linear-gradient(90deg, #1e50a2 0%, #3d7bc5 50%, #1e50a2 100%);
 }
 
 /* セクション共通 */
@@ -1185,7 +1185,7 @@ useHead({
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #2e7d32 0%, #4caf50 50%, #2e7d32 100%);
+  background: linear-gradient(90deg, #1e50a2 0%, #3d7bc5 50%, #1e50a2 100%);
 }
 
 .contact-method-card {
@@ -1205,7 +1205,7 @@ useHead({
 }
 
 .contact-form-header {
-  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  background: linear-gradient(135deg, #1e50a2 0%, #3d7bc5 100%);
   color: white;
   padding: 20px 24px;
 }

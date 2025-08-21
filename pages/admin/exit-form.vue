@@ -1,36 +1,14 @@
 <template>
   <v-container class="pa-4" style="max-width: 1400px;">
     <!-- ヘッダー -->
-    <v-card class="mb-4 elevation-2">
-      <v-card-title class="text-h5 font-weight-bold white--text d-flex align-center" style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);">
-        <v-icon left color="white">mdi-clipboard-list-outline</v-icon>
+    <v-card class="mb-4">
+      <v-card-title class="text-h5 font-weight-bold text-white" style="background: linear-gradient(135deg, #1e50a2 0%, #154a8a 100%); color: white;">
+        <v-icon start color="white">mdi-clipboard-list-outline</v-icon>
         店舗売却ヒアリングシート
-        
-        <!-- 自動保存インジケーター -->
-        <v-spacer></v-spacer>
-        <div class="text-body-2 d-flex align-center">
-          <v-progress-circular
-            v-if="isSaving"
-            indeterminate
-            size="16"
-            width="2"
-            color="white"
-            class="mr-2"
-          ></v-progress-circular>
-          <v-icon v-else-if="lastSaved" size="20" color="white" class="mr-2">
-            mdi-check-circle
-          </v-icon>
-          <span v-if="isSaving">保存中...</span>
-          <span v-else-if="lastSaved">
-            自動保存済み
-            <span class="text-caption ml-1">({{ timeSinceLastSaveText }})</span>
-          </span>
-          <span v-else>未保存</span>
-        </div>
       </v-card-title>
       
       <!-- 進捗バー -->
-      <v-card-text class="pb-2">
+      <v-card-text class="pb-0">
         <div class="d-flex align-center mb-2">
           <span class="text-caption grey--text">入力進捗</span>
           <v-spacer></v-spacer>
@@ -43,285 +21,243 @@
           :color="progressPercentage === 100 ? 'success' : 'primary'"
         ></v-progress-linear>
         <div class="text-caption grey--text mt-1">
-          必須項目: {{ requiredFieldsCompleted }} / {{ totalRequiredFields }}
+          完了セクション: {{ sections.filter(s => getCompletionStatus(s.key)).length }} / {{ sections.length }}
         </div>
       </v-card-text>
     </v-card>
 
-    <!-- メインフォーム（タブ式） -->
-    <v-card class="elevation-2">
-      <!-- デバッグ：現在のactiveTab値 -->
-      <div class="pa-2 text-center bg-grey-lighten-4">
-        現在のアクティブタブ: {{ activeTab }}
-      </div>
-      
+    <!-- タブナビゲーション -->
+    <v-card class="mb-4">
       <v-tabs
-        v-model="activeTab"
-        color="primary"
+        v-model="currentTab"
         grow
         show-arrows
-        class="custom-tabs"
+        slider-color="primary"
+        class="tabs-header header-tabs"
       >
         <v-tab
-          v-for="(tab, index) in tabs"
-          :key="tab.key"
+          v-for="(section, index) in sections"
+          :key="index"
           :value="index"
+          stacked
+          class="tab-item"
+          :class="{ 'tab-completed': getCompletionStatus(section.key) }"
         >
-          <div 
-            :class="{ 
-              'text-primary font-weight-bold': activeTab === index,
-              'text-grey': activeTab !== index 
-            }" 
-            class="d-flex flex-column align-center"
+          <v-icon 
+            :color="getTabIconColor(section.key, index)" 
+            size="22"
+            class="mb-1"
           >
-            <v-badge
-              :content="getTabBadgeContent(tab.key)"
-              :color="activeTab === index ? 'primary' : 'grey'"
-              inline
-              class="mb-1"
-            >
-              <v-icon :color="activeTab === index ? 'primary' : 'grey'">{{ tab.icon }}</v-icon>
-            </v-badge>
-            <span class="text-caption">{{ tab.label }}</span>
-            <!-- デバッグ：タブのインデックス -->
-            <span class="text-caption text-red">{{ index }}</span>
-          </div>
+            {{ getCompletionStatus(section.key) ? 'mdi-check-circle' : section.icon }}
+          </v-icon>
+          <span class="text-caption text-medium-emphasis">{{ section.title }}</span>
         </v-tab>
       </v-tabs>
+    </v-card>
 
-      <v-form ref="mainForm" v-model="formValid">
-        <v-window v-model="activeTab" class="pa-4">
-          <!-- タブ1: 連絡先・現状の把握 -->
-          <v-window-item :value="0">
-            <div class="tab-content">
-              <!-- 連絡先 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-phone-outline</v-icon>
-                  連絡先
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="formData.contact.storeName"
-                        label="屋号名"
-                        outlined
-                        dense
-                        prepend-inner-icon="mdi-store"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="formData.contact.ownerName"
-                        label="氏名"
-                        :rules="[rules.required]"
-                        outlined
-                        dense
-                        prepend-inner-icon="mdi-account"
-                        required
-                      >
-                        <template v-slot:label>
-                          氏名 <span class="red--text">*</span>
-                        </template>
-                      </v-text-field>
-                    </v-col>
-                    <v-col cols="12">
-                      <v-text-field
-                        v-model="formData.contact.address"
-                        label="住所"
-                        :rules="[rules.required]"
-                        outlined
-                        dense
-                        prepend-inner-icon="mdi-map-marker"
-                        required
-                      >
-                        <template v-slot:label>
-                          住所 <span class="red--text">*</span>
-                        </template>
-                      </v-text-field>
-                    </v-col>
-                    <v-col cols="12" md="6">
-                      <v-text-field
-                        v-model="formData.contact.phoneNumber"
-                        label="連絡先"
-                        :rules="[rules.required, rules.phone]"
-                        outlined
-                        dense
-                        prepend-inner-icon="mdi-cellphone"
-                        placeholder="例: 090-1234-5678"
-                        required
-                      >
-                        <template v-slot:label>
-                          連絡先 <span class="red--text">*</span>
-                        </template>
-                      </v-text-field>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
-
-              <!-- 現状の把握 -->
-              <v-card outlined>
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-chart-line</v-icon>
-                  現状の把握
-                </v-card-title>
-                <v-card-text>
-                  <!-- 売却理由 -->
-                  <div class="mb-6">
-                    <div class="text-subtitle-2 mb-2">売却理由</div>
-                    <v-row>
-                      <v-col cols="12" sm="6" md="4" v-for="reason in saleReasons" :key="reason">
-                        <v-checkbox
-                          v-model="formData.status.reasonsForSale"
-                          :value="reason"
-                          :label="reason"
-                          dense
-                          hide-details
-                        ></v-checkbox>
-                      </v-col>
-                    </v-row>
+    <!-- メインフォーム -->
+    <v-form ref="mainForm" v-model="formValid">
+      <v-window v-model="currentTab" class="tab-content">
+        <!-- セクション1: 連絡先・現状の把握 -->
+        <v-window-item :value="0">
+            <!-- 連絡先 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-phone-outline</v-icon>
+                連絡先
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" md="6">
                     <v-text-field
-                      v-if="formData.status.reasonsForSale.includes('その他')"
-                      v-model="formData.status.reasonOtherText"
-                      label="その他の詳細"
+                      v-model="formData.contact.storeName"
+                      label="屋号名"
                       outlined
                       dense
-                      class="mt-3"
-                      placeholder="詳細を入力してください"
+                      prepend-inner-icon="mdi-store"
                     ></v-text-field>
-                  </div>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="formData.contact.ownerName"
+                      label="氏名"
+                      :rules="[rules.required]"
+                      outlined
+                      dense
+                      prepend-inner-icon="mdi-account"
+                      required
+                    >
+                      <template v-slot:label>
+                        氏名 <span class="red--text">*</span>
+                      </template>
+                    </v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field
+                      v-model="formData.contact.address"
+                      label="住所"
+                      :rules="[rules.required]"
+                      outlined
+                      dense
+                      prepend-inner-icon="mdi-map-marker"
+                      required
+                    >
+                      <template v-slot:label>
+                        住所 <span class="red--text">*</span>
+                      </template>
+                    </v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="formData.contact.phoneNumber"
+                      label="連絡先"
+                      :rules="[rules.required, rules.phone]"
+                      outlined
+                      dense
+                      prepend-inner-icon="mdi-cellphone"
+                      placeholder="例: 090-1234-5678"
+                      required
+                    >
+                      <template v-slot:label>
+                        連絡先 <span class="red--text">*</span>
+                      </template>
+                    </v-text-field>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
 
-                  <!-- メモ -->
-                  <v-textarea
-                    v-model="formData.status.memo"
-                    label="メモ"
+            <!-- 現状の把握 -->
+            <v-card outlined>
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-chart-line</v-icon>
+                現状の把握
+              </v-card-title>
+              <v-card-text>
+                <!-- 売却理由 -->
+                <div class="mb-6">
+                  <v-select
+                    v-model="formData.status.reasonsForSale"
+                    label="売却理由"
+                    :items="saleReasons"
+                    multiple
+                    chips
+                    small-chips
+                    deletable-chips
                     outlined
                     dense
-                    rows="3"
-                    prepend-inner-icon="mdi-note-text"
-                    placeholder="特記事項があれば記入してください"
-                  ></v-textarea>
+                    hide-details
+                  ></v-select>
+                  <v-text-field
+                    v-if="formData.status.reasonsForSale.includes('その他')"
+                    v-model="formData.status.reasonOtherText"
+                    label="その他の詳細"
+                    outlined
+                    dense
+                    class="mt-3"
+                    placeholder="詳細を入力してください"
+                  ></v-text-field>
+                </div>
 
-                  <!-- 解約通知状況 -->
-                  <div class="mb-6">
-                    <div class="text-subtitle-2 mb-2">解約通知状況</div>
-                    <v-radio-group
-                      v-model="formData.status.noticeStatus"
-                      row
-                      hide-details
-                    >
-                      <v-radio label="未提出" value="未提出"></v-radio>
-                      <v-radio label="提出予定" value="提出予定"></v-radio>
-                      <v-radio label="提出済み" value="提出済み"></v-radio>
-                    </v-radio-group>
-                    <v-row v-if="formData.status.noticeStatus !== '未提出'" class="mt-3">
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.status.submissionMonth"
-                          label="提出月"
-                          outlined
-                          dense
-                          type="month"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.status.exitMonth"
-                          label="退去月"
-                          outlined
-                          dense
-                          type="month"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                  </div>
+                <!-- メモ -->
+                <v-textarea
+                  v-model="formData.status.memo"
+                  label="メモ"
+                  outlined
+                  dense
+                  rows="3"
+                  prepend-inner-icon="mdi-note-text"
+                  placeholder="特記事項があれば記入してください"
+                ></v-textarea>
 
-                  <!-- 貸主への引継ぎ承諾 -->
-                  <div class="mb-6">
-                    <div class="text-subtitle-2 mb-2">貸主への引継ぎ承諾</div>
-                    <v-radio-group
-                      v-model="formData.status.handoverApproval"
-                      hide-details
-                    >
-                      <v-radio label="引継ぎ不可" value="引継ぎ不可"></v-radio>
-                      <v-radio label="未確認" value="未確認"></v-radio>
-                      <v-radio label="確認中" value="確認中"></v-radio>
-                      <v-radio label="承諾済み(家主)" value="承諾済み(家主)"></v-radio>
-                      <v-radio label="承諾済み(管理会社)" value="承諾済み(管理会社)"></v-radio>
-                    </v-radio-group>
-                  </div>
-
-                  <!-- 従業員への告知状況 -->
-                  <div class="mb-6">
-                    <div class="text-subtitle-2 mb-2">従業員への告知状況</div>
-                    <v-radio-group
-                      v-model="formData.status.employeeNotificationStatus"
-                      row
-                      hide-details
-                    >
-                      <v-radio label="未告知" value="未告知"></v-radio>
-                      <v-radio label="告知済み" value="告知済み"></v-radio>
-                      <v-radio label="告知予定" value="告知予定"></v-radio>
-                    </v-radio-group>
-                    <v-text-field
-                      v-if="formData.status.employeeNotificationStatus === '告知予定'"
-                      v-model="formData.status.employeeNotificationDate"
-                      label="予定時期"
-                      outlined
-                      dense
-                      type="date"
-                      class="mt-3"
-                    ></v-text-field>
-                  </div>
-
-                  <!-- 売却依頼先 -->
-                  <div class="mb-6">
-                    <v-checkbox
-                      v-model="formData.status.hasBroker"
-                      label="売却依頼先あり"
-                      hide-details
-                    ></v-checkbox>
-                    <v-row v-if="formData.status.hasBroker" class="mt-3">
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.status.brokerName"
-                          label="依頼先"
-                          outlined
-                          dense
-                          placeholder="会社名・担当者名"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.status.brokerListingPrice"
-                          label="募集金額"
-                          outlined
-                          dense
-                          type="number"
-                          prefix="¥"
-                          placeholder="0"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                  </div>
-
-                  <!-- 希望売却時期・価格 -->
-                  <v-row>
+                <!-- 解約通知状況 -->
+                <div class="mb-6">
+                  <v-select
+                    v-model="formData.status.noticeStatus"
+                    label="解約通知状況"
+                    :items="['未提出', '提出予定', '提出済み']"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-select>
+                  <v-row v-if="formData.status.noticeStatus !== '未提出'" class="mt-3">
                     <v-col cols="12" sm="6">
                       <v-text-field
-                        v-model="formData.status.desiredSaleDate"
-                        label="希望売却時期"
+                        v-model="formData.status.submissionMonth"
+                        label="提出月"
                         outlined
                         dense
-                        placeholder="例: 2024年3月末"
+                        type="month"
                       ></v-text-field>
                     </v-col>
                     <v-col cols="12" sm="6">
                       <v-text-field
-                        v-model="formData.status.desiredSalePrice"
-                        label="希望売却価格"
+                        v-model="formData.status.exitMonth"
+                        label="退去月"
+                        outlined
+                        dense
+                        type="month"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <!-- 貸主への引継ぎ承諾 -->
+                <v-row class="mb-6">
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.status.handoverApproval"
+                      label="貸主への引継ぎ承諾"
+                      :items="['引継ぎ不可', '未確認', '確認中', '承諾済み(家主)', '承諾済み(管理会社)']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.status.employeeNotificationStatus"
+                      label="従業員への告知状況"
+                      :items="['未告知', '告知済み', '告知予定']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                </v-row>
+
+                <!-- 告知予定日 -->
+                <v-text-field
+                  v-if="formData.status.employeeNotificationStatus === '告知予定'"
+                  v-model="formData.status.employeeNotificationDate"
+                  label="従業員への告知予定日"
+                  outlined
+                  dense
+                  type="date"
+                  class="mb-6"
+                ></v-text-field>
+
+                <!-- 売却依頼先 -->
+                <div class="mb-6">
+                  <v-checkbox
+                    v-model="formData.status.hasBroker"
+                    label="売却依頼先あり"
+                    hide-details
+                  ></v-checkbox>
+                  <v-row v-if="formData.status.hasBroker" class="mt-3">
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="formData.status.brokerName"
+                        label="依頼先"
+                        outlined
+                        dense
+                        placeholder="会社名・担当者名"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="formData.status.brokerListingPrice"
+                        label="募集金額"
                         outlined
                         dense
                         type="number"
@@ -330,1090 +266,1042 @@
                       ></v-text-field>
                     </v-col>
                   </v-row>
+                </div>
 
-                  <!-- 買主条件 -->
-                  <div class="mb-6">
-                    <v-checkbox
-                      v-model="formData.status.hasBuyerConditions"
-                      label="買主条件あり"
-                      hide-details
-                    ></v-checkbox>
+                <!-- 希望売却時期・価格 -->
+                <v-row>
+                  <v-col cols="12" sm="6">
                     <v-text-field
-                      v-if="formData.status.hasBuyerConditions"
-                      v-model="formData.status.buyerConditionsText"
-                      label="条件詳細"
+                      v-model="formData.status.desiredSaleDate"
+                      label="希望売却時期"
                       outlined
                       dense
-                      class="mt-3"
-                      placeholder="例: 個人・法人・業態など"
+                      placeholder="例: 2024年3月末"
                     ></v-text-field>
-                  </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.status.desiredSalePrice"
+                      label="希望売却価格"
+                      outlined
+                      dense
+                      type="number"
+                      prefix="¥"
+                      placeholder="0"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
 
-                  <!-- 今後の営業 -->
-                  <div>
-                    <div class="text-subtitle-2 mb-2">今後の営業</div>
-                    <v-radio-group
-                      v-model="formData.status.futureBusinessPlan"
-                      hide-details
-                    >
-                      <v-radio label="売却先が見つかるまで続ける" value="売却先が見つかるまで続ける"></v-radio>
-                      <v-radio label="閉店予定時期は決まっている" value="閉店予定時期は決まっている"></v-radio>
-                      <v-radio label="閉店している" value="閉店している"></v-radio>
-                    </v-radio-group>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </div>
-          </v-window-item>
-
-          <!-- タブ2: 基本情報 -->
-          <v-window-item :value="1">
-            <div class="tab-content">
-              <v-row>
-                <!-- 営業年数 -->
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="formData.basicInfo.yearsInBusiness"
-                    label="営業年数"
-                    outlined
-                    dense
-                    suffix="年"
-                    type="number"
-                  ></v-text-field>
-                </v-col>
-
-                <!-- 入居時の引渡し状態 -->
-                <v-col cols="12">
-                  <div class="text-subtitle-2 mb-2">入居時の引渡し状態</div>
-                  <v-radio-group
-                    v-model="formData.basicInfo.initialState"
-                    row
-                    hide-details
-                  >
-                    <v-radio label="スケルトン" value="スケルトン"></v-radio>
-                    <v-radio label="居抜き(無償)" value="居抜き(無償)"></v-radio>
-                    <v-radio label="居抜き(有償)" value="居抜き(有償)"></v-radio>
-                  </v-radio-group>
-                  <v-text-field
-                    v-if="formData.basicInfo.initialState === '居抜き(有償)'"
-                    v-model="formData.basicInfo.initialStatePrice"
-                    label="金額"
-                    outlined
-                    dense
-                    type="number"
-                    prefix="¥"
-                    class="mt-3"
-                  ></v-text-field>
-                </v-col>
-
-                <!-- 前テナント情報 -->
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="formData.basicInfo.previousTenantInfo"
-                    label="前テナント情報"
-                    outlined
-                    dense
-                    placeholder="業態・店舗名など"
-                  ></v-text-field>
-                </v-col>
-
-                <!-- 入居時の条件交渉 -->
-                <v-col cols="12">
+                <!-- 買主条件 -->
+                <div class="mb-6">
                   <v-checkbox
-                    v-model="formData.basicInfo.hasNegotiation"
-                    label="入居時の条件交渉あり"
+                    v-model="formData.status.hasBuyerConditions"
+                    label="買主条件あり"
                     hide-details
                   ></v-checkbox>
                   <v-text-field
-                    v-if="formData.basicInfo.hasNegotiation"
-                    v-model="formData.basicInfo.negotiationDetails"
-                    label="交渉内容"
+                    v-if="formData.status.hasBuyerConditions"
+                    v-model="formData.status.buyerConditionsText"
+                    label="条件詳細"
                     outlined
                     dense
                     class="mt-3"
-                    placeholder="例: 賃料減額など"
+                    placeholder="例: 個人・法人・業態など"
                   ></v-text-field>
-                </v-col>
+                </div>
 
-                <!-- 物件の利用制限 -->
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="formData.basicInfo.usageRestrictions"
-                    label="物件の利用制限"
+                <!-- 今後の営業 -->
+                <div>
+                  <v-select
+                    v-model="formData.status.futureBusinessPlan"
+                    label="今後の営業"
+                    :items="['売却先が見つかるまで続ける', '閉店予定時期は決まっている', '閉店している']"
                     outlined
                     dense
-                    placeholder="例: 営業時間・業種制限など"
-                  ></v-text-field>
-                </v-col>
-
-                <!-- 図面について -->
-                <v-col cols="12">
-                  <v-checkbox
-                    v-model="formData.basicInfo.hasDrawings"
-                    label="図面あり"
                     hide-details
-                  ></v-checkbox>
-                  <v-text-field
-                    v-if="formData.basicInfo.hasDrawings"
-                    v-model="formData.basicInfo.drawingDetails"
-                    label="図面の種類"
-                    outlined
-                    dense
-                    class="mt-3"
-                    placeholder="例: 平面図・給排水図面など"
-                  ></v-text-field>
-                </v-col>
+                  ></v-select>
+                </div>
+              </v-card-text>
+            </v-card>
+        </v-window-item>
 
-                <!-- 貸主のインボイス登録 -->
-                <v-col cols="12" sm="6">
-                  <div class="text-subtitle-2 mb-2">貸主のインボイス登録状況</div>
-                  <v-radio-group
-                    v-model="formData.basicInfo.landlordInvoiceStatus"
-                    row
-                    hide-details
-                  >
-                    <v-radio label="登録済み" value="登録済み"></v-radio>
-                    <v-radio label="未登録" value="未登録"></v-radio>
-                  </v-radio-group>
-                </v-col>
+        <!-- セクション2: 基本情報 -->
+        <v-window-item :value="1">
+            <v-row>
+              <!-- 営業年数 -->
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.basicInfo.yearsInBusiness"
+                  label="営業年数"
+                  outlined
+                  dense
+                  suffix="年"
+                  type="number"
+                ></v-text-field>
+              </v-col>
 
-                <!-- 電気・ガス・水道の契約 -->
-                <v-col cols="12">
-                  <v-divider class="my-4"></v-divider>
-                  <div class="text-subtitle-1 mb-4">
-                    <v-icon left size="20">mdi-power-plug</v-icon>
-                    光熱費の契約状況
-                  </div>
-                </v-col>
+              <!-- 入居時の引渡し状態 -->
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="formData.basicInfo.initialState"
+                  label="入居時の引渡し状態"
+                  :items="['スケルトン', '居抜き(無償)', '居抜き(有償)']"
+                  outlined
+                  dense
+                  hide-details
+                ></v-select>
+                <v-text-field
+                  v-if="formData.basicInfo.initialState === '居抜き(有償)'"
+                  v-model="formData.basicInfo.initialStatePrice"
+                  label="金額"
+                  outlined
+                  dense
+                  type="number"
+                  prefix="¥"
+                  class="mt-3"
+                ></v-text-field>
+              </v-col>
 
-                <!-- 電気 -->
-                <v-col cols="12">
-                  <v-card outlined>
-                    <v-card-text>
-                      <div class="d-flex align-center mb-3">
-                        <v-icon color="amber" class="mr-2">mdi-flash</v-icon>
-                        <span class="text-subtitle-2">電気の契約</span>
-                      </div>
-                      <v-radio-group
-                        v-model="formData.basicInfo.electricityContract"
-                        row
-                        hide-details
-                      >
-                        <v-radio label="家主検針" value="家主検針"></v-radio>
-                        <v-radio label="直接契約" value="直接契約"></v-radio>
-                      </v-radio-group>
-                      <v-text-field
-                        v-if="formData.basicInfo.electricityContract === '直接契約'"
-                        v-model="formData.basicInfo.electricityCustomerNumber"
-                        label="お客様番号"
-                        outlined
-                        dense
-                        class="mt-3"
-                      ></v-text-field>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
+              <!-- 前テナント情報 -->
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.basicInfo.previousTenantInfo"
+                  label="前テナント情報"
+                  outlined
+                  dense
+                  placeholder="業態・店舗名など"
+                ></v-text-field>
+              </v-col>
 
-                <!-- ガス -->
-                <v-col cols="12">
-                  <v-card outlined>
-                    <v-card-text>
-                      <div class="d-flex align-center mb-3">
-                        <v-icon color="blue" class="mr-2">mdi-fire</v-icon>
-                        <span class="text-subtitle-2">ガスの契約</span>
-                      </div>
-                      <v-radio-group
-                        v-model="formData.basicInfo.gasContract"
-                        row
-                        hide-details
-                      >
-                        <v-radio label="家主検針" value="家主検針"></v-radio>
-                        <v-radio label="直接契約" value="直接契約"></v-radio>
-                      </v-radio-group>
-                      <v-text-field
-                        v-if="formData.basicInfo.gasContract === '直接契約'"
-                        v-model="formData.basicInfo.gasCustomerNumber"
-                        label="お客様番号"
-                        outlined
-                        dense
-                        class="mt-3"
-                      ></v-text-field>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
+              <!-- 入居時の条件交渉 -->
+              <v-col cols="12">
+                <v-checkbox
+                  v-model="formData.basicInfo.hasNegotiation"
+                  label="入居時の条件交渉あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.basicInfo.hasNegotiation"
+                  v-model="formData.basicInfo.negotiationDetails"
+                  label="交渉内容"
+                  outlined
+                  dense
+                  class="mt-3"
+                  placeholder="例: 賃料減額など"
+                ></v-text-field>
+              </v-col>
 
-                <!-- 水道 -->
-                <v-col cols="12">
-                  <v-card outlined>
-                    <v-card-text>
-                      <div class="d-flex align-center mb-3">
-                        <v-icon color="light-blue" class="mr-2">mdi-water</v-icon>
-                        <span class="text-subtitle-2">水道の契約</span>
-                      </div>
-                      <v-radio-group
-                        v-model="formData.basicInfo.waterContract"
-                        row
-                        hide-details
-                      >
-                        <v-radio label="家主検針" value="家主検針"></v-radio>
-                        <v-radio label="直接契約" value="直接契約"></v-radio>
-                      </v-radio-group>
-                      <v-text-field
-                        v-if="formData.basicInfo.waterContract === '直接契約'"
-                        v-model="formData.basicInfo.waterCustomerNumber"
-                        label="お客様番号"
-                        outlined
-                        dense
-                        class="mt-3"
-                      ></v-text-field>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
+              <!-- 物件の利用制限 -->
+              <v-col cols="12">
+                <v-text-field
+                  v-model="formData.basicInfo.usageRestrictions"
+                  label="物件の利用制限"
+                  outlined
+                  dense
+                  placeholder="例: 営業時間・業種制限など"
+                ></v-text-field>
+              </v-col>
 
-                <!-- ゴミ出し -->
-                <v-col cols="12">
-                  <v-divider class="my-4"></v-divider>
-                  <div class="text-subtitle-1 mb-4">
-                    <v-icon left size="20">mdi-delete</v-icon>
-                    ゴミ出し
-                  </div>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="formData.basicInfo.garbageDisposalRules"
-                    label="ゴミ出し規則"
-                    outlined
-                    dense
-                    placeholder="ゴミ出しのルール・場所など"
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="formData.basicInfo.garbageDisposalCost"
-                    label="ゴミ出し費用"
-                    outlined
-                    dense
-                    type="number"
-                    suffix="円"
-                  ></v-text-field>
-                </v-col>
+              <!-- 図面について -->
+              <v-col cols="12">
+                <v-checkbox
+                  v-model="formData.basicInfo.hasDrawings"
+                  label="図面あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.basicInfo.hasDrawings"
+                  v-model="formData.basicInfo.drawingDetails"
+                  label="図面の種類"
+                  outlined
+                  dense
+                  class="mt-3"
+                  placeholder="例: 平面図・給排水図面など"
+                ></v-text-field>
+              </v-col>
 
-                <!-- その他費用 -->
-                <v-col cols="12">
-                  <v-checkbox
-                    v-model="formData.basicInfo.hasOtherCosts"
-                    label="その他費用あり"
-                    hide-details
-                  ></v-checkbox>
-                  <v-text-field
-                    v-if="formData.basicInfo.hasOtherCosts"
-                    v-model="formData.basicInfo.otherCostsDetails"
-                    label="費用の詳細"
-                    outlined
-                    dense
-                    class="mt-3"
-                    placeholder="例: 商店街費・町内会費など"
-                  ></v-text-field>
-                </v-col>
+              <!-- 貸主のインボイス登録 -->
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="formData.basicInfo.landlordInvoiceStatus"
+                  label="貸主のインボイス登録状況"
+                  :items="['登録済み', '未登録']"
+                  outlined
+                  dense
+                  hide-details
+                ></v-select>
+              </v-col>
 
-                <!-- 事前申告事項 -->
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="formData.basicInfo.declarations"
-                    label="事前申告事項"
-                    outlined
-                    dense
-                    rows="3"
-                    placeholder="例: 家賃滞納・近隣トラブル・家主変更など"
-                  ></v-textarea>
-                </v-col>
+              <!-- 電気・ガス・水道の契約 -->
+              <v-col cols="12">
+                <v-divider class="my-4"></v-divider>
+                <div class="text-subtitle-1 mb-4">
+                  <v-icon left size="20">mdi-power-plug</v-icon>
+                  光熱費の契約状況
+                </div>
+              </v-col>
 
-                <!-- 後継テナントの新条件 -->
-                <v-col cols="12">
-                  <v-textarea
-                    v-model="formData.basicInfo.newTenantConditions"
-                    label="後継テナントの新条件"
-                    outlined
-                    dense
-                    rows="3"
-                    placeholder="例: 既に貸主から後継テナントの新条件を聞いている場合"
-                  ></v-textarea>
-                </v-col>
-              </v-row>
-            </div>
-          </v-window-item>
+              <!-- 電気・ガス・水道を横並び -->
+              <v-col cols="12" sm="4">
+                <v-select
+                  v-model="formData.basicInfo.electricityContract"
+                  label="電気の契約"
+                  :items="['家主検針', '直接契約']"
+                  outlined
+                  dense
+                  hide-details
+                  prepend-inner-icon="mdi-flash"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" sm="4">
+                <v-select
+                  v-model="formData.basicInfo.gasContract"
+                  label="ガスの契約"
+                  :items="['家主検針', '直接契約']"
+                  outlined
+                  dense
+                  hide-details
+                  prepend-inner-icon="mdi-fire"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" sm="4">
+                <v-select
+                  v-model="formData.basicInfo.waterContract"
+                  label="水道の契約"
+                  :items="['家主検針', '直接契約']"
+                  outlined
+                  dense
+                  hide-details
+                  prepend-inner-icon="mdi-water"
+                ></v-select>
+              </v-col>
 
-          <!-- タブ3: 設備の確認 -->
-          <v-window-item :value="2">
-            <div class="tab-content">
-              <!-- 工事費用 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-currency-usd</v-icon>
-                  工事費用
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12" sm="6" md="3">
-                      <v-text-field
-                        v-model="formData.equipment.interiorCost"
-                        label="内装費"
-                        outlined
-                        dense
-                        type="number"
-                        prefix="¥"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6" md="3">
-                      <v-text-field
-                        v-model="formData.equipment.facilityCost"
-                        label="設備費"
-                        outlined
-                        dense
-                        type="number"
-                        prefix="¥"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6" md="3">
-                      <v-text-field
-                        v-model="formData.equipment.additionalRenovationCost"
-                        label="追加リフォーム費"
-                        outlined
-                        dense
-                        type="number"
-                        prefix="¥"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6" md="3">
-                      <v-text-field
-                        v-model="formData.equipment.renovationYear"
-                        label="実施年"
-                        outlined
-                        dense
-                        placeholder="例: 2020年"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
+              <!-- お客様番号（直接契約の場合） -->
+              <v-col cols="12" sm="4" v-if="formData.basicInfo.electricityContract === '直接契約'">
+                <v-text-field
+                  v-model="formData.basicInfo.electricityCustomerNumber"
+                  label="電気お客様番号"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-identifier"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="4" v-if="formData.basicInfo.gasContract === '直接契約'">
+                <v-text-field
+                  v-model="formData.basicInfo.gasCustomerNumber"
+                  label="ガスお客様番号"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-identifier"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="4" v-if="formData.basicInfo.waterContract === '直接契約'">
+                <v-text-field
+                  v-model="formData.basicInfo.waterCustomerNumber"
+                  label="水道お客様番号"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-identifier"
+                ></v-text-field>
+              </v-col>
 
-              <!-- 設備状況 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-clipboard-check</v-icon>
-                  設備状況
-                </v-card-title>
-                <v-card-text>
-                  <!-- 譲渡しない設備 -->
-                  <v-checkbox
-                    v-model="formData.equipment.hasNonTransferable"
-                    label="譲渡しない設備あり"
-                    hide-details
-                  ></v-checkbox>
-                  <v-text-field
-                    v-if="formData.equipment.hasNonTransferable"
-                    v-model="formData.equipment.nonTransferableDetails"
-                    label="譲渡しない設備の詳細"
-                    outlined
-                    dense
-                    class="mt-3 mb-4"
-                  ></v-text-field>
+              <!-- ゴミ出し -->
+              <v-col cols="12">
+                <v-divider class="my-4"></v-divider>
+                <div class="text-subtitle-1 mb-4">
+                  <v-icon left size="20">mdi-delete</v-icon>
+                  ゴミ出し
+                </div>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.basicInfo.garbageDisposalRules"
+                  label="ゴミ出し規則"
+                  outlined
+                  dense
+                  placeholder="ゴミ出しのルール・場所など"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.basicInfo.garbageDisposalCost"
+                  label="ゴミ出し費用"
+                  outlined
+                  dense
+                  type="number"
+                  suffix="円"
+                ></v-text-field>
+              </v-col>
 
-                  <!-- 故障している設備 -->
-                  <v-checkbox
-                    v-model="formData.equipment.hasBroken"
-                    label="故障している設備あり"
-                    hide-details
-                  ></v-checkbox>
-                  <v-text-field
-                    v-if="formData.equipment.hasBroken"
-                    v-model="formData.equipment.brokenDetails"
-                    label="故障設備の詳細"
-                    outlined
-                    dense
-                    class="mt-3 mb-4"
-                  ></v-text-field>
+              <!-- その他費用 -->
+              <v-col cols="12">
+                <v-checkbox
+                  v-model="formData.basicInfo.hasOtherCosts"
+                  label="その他費用あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.basicInfo.hasOtherCosts"
+                  v-model="formData.basicInfo.otherCostsDetails"
+                  label="費用の詳細"
+                  outlined
+                  dense
+                  class="mt-3"
+                  placeholder="例: 商店街費・町内会費など"
+                ></v-text-field>
+              </v-col>
 
-                  <!-- リースの残債がある設備 -->
-                  <v-checkbox
-                    v-model="formData.equipment.hasLeaseDebt"
-                    label="リースの残債がある設備あり"
-                    hide-details
-                  ></v-checkbox>
-                  <v-text-field
-                    v-if="formData.equipment.hasLeaseDebt"
-                    v-model="formData.equipment.leaseDebtDetails"
-                    label="リース残債の詳細"
-                    outlined
-                    dense
-                    class="mt-3 mb-4"
-                  ></v-text-field>
+              <!-- 事前申告事項 -->
+              <v-col cols="12">
+                <v-textarea
+                  v-model="formData.basicInfo.declarations"
+                  label="事前申告事項"
+                  outlined
+                  dense
+                  rows="3"
+                  placeholder="例: 家賃滞納・近隣トラブル・家主変更など"
+                ></v-textarea>
+              </v-col>
 
-                  <!-- 貸主設備 -->
-                  <v-checkbox
-                    v-model="formData.equipment.hasLandlordEquipment"
-                    label="貸主設備あり"
-                    hide-details
-                  ></v-checkbox>
-                  <v-text-field
-                    v-if="formData.equipment.hasLandlordEquipment"
-                    v-model="formData.equipment.landlordEquipmentDetails"
-                    label="貸主設備の詳細"
-                    outlined
-                    dense
-                    class="mt-3 mb-4"
-                  ></v-text-field>
+              <!-- 後継テナントの新条件 -->
+              <v-col cols="12">
+                <v-textarea
+                  v-model="formData.basicInfo.newTenantConditions"
+                  label="後継テナントの新条件"
+                  outlined
+                  dense
+                  rows="3"
+                  placeholder="例: 既に貸主から後継テナントの新条件を聞いている場合"
+                ></v-textarea>
+              </v-col>
+            </v-row>
+        </v-window-item>
 
-                  <!-- 調理器具/皿/グラス -->
-                  <div class="mb-4">
-                    <div class="text-subtitle-2 mb-2">調理器具やお皿グラスなどについて</div>
-                    <v-radio-group
+        <!-- セクション3: 設備の確認 -->
+        <v-window-item :value="2">
+            <!-- 工事費用 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-currency-usd</v-icon>
+                工事費用
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-text-field
+                      v-model="formData.equipment.interiorCost"
+                      label="内装費"
+                      outlined
+                      dense
+                      type="number"
+                      prefix="¥"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-text-field
+                      v-model="formData.equipment.facilityCost"
+                      label="設備費"
+                      outlined
+                      dense
+                      type="number"
+                      prefix="¥"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-text-field
+                      v-model="formData.equipment.additionalRenovationCost"
+                      label="追加リフォーム費"
+                      outlined
+                      dense
+                      type="number"
+                      prefix="¥"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-text-field
+                      v-model="formData.equipment.renovationYear"
+                      label="実施年"
+                      outlined
+                      dense
+                      placeholder="例: 2020年"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- 設備状況 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-clipboard-check</v-icon>
+                設備状況
+              </v-card-title>
+              <v-card-text>
+                <!-- 譲渡しない設備 -->
+                <v-checkbox
+                  v-model="formData.equipment.hasNonTransferable"
+                  label="譲渡しない設備あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.equipment.hasNonTransferable"
+                  v-model="formData.equipment.nonTransferableDetails"
+                  label="譲渡しない設備の詳細"
+                  outlined
+                  dense
+                  class="mt-3 mb-4"
+                ></v-text-field>
+
+                <!-- 故障している設備 -->
+                <v-checkbox
+                  v-model="formData.equipment.hasBroken"
+                  label="故障している設備あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.equipment.hasBroken"
+                  v-model="formData.equipment.brokenDetails"
+                  label="故障設備の詳細"
+                  outlined
+                  dense
+                  class="mt-3 mb-4"
+                ></v-text-field>
+
+                <!-- リースの残債がある設備 -->
+                <v-checkbox
+                  v-model="formData.equipment.hasLeaseDebt"
+                  label="リースの残債がある設備あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.equipment.hasLeaseDebt"
+                  v-model="formData.equipment.leaseDebtDetails"
+                  label="リース残債の詳細"
+                  outlined
+                  dense
+                  class="mt-3 mb-4"
+                ></v-text-field>
+
+                <!-- 貸主設備 -->
+                <v-checkbox
+                  v-model="formData.equipment.hasLandlordEquipment"
+                  label="貸主設備あり"
+                  hide-details
+                ></v-checkbox>
+                <v-text-field
+                  v-if="formData.equipment.hasLandlordEquipment"
+                  v-model="formData.equipment.landlordEquipmentDetails"
+                  label="貸主設備の詳細"
+                  outlined
+                  dense
+                  class="mt-3 mb-4"
+                ></v-text-field>
+
+                <!-- 調理器具/皿/グラスと席数を横並び -->
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-select
                       v-model="formData.equipment.tablewareStatus"
-                      hide-details
-                    >
-                      <v-radio label="全て残置する" value="全て残置する"></v-radio>
-                      <v-radio label="全て撤去する" value="全て撤去する"></v-radio>
-                      <v-radio label="一部撤去" value="一部撤去"></v-radio>
-                    </v-radio-group>
-                  </div>
-
-                  <!-- 席数 -->
-                  <v-text-field
-                    v-model="formData.equipment.seatCount"
-                    label="席数"
-                    outlined
-                    dense
-                    suffix="席"
-                    type="number"
-                  ></v-text-field>
-
-                  <!-- メモ -->
-                  <v-textarea
-                    v-model="formData.equipment.memo"
-                    label="設備に関するメモ"
-                    outlined
-                    dense
-                    rows="3"
-                  ></v-textarea>
-                </v-card-text>
-              </v-card>
-
-              <!-- 排気・排水設備 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-air-filter</v-icon>
-                  排気・排水設備
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12" sm="6">
-                      <div class="text-subtitle-2 mb-2">排気設備の種類</div>
-                      <v-radio-group
-                        v-model="formData.equipment.exhaustType"
-                        hide-details
-                      >
-                        <v-radio label="換気扇" value="換気扇"></v-radio>
-                        <v-radio label="ダクト" value="ダクト"></v-radio>
-                      </v-radio-group>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <div class="text-subtitle-2 mb-2">排気ルート</div>
-                      <v-radio-group
-                        v-model="formData.equipment.exhaustRoute"
-                        hide-details
-                      >
-                        <v-radio label="店舗側面" value="店舗側面"></v-radio>
-                        <v-radio label="店舗前面" value="店舗前面"></v-radio>
-                        <v-radio label="店舗背面" value="店舗背面"></v-radio>
-                        <v-radio label="屋上" value="屋上"></v-radio>
-                      </v-radio-group>
-                    </v-col>
-                    <v-col cols="12">
-                      <div class="text-subtitle-2 mb-2">排水設備の種類</div>
-                      <v-radio-group
-                        v-model="formData.equipment.drainageType"
-                        hide-details
-                      >
-                        <v-radio label="グリストラップ(床下埋め込み・置き型)" value="グリストラップ(床下埋め込み・置き型)"></v-radio>
-                        <v-radio label="ドライキッチン" value="ドライキッチン"></v-radio>
-                      </v-radio-group>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
-
-              <!-- メーター情報 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-gauge</v-icon>
-                  メーター情報
-                </v-card-title>
-                <v-card-text>
-                  <!-- 電気メーター -->
-                  <div class="mb-4">
-                    <div class="d-flex align-center mb-3">
-                      <v-icon color="amber" class="mr-2">mdi-flash</v-icon>
-                      <span class="text-subtitle-2">電気メーター</span>
-                    </div>
-                    <v-row>
-                      <v-col cols="12" sm="4">
-                        <v-text-field
-                          v-model="formData.equipment.electricityMeter.location"
-                          label="場所"
-                          outlined
-                          dense
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="4">
-                        <v-text-field
-                          v-model="formData.equipment.electricityMeter.capacity"
-                          label="電気容量"
-                          outlined
-                          dense
-                          placeholder="例: 30A"
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="4">
-                        <v-text-field
-                          v-model="formData.equipment.electricityMeter.powerCapacity"
-                          label="動力容量"
-                          outlined
-                          dense
-                          placeholder="例: 15kW"
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                  </div>
-
-                  <!-- ガスメーター -->
-                  <div class="mb-4">
-                    <div class="d-flex align-center mb-3">
-                      <v-icon color="blue" class="mr-2">mdi-fire</v-icon>
-                      <span class="text-subtitle-2">ガスメーター</span>
-                    </div>
-                    <v-row>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.equipment.gasMeter.location"
-                          label="場所"
-                          outlined
-                          dense
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.equipment.gasMeter.capacity"
-                          label="ガス容量"
-                          outlined
-                          dense
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                  </div>
-
-                  <!-- 水道メーター -->
-                  <div>
-                    <div class="d-flex align-center mb-3">
-                      <v-icon color="light-blue" class="mr-2">mdi-water</v-icon>
-                      <span class="text-subtitle-2">水道メーター</span>
-                    </div>
-                    <v-row>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.equipment.waterMeter.location"
-                          label="場所"
-                          outlined
-                          dense
-                        ></v-text-field>
-                      </v-col>
-                      <v-col cols="12" sm="6">
-                        <v-text-field
-                          v-model="formData.equipment.waterMeter.pipeCapacity"
-                          label="排水管の容量"
-                          outlined
-                          dense
-                        ></v-text-field>
-                      </v-col>
-                    </v-row>
-                  </div>
-                </v-card-text>
-              </v-card>
-
-              <!-- その他設備情報 -->
-              <v-card outlined>
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-home-variant</v-icon>
-                  その他設備情報
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.equipment.outdoorUnitLocation"
-                        label="室外機の場所"
-                        outlined
-                        dense
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.equipment.mdfLocation"
-                        label="MDF盤の場所"
-                        outlined
-                        dense
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-
-                  <!-- 店舗の瑕疵 -->
-                  <div class="mb-4">
-                    <div class="text-subtitle-2 mb-2">店舗の瑕疵</div>
-                    <v-row>
-                      <v-col cols="12" sm="6" md="4" v-for="defect in storeDefects" :key="defect">
-                        <v-checkbox
-                          v-model="formData.equipment.defects"
-                          :value="defect"
-                          :label="defect"
-                          dense
-                          hide-details
-                        ></v-checkbox>
-                      </v-col>
-                    </v-row>
-                    <v-text-field
-                      v-if="formData.equipment.defects.includes('その他')"
-                      v-model="formData.equipment.defectOtherText"
-                      label="その他の詳細"
+                      label="調理器具やお皿グラスなどについて"
+                      :items="['全て残置する', '全て撤去する', '一部撤去']"
                       outlined
                       dense
-                      class="mt-3"
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.equipment.seatCount"
+                      label="席数"
+                      outlined
+                      dense
+                      suffix="席"
+                      type="number"
+                      hide-details
                     ></v-text-field>
-                  </div>
+                  </v-col>
+                </v-row>
 
-                  <!-- 届出済みの許認可 -->
-                  <div>
-                    <div class="text-subtitle-2 mb-2">届出済みの許認可</div>
-                    <v-row>
-                      <v-col cols="12" sm="4" v-for="permit in permits" :key="permit">
-                        <v-checkbox
-                          v-model="formData.equipment.permits"
-                          :value="permit"
-                          :label="permit"
-                          dense
-                          hide-details
-                        ></v-checkbox>
-                      </v-col>
-                    </v-row>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </div>
-          </v-window-item>
+                <!-- メモ -->
+                <v-textarea
+                  v-model="formData.equipment.memo"
+                  label="設備に関するメモ"
+                  outlined
+                  dense
+                  rows="3"
+                ></v-textarea>
+              </v-card-text>
+            </v-card>
 
-          <!-- タブ4: 募集に関わること -->
-          <v-window-item :value="3">
-            <div class="tab-content">
-              <!-- 売上情報 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-cash</v-icon>
-                  売上情報
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.highSales"
-                        label="良かった時の月商"
-                        outlined
-                        dense
-                        type="number"
-                        suffix="万円"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.lowSales"
-                        label="悪かった時の月商"
-                        outlined
-                        dense
-                        type="number"
-                        suffix="万円"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                  <v-textarea
-                    v-model="formData.recruitment.salesMemo"
-                    label="売上に関するメモ"
-                    outlined
-                    dense
-                    rows="2"
-                  ></v-textarea>
-                </v-card-text>
-              </v-card>
-
-              <!-- 営業情報 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-clock-outline</v-icon>
-                  営業情報
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.lunchHours"
-                        label="営業時間(昼)"
-                        outlined
-                        dense
-                        placeholder="例: 11時〜14時"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.dinnerHours"
-                        label="営業時間(夜)"
-                        outlined
-                        dense
-                        placeholder="例: 17時〜23時"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.lunchAvgSpend"
-                        label="客単価(昼)"
-                        outlined
-                        dense
-                        type="number"
-                        suffix="円"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.dinnerAvgSpend"
-                        label="客単価(夜)"
-                        outlined
-                        dense
-                        type="number"
-                        suffix="円"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12">
-                      <v-text-field
-                        v-model="formData.recruitment.closingDays"
-                        label="定休日"
-                        outlined
-                        dense
-                        placeholder="例: 毎週月曜日"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
-
-              <!-- エリア・客層 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-map-marker</v-icon>
-                  エリア・客層
-                </v-card-title>
-                <v-card-text>
-                  <div class="mb-4">
-                    <div class="text-subtitle-2 mb-2">エリア</div>
-                    <v-row>
-                      <v-col cols="12" sm="6" md="3" v-for="area in areaTypes" :key="area">
-                        <v-checkbox
-                          v-model="formData.recruitment.areaTypes"
-                          :value="area"
-                          :label="area"
-                          dense
-                          hide-details
-                        ></v-checkbox>
-                      </v-col>
-                    </v-row>
-                  </div>
-                  <div class="mb-4">
-                    <div class="text-subtitle-2 mb-2">客層</div>
-                    <v-row>
-                      <v-col cols="12" sm="6" md="3" v-for="segment in customerSegments" :key="segment">
-                        <v-checkbox
-                          v-model="formData.recruitment.customerSegments"
-                          :value="segment"
-                          :label="segment"
-                          dense
-                          hide-details
-                        ></v-checkbox>
-                      </v-col>
-                    </v-row>
-                  </div>
-                  <v-textarea
-                    v-model="formData.recruitment.areaMemo"
-                    label="エリア・客層に関するメモ"
-                    outlined
-                    dense
-                    rows="2"
-                  ></v-textarea>
-                </v-card-text>
-              </v-card>
-
-              <!-- アピールポイント -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-star</v-icon>
-                  おすすめポイント
-                </v-card-title>
-                <v-card-text>
-                  <v-textarea
-                    v-model="formData.recruitment.appealPoints"
-                    label="おすすめポイント"
-                    outlined
-                    dense
-                    rows="4"
-                    placeholder="物件の魅力・セールスポイントを記入"
-                  ></v-textarea>
-                </v-card-text>
-              </v-card>
-
-              <!-- 売却条件 -->
-              <v-card outlined class="mb-4">
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-handshake</v-icon>
-                  売却条件
-                </v-card-title>
-                <v-card-text>
-                  <div class="mb-4">
-                    <div class="text-subtitle-2 mb-2">最重要ポイント</div>
-                    <v-radio-group
-                      v-model="formData.recruitment.priorityPoint"
+            <!-- 排気・排水設備 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-air-filter</v-icon>
+                排気・排水設備
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.equipment.exhaustType"
+                      label="排気設備の種類"
+                      :items="['換気扇', 'ダクト']"
+                      outlined
+                      dense
                       hide-details
-                    >
-                      <v-radio label="なるべく急ぎで売りたい" value="なるべく急ぎで売りたい"></v-radio>
-                      <v-radio label="金額も早さもバランスよく売りたい" value="金額も早さもバランスよく売りたい"></v-radio>
-                      <v-radio label="急いでないのでじっくり高く売りたい" value="急いでないのでじっくり高く売りたい"></v-radio>
-                    </v-radio-group>
-                  </div>
-                  <v-textarea
-                    v-model="formData.recruitment.specialConditions"
-                    label="特殊条件"
-                    outlined
-                    dense
-                    rows="3"
-                    placeholder="例: 名義変更・従業員の引継ぎなど"
-                  ></v-textarea>
-                  <v-row>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.sellingPrice"
-                        label="販売価格"
-                        outlined
-                        dense
-                        type="number"
-                        prefix="¥"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="formData.recruitment.listingPrice"
-                        label="募集価格"
-                        outlined
-                        dense
-                        type="number"
-                        prefix="¥"
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.equipment.exhaustRoute"
+                      label="排気ルート"
+                      :items="['店舗側面', '店舗前面', '店舗背面', '屋上']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.equipment.drainageType"
+                      label="排水設備の種類"
+                      :items="['グリストラップ(床下埋め込み・置き型)', 'ドライキッチン']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
 
-              <!-- 内覧・掲載条件 -->
-              <v-card outlined>
-                <v-card-title class="text-subtitle-1 grey lighten-4">
-                  <v-icon left size="20">mdi-eye</v-icon>
-                  内覧・掲載条件
-                </v-card-title>
-                <v-card-text>
-                  <v-textarea
-                    v-model="formData.recruitment.viewingAvailability"
-                    label="内覧可能日時"
-                    outlined
-                    dense
-                    rows="2"
-                    placeholder="例: 平日14時〜17時、土日終日可"
-                  ></v-textarea>
+            <!-- メーター情報 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-gauge</v-icon>
+                メーター情報
+              </v-card-title>
+              <v-card-text>
+                <!-- 電気メーター -->
+                <div class="mb-4">
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="amber" class="mr-2">mdi-flash</v-icon>
+                    <span class="text-subtitle-2">電気メーター</span>
+                  </div>
                   <v-row>
-                    <v-col cols="12" sm="6">
-                      <div class="text-subtitle-2 mb-2">物件紹介におけるメール送信</div>
-                      <v-radio-group
-                        v-model="formData.recruitment.allowEmail"
-                        hide-details
-                      >
-                        <v-radio label="メール送信可" value="メール送信可"></v-radio>
-                        <v-radio label="メール送信不可" value="メール送信不可"></v-radio>
-                      </v-radio-group>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        v-model="formData.equipment.electricityMeter.location"
+                        label="場所"
+                        outlined
+                        dense
+                      ></v-text-field>
                     </v-col>
-                    <v-col cols="12" sm="6">
-                      <div class="text-subtitle-2 mb-2">物件募集におけるネット掲載</div>
-                      <v-radio-group
-                        v-model="formData.recruitment.allowWebListing"
-                        hide-details
-                      >
-                        <v-radio label="ネット掲載可(写真あり)" value="ネット掲載可(写真あり)"></v-radio>
-                        <v-radio label="ネット掲載可(写真なし)" value="ネット掲載可(写真なし)"></v-radio>
-                        <v-radio label="ネット掲載不可" value="ネット掲載不可"></v-radio>
-                      </v-radio-group>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        v-model="formData.equipment.electricityMeter.capacity"
+                        label="電気容量"
+                        outlined
+                        dense
+                        placeholder="例: 30A"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        v-model="formData.equipment.electricityMeter.powerCapacity"
+                        label="動力容量"
+                        outlined
+                        dense
+                        placeholder="例: 15kW"
+                      ></v-text-field>
                     </v-col>
                   </v-row>
-                  <div class="mt-4">
-                    <div class="text-subtitle-2 mb-2">進捗状況報告の連絡手段</div>
-                    <v-radio-group
+                </div>
+
+                <!-- ガスメーター -->
+                <div class="mb-4">
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="blue" class="mr-2">mdi-fire</v-icon>
+                    <span class="text-subtitle-2">ガスメーター</span>
+                  </div>
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="formData.equipment.gasMeter.location"
+                        label="場所"
+                        outlined
+                        dense
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="formData.equipment.gasMeter.capacity"
+                        label="ガス容量"
+                        outlined
+                        dense
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <!-- 水道メーター -->
+                <div>
+                  <div class="d-flex align-center mb-3">
+                    <v-icon color="light-blue" class="mr-2">mdi-water</v-icon>
+                    <span class="text-subtitle-2">水道メーター</span>
+                  </div>
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="formData.equipment.waterMeter.location"
+                        label="場所"
+                        outlined
+                        dense
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="formData.equipment.waterMeter.pipeCapacity"
+                        label="排水管の容量"
+                        outlined
+                        dense
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-card-text>
+            </v-card>
+
+            <!-- その他設備情報 -->
+            <v-card outlined>
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-home-variant</v-icon>
+                その他設備情報
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.equipment.outdoorUnitLocation"
+                      label="室外機の場所"
+                      outlined
+                      dense
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.equipment.mdfLocation"
+                      label="MDF盤の場所"
+                      outlined
+                      dense
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <!-- 店舗の瑕疵と届出済みの許認可を横並び -->
+                <v-row class="mb-4">
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.equipment.defects"
+                      label="店舗の瑕疵"
+                      :items="storeDefects"
+                      multiple
+                      chips
+                      small-chips
+                      deletable-chips
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.equipment.permits"
+                      label="届出済みの許認可"
+                      :items="permits"
+                      multiple
+                      chips
+                      small-chips
+                      deletable-chips
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                </v-row>
+                <v-text-field
+                  v-if="formData.equipment.defects.includes('その他')"
+                  v-model="formData.equipment.defectOtherText"
+                  label="その他の詳細（瑕疵）"
+                  outlined
+                  dense
+                  class="mb-4"
+                ></v-text-field>
+              </v-card-text>
+            </v-card>
+        </v-window-item>
+
+        <!-- セクション4: 募集に関わること -->
+        <v-window-item :value="3">
+            <!-- 売上情報 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-cash</v-icon>
+                売上情報
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.highSales"
+                      label="良かった時の月商"
+                      outlined
+                      dense
+                      type="number"
+                      suffix="万円"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.lowSales"
+                      label="悪かった時の月商"
+                      outlined
+                      dense
+                      type="number"
+                      suffix="万円"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+                <v-textarea
+                  v-model="formData.recruitment.salesMemo"
+                  label="売上に関するメモ"
+                  outlined
+                  dense
+                  rows="2"
+                ></v-textarea>
+              </v-card-text>
+            </v-card>
+
+            <!-- 営業情報 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-clock-outline</v-icon>
+                営業情報
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.lunchHours"
+                      label="営業時間(昼)"
+                      outlined
+                      dense
+                      placeholder="例: 11時〜14時"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.dinnerHours"
+                      label="営業時間(夜)"
+                      outlined
+                      dense
+                      placeholder="例: 17時〜23時"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.lunchAvgSpend"
+                      label="客単価(昼)"
+                      outlined
+                      dense
+                      type="number"
+                      suffix="円"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.dinnerAvgSpend"
+                      label="客単価(夜)"
+                      outlined
+                      dense
+                      type="number"
+                      suffix="円"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field
+                      v-model="formData.recruitment.closingDays"
+                      label="定休日"
+                      outlined
+                      dense
+                      placeholder="例: 毎週月曜日"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- エリア・客層 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-map-marker</v-icon>
+                エリア・客層
+              </v-card-title>
+              <v-card-text>
+                <v-row class="mb-4">
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.recruitment.areaTypes"
+                      label="エリア"
+                      :items="areaTypes"
+                      multiple
+                      chips
+                      small-chips
+                      deletable-chips
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-select
+                      v-model="formData.recruitment.customerSegments"
+                      label="客層"
+                      :items="customerSegments"
+                      multiple
+                      chips
+                      small-chips
+                      deletable-chips
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                </v-row>
+                <v-textarea
+                  v-model="formData.recruitment.areaMemo"
+                  label="エリア・客層に関するメモ"
+                  outlined
+                  dense
+                  rows="2"
+                ></v-textarea>
+              </v-card-text>
+            </v-card>
+
+            <!-- アピールポイント -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-star</v-icon>
+                おすすめポイント
+              </v-card-title>
+              <v-card-text>
+                <v-textarea
+                  v-model="formData.recruitment.appealPoints"
+                  label="おすすめポイント"
+                  outlined
+                  dense
+                  rows="4"
+                  placeholder="物件の魅力・セールスポイントを記入"
+                ></v-textarea>
+              </v-card-text>
+            </v-card>
+
+            <!-- 売却条件 -->
+            <v-card outlined class="mb-4">
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-handshake</v-icon>
+                売却条件
+              </v-card-title>
+              <v-card-text>
+                <div class="mb-4">
+                  <v-select
+                    v-model="formData.recruitment.priorityPoint"
+                    label="最重要ポイント"
+                    :items="['なるべく急ぎで売りたい', '金額も早さもバランスよく売りたい', '急いでないのでじっくり高く売りたい']"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-select>
+                </div>
+                <v-textarea
+                  v-model="formData.recruitment.specialConditions"
+                  label="特殊条件"
+                  outlined
+                  dense
+                  rows="3"
+                  placeholder="例: 名義変更・従業員の引継ぎなど"
+                ></v-textarea>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.sellingPrice"
+                      label="販売価格"
+                      outlined
+                      dense
+                      type="number"
+                      prefix="¥"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="formData.recruitment.listingPrice"
+                      label="募集価格"
+                      outlined
+                      dense
+                      type="number"
+                      prefix="¥"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- 内覧・掲載条件 -->
+            <v-card outlined>
+              <v-card-title class="text-subtitle-1 grey lighten-4">
+                <v-icon left size="20">mdi-eye</v-icon>
+                内覧・掲載条件
+              </v-card-title>
+              <v-card-text>
+                <v-textarea
+                  v-model="formData.recruitment.viewingAvailability"
+                  label="内覧可能日時"
+                  outlined
+                  dense
+                  rows="2"
+                  placeholder="例: 平日14時〜17時、土日終日可"
+                ></v-textarea>
+                <v-row>
+                  <v-col cols="12" md="4">
+                    <v-select
+                      v-model="formData.recruitment.allowEmail"
+                      label="物件紹介のメール送信"
+                      :items="['可', '不可']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-select
+                      v-model="formData.recruitment.allowWebListing"
+                      label="物件募集のネット掲載"
+                      :items="['可(写真あり)', '可(写真なし)', '不可']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <v-select
                       v-model="formData.recruitment.progressReportMethod"
-                      row
+                      label="進捗報告の連絡手段"
+                      :items="['メール', '電話']"
+                      outlined
+                      dense
                       hide-details
-                    >
-                      <v-radio label="メール" value="メール"></v-radio>
-                      <v-radio label="電話" value="電話"></v-radio>
-                    </v-radio-group>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </div>
-          </v-window-item>
+                    ></v-select>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+        </v-window-item>
 
-          <!-- タブ5: 連絡窓口 -->
-          <v-window-item :value="4">
-            <div class="tab-content">
-              <v-card
-                v-for="(contact, index) in formData.externalContacts"
-                :key="index"
-                outlined
-                class="mb-3"
-              >
-                <v-card-title class="text-subtitle-1 grey lighten-4 d-flex align-center">
-                  <span>連絡先 {{ index + 1 }}</span>
-                  <v-spacer></v-spacer>
-                  <v-btn
-                    icon
-                    small
-                    @click="removeContact(index)"
-                  >
-                    <v-icon>mdi-delete</v-icon>
-                  </v-btn>
-                </v-card-title>
-                <v-card-text>
-                  <v-row>
-                    <v-col cols="12">
-                      <div class="text-subtitle-2 mb-2">連絡先種別</div>
-                      <v-radio-group
-                        v-model="contact.type"
-                        row
-                        hide-details
-                      >
-                        <v-radio label="家主" value="家主"></v-radio>
-                        <v-radio label="管理会社" value="管理会社"></v-radio>
-                        <v-radio label="専任不動産会社" value="専任不動産会社"></v-radio>
-                      </v-radio-group>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contact.companyName"
-                        label="会社名"
-                        outlined
-                        dense
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contact.contactPerson"
-                        label="担当者"
-                        outlined
-                        dense
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contact.companyPhone"
-                        label="会社電話"
-                        outlined
-                        dense
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="12" sm="6">
-                      <v-text-field
-                        v-model="contact.personPhone"
-                        label="担当電話"
-                        outlined
-                        dense
-                      ></v-text-field>
-                    </v-col>
-                  </v-row>
-                </v-card-text>
-              </v-card>
+        <!-- セクション5: 連絡窓口 -->
+        <v-window-item :value="4">
+            <v-card
+              v-for="(contact, index) in formData.externalContacts"
+              :key="index"
+              outlined
+              class="mb-3"
+            >
+              <v-card-title class="text-subtitle-1 grey lighten-4 d-flex align-center">
+                <span>連絡先 {{ index + 1 }}</span>
+                <v-spacer></v-spacer>
+                <v-btn
+                  icon
+                  small
+                  @click="removeContact(index)"
+                >
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12">
+                    <v-select
+                      v-model="contact.type"
+                      label="連絡先種別"
+                      :items="['家主', '管理会社', '専任不動産会社']"
+                      outlined
+                      dense
+                      hide-details
+                    ></v-select>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="contact.companyName"
+                      label="会社名"
+                      outlined
+                      dense
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="contact.contactPerson"
+                      label="担当者"
+                      outlined
+                      dense
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="contact.companyPhone"
+                      label="会社電話"
+                      outlined
+                      dense
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="contact.personPhone"
+                      label="担当電話"
+                      outlined
+                      dense
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
 
-              <v-btn
-                color="primary"
-                outlined
-                @click="addContact"
-                class="mb-3"
-              >
-                <v-icon left>mdi-plus</v-icon>
-                連絡先を追加
-              </v-btn>
-            </div>
-          </v-window-item>
-        </v-window>
-      </v-form>
-    </v-card>
+            <v-btn
+              color="primary"
+              outlined
+              @click="addContact"
+              class="mb-3"
+            >
+              <v-icon left>mdi-plus</v-icon>
+              連絡先を追加
+            </v-btn>
+        </v-window-item>
+      </v-window>
+    </v-form>
+    
+    <!-- FormButtons コンポーネント -->
+    <FormButtons
+      :is-first="currentTab === 0"
+      :is-last="currentTab === sections.length - 1"
+      :show-save-button="true"
+      :is-saving="submitting"
+      :is-processing="submitting"
+      :can-proceed="formValid"
+      complete-label="登録完了"
+      @back="previousTab"
+      @next="nextTab"
+      @save="saveDraft"
+      @submit="submitForm"
+    />
 
-    <!-- フローティングアクションボタン -->
-    <div class="floating-actions">
-      <v-btn
-        fab
-        color="primary"
-        @click="submitForm"
-        :disabled="!formValid || progressPercentage < 100"
-        :loading="submitting"
-        class="mb-3"
-      >
-        <v-icon>mdi-send</v-icon>
-      </v-btn>
-      <v-btn
-        fab
-        small
-        color="grey"
-        @click="saveDraft"
-      >
-        <v-icon>mdi-content-save-outline</v-icon>
-      </v-btn>
-    </div>
-
-    <!-- ナビゲーションボタン -->
-    <v-card class="mt-4 pa-4">
-      <v-row>
-        <v-col cols="6">
-          <v-btn
-            variant="text"
-            :disabled="activeTab === 0"
-            @click="previousTab"
-          >
-            <v-icon start>mdi-chevron-left</v-icon>
-            前へ
-          </v-btn>
-        </v-col>
-        <v-col cols="6" class="text-right">
-          <v-btn
-            variant="text"
-            :disabled="activeTab >= 4"
-            @click="nextTab"
-          >
-            次へ
-            <v-icon end>mdi-chevron-right</v-icon>
-          </v-btn>
-          <!-- デバッグ情報 -->
-          <div class="text-caption mt-2">
-            現在タブ: {{ activeTab }}, 無効化: {{ activeTab >= 4 }}
-          </div>
-        </v-col>
-      </v-row>
-    </v-card>
 
     <!-- 成功メッセージ -->
     <v-snackbar
@@ -1458,9 +1346,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, readonly } from 'vue'
+import FormButtons from '@/components/shared/FormButtons.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useAutoSave } from '@/composables/useAutoSave'
 
 // テスト段階のため認証チェックをスキップ
 // 本番環境では以下のコメントを外して認証を有効化
@@ -1471,36 +1358,6 @@ if (!authStore.isAuthenticated) {
 }
 */
 
-// タブ定義
-const tabs = [
-  { key: 'contact-status', label: '連絡先・現状', icon: 'mdi-account-details' },
-  { key: 'basic-info', label: '基本情報', icon: 'mdi-information' },
-  { key: 'equipment', label: '設備確認', icon: 'mdi-tools' },
-  { key: 'recruitment', label: '募集情報', icon: 'mdi-bullhorn' },
-  { key: 'contacts', label: '連絡窓口', icon: 'mdi-contacts' }
-]
-
-// アクティブタブ（数値インデックス）
-const activeTab = ref(0)
-
-// 現在のタブインデックス
-const currentTabIndex = computed(() => activeTab.value)
-
-// タブナビゲーション
-const nextTab = () => {
-  const nextIndex = activeTab.value + 1
-  if (nextIndex < tabs.length) {
-    activeTab.value = nextIndex
-  }
-}
-
-const previousTab = () => {
-  const prevIndex = activeTab.value - 1
-  if (prevIndex >= 0) {
-    activeTab.value = prevIndex
-  }
-}
-
 // フォーム全体の状態
 const formValid = ref(false)
 const submitting = ref(false)
@@ -1508,6 +1365,43 @@ const showSuccess = ref(false)
 const showError = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
+
+// 現在のタブ
+const currentTab = ref(0)
+
+// セクション定義
+const sections = [
+  {
+    title: '基本情報',
+    subtitle: '連絡先・売却理由',
+    icon: 'mdi-account-details',
+    key: 'contact'
+  },
+  {
+    title: '店舗情報',
+    subtitle: '物件・契約の詳細',
+    icon: 'mdi-store',
+    key: 'basicInfo'
+  },
+  {
+    title: '設備情報',
+    subtitle: '設備・工事費用',
+    icon: 'mdi-tools',
+    key: 'equipment'
+  },
+  {
+    title: '売上情報',
+    subtitle: '売上・営業データ',
+    icon: 'mdi-chart-line',
+    key: 'recruitment'
+  },
+  {
+    title: '連絡先',
+    subtitle: '関係者連絡先',
+    icon: 'mdi-contacts',
+    key: 'externalContacts'
+  }
+]
 
 // バリデーションルール
 const rules = {
@@ -1642,32 +1536,6 @@ const formData = ref({
   externalContacts: []
 })
 
-// 自動保存機能を使用
-const { 
-  isSaving, 
-  lastSaved, 
-  timeSinceLastSave,
-  loadFromStorage,
-  save,
-  clear
-} = useAutoSave(formData, {
-  key: 'exitFormAutoSave',
-  delay: 1500,
-  enabled: true
-})
-
-// 最後の保存からの経過時間表示
-const timeSinceLastSaveText = computed(() => {
-  const seconds = timeSinceLastSave.value
-  if (!seconds) return ''
-  
-  if (seconds < 60) return `${seconds}秒前`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}分前`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}時間前`
-})
-
 // 連絡先の追加・削除
 const addContact = () => {
   formData.value.externalContacts.push({
@@ -1681,6 +1549,30 @@ const addContact = () => {
 
 const removeContact = (index: number) => {
   formData.value.externalContacts.splice(index, 1)
+}
+
+// タブナビゲーション
+const nextTab = () => {
+  if (currentTab.value < sections.length - 1) {
+    currentTab.value++
+  }
+}
+
+const previousTab = () => {
+  if (currentTab.value > 0) {
+    currentTab.value--
+  }
+}
+
+// タブアイコンの色を取得
+const getTabIconColor = (sectionKey: string, index: number) => {
+  if (getCompletionStatus(sectionKey)) {
+    return 'success'
+  } else if (currentTab.value === index) {
+    return 'primary'
+  } else {
+    return 'grey'
+  }
 }
 
 // 進捗計算
@@ -1697,38 +1589,10 @@ const requiredFieldsCompleted = computed(() => {
 })
 
 const progressPercentage = computed(() => {
-  const total = totalRequiredFields.value
-  const completed = requiredFieldsCompleted.value
-  return Math.round((completed / total) * 100)
+  // タブベースの進捗計算
+  const completedSections = sections.filter(section => getCompletionStatus(section.key)).length
+  return Math.round((completedSections / sections.length) * 100)
 })
-
-// タブバッジの内容を取得
-const getTabBadgeContent = (tabKey: string) => {
-  switch (tabKey) {
-    case 'contact-status':
-      return getCompletionStatus('contact') ? '✓' : '!'
-    case 'basic-info':
-      return getCompletionStatus('basicInfo') ? '✓' : ''
-    case 'equipment':
-      return getCompletionStatus('equipment') ? '✓' : ''
-    case 'recruitment':
-      return getCompletionStatus('recruitment') ? '✓' : ''
-    case 'contacts':
-      return formData.value.externalContacts.length || ''
-    default:
-      return ''
-  }
-}
-
-// タブバッジの色を取得
-const getTabBadgeColor = (tabKey: string) => {
-  switch (tabKey) {
-    case 'contact-status':
-      return getCompletionStatus('contact') ? 'success' : 'warning'
-    default:
-      return getTabBadgeContent(tabKey) ? 'success' : 'grey'
-  }
-}
 
 // セクション完了状態
 const getCompletionStatus = (section: string) => {
@@ -1750,10 +1614,17 @@ const getCompletionStatus = (section: string) => {
   }
 }
 
-// 下書き保存（手動）
+// セクション進捗表示
+const getSectionProgress = (section: string) => {
+  const completed = getCompletionStatus(section)
+  return completed ? '完了' : '未完了'
+}
+
+// 下書き保存
 const saveDraft = async () => {
   try {
-    await save()
+    // ローカルストレージに保存
+    localStorage.setItem('exitFormDraft', JSON.stringify(formData.value))
     showSuccessMessage('下書きを保存しました')
   } catch (error) {
     console.error('下書き保存エラー:', error)
@@ -1788,9 +1659,6 @@ const submitForm = async () => {
     // 成功処理
     showSuccessMessage('ヒアリングシートを登録しました')
     
-    // 自動保存データをクリア
-    clear()
-    
     // フォームリセット
     await new Promise(resolve => setTimeout(resolve, 2000))
     resetForm()
@@ -1819,20 +1687,15 @@ const showErrorMessage = (message: string) => {
   showError.value = true
 }
 
-// 初期化時に自動保存データを読み込み
+// 下書き読み込み
 onMounted(() => {
-  // 自動保存データを読み込み
-  loadFromStorage()
-  
-  // 以前の下書き保存も確認（互換性のため）
   const draft = localStorage.getItem('exitFormDraft')
-  if (draft && !lastSaved.value) {
+  if (draft) {
     try {
       const parsedDraft = JSON.parse(draft)
-      if (confirm('以前の下書きがあります。読み込みますか？')) {
+      // 確認ダイアログを表示
+      if (confirm('保存された下書きがあります。読み込みますか？')) {
         formData.value = parsedDraft
-        // 古い形式を削除
-        localStorage.removeItem('exitFormDraft')
       }
     } catch (error) {
       console.error('下書き読み込みエラー:', error)
@@ -1844,67 +1707,38 @@ onMounted(() => {
 useHead({
   title: '店舗売却ヒアリングシート - 営業入力フォーム'
 })
-
-// キーボードショートカット
-onMounted(() => {
-  const handleKeydown = (e: KeyboardEvent) => {
-    // Ctrl/Cmd + S で保存
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault()
-      saveDraft()
-    }
-    // Alt + 左右矢印でタブ移動
-    if (e.altKey) {
-      if (e.key === 'ArrowLeft') {
-        previousTab()
-      } else if (e.key === 'ArrowRight') {
-        nextTab()
-      }
-    }
-  }
-  
-  window.addEventListener('keydown', handleKeydown)
-  
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown)
-  })
-})
 </script>
 
 <style scoped>
-.custom-tabs {
-  border-bottom: 1px solid #e0e0e0;
+.tabs-header {
+  background: white;
+  border-radius: 8px 8px 0 0;
 }
 
-/* アクティブタブの強調表示 */
-.v-tab--selected {
-  background-color: rgba(46, 125, 50, 0.1) !important;
+.header-tabs { 
+  min-height: 68px; 
 }
 
-.v-tab--selected .v-icon {
-  color: var(--v-theme-primary) !important;
+.header-tabs .v-tab { 
+  padding-top: 6px; 
+  padding-bottom: 6px; 
 }
 
-.v-tab--selected .text-caption {
-  color: var(--v-theme-primary) !important;
-  font-weight: 600 !important;
+.tab-item {
+  min-height: 80px;
+  padding: 8px;
+  white-space: nowrap;
+}
+
+.tab-completed {
+  background-color: rgba(76, 175, 80, 0.1);
 }
 
 .tab-content {
-  min-height: 600px;
-  max-height: calc(100vh - 400px);
-  overflow-y: auto;
-  padding: 20px 0;
-}
-
-.floating-actions {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 10;
+  min-height: 400px;
+  padding: 24px;
+  background: white;
+  border-radius: 0 0 8px 8px;
 }
 
 .v-card {
@@ -1919,35 +1753,9 @@ onMounted(() => {
   border-color: #bdbdbd;
 }
 
-/* スクロールバーのスタイリング */
-.tab-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.tab-content::-webkit-scrollbar-track {
-  background: #f5f5f5;
-  border-radius: 4px;
-}
-
-.tab-content::-webkit-scrollbar-thumb {
-  background: #bdbdbd;
-  border-radius: 4px;
-}
-
-.tab-content::-webkit-scrollbar-thumb:hover {
-  background: #9e9e9e;
-}
-
-/* ボタンのスタイル修正は不要になったのでコメントアウト */
-
 @media (max-width: 600px) {
-  .tab-content {
-    padding: 12px 0;
-  }
-  
-  .floating-actions {
-    bottom: 16px;
-    right: 16px;
+  .v-expansion-panel-content >>> .v-expansion-panel-content__wrap {
+    padding: 16px;
   }
 }
 </style>
