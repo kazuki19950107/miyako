@@ -139,7 +139,7 @@
             <v-col cols="12" md="6">
               <div class="section-group mb-6">
                 <h3 class="section-title">
-                  <v-icon color="green" class="mr-2">mdi-map-marker</v-icon>
+                  <v-icon color="primary" class="mr-2">mdi-map-marker</v-icon>
                   立地情報
                 </h3>
                 <v-row>
@@ -419,8 +419,8 @@
                         <!-- 加点項目（左列） -->
                         <v-col cols="12" sm="6">
                           <div class="mb-2">
-                            <h5 class="text-body-2 font-weight-medium mb-2 text-green-darken-2">
-                              <v-icon size="18" color="green" class="mr-1">mdi-plus-circle</v-icon>
+                            <h5 class="text-body-2 font-weight-medium mb-2 text-primary-darken-2">
+                              <v-icon size="18" color="primary" class="mr-1">mdi-plus-circle</v-icon>
                               加点項目 (各+10%)
                             </h5>
                             <v-checkbox
@@ -430,7 +430,7 @@
                               :value="item.key"
                               :label="item.label"
                               :hint="item.description"
-                              color="green"
+                              color="primary"
                               density="compact"
                               hide-details="auto"
                               class="mb-1"
@@ -661,7 +661,7 @@
                     <div class="breakdown-item">
                       <div class="d-flex justify-space-between align-center mb-2">
                         <span class="text-body-2">
-                          <v-icon size="16" color="green" class="mr-1">mdi-map-marker</v-icon>
+                          <v-icon size="16" color="primary" class="mr-1">mdi-map-marker</v-icon>
                           立地価値
                         </span>
                         <span class="font-weight-medium">¥{{ formatCurrency(estimateResult.locationValue) }}</span>
@@ -745,11 +745,11 @@
 
                     <!-- 加点・減点 -->
                     <div v-if="estimateResult.bonusAmount > 0" class="d-flex justify-space-between align-center mb-1">
-                      <span class="text-body-2 text-green-darken-2">
-                        <v-icon size="16" color="green" class="mr-1">mdi-plus</v-icon>
+                      <span class="text-body-2 text-primary-darken-2">
+                        <v-icon size="16" color="primary" class="mr-1">mdi-plus</v-icon>
                         加点 ({{ estimateResult.details.bonusCount }}項目)
                       </span>
-                      <span class="text-body-2 text-green-darken-2 font-weight-medium">
+                      <span class="text-body-2 text-primary-darken-2 font-weight-medium">
                         +¥{{ formatCurrency(estimateResult.bonusAmount) }}
                       </span>
                     </div>
@@ -853,7 +853,7 @@ const scrollToDetailedResult = () => {
   max-width: calc(100vw - 48px);
   background: white;
   border-radius: 16px !important;
-  border: 2px solid #4caf50;
+  border: 2px solid #1e50a2;
 }
 
 /* パルスアニメーション（新規結果時） */
@@ -863,10 +863,10 @@ const scrollToDetailedResult = () => {
 
 @keyframes pulse-shadow {
   0% {
-    box-shadow: 0 8px 40px rgba(76, 175, 80, 0.6);
+    box-shadow: 0 8px 40px rgba(30, 80, 162, 0.6);
   }
   50% {
-    box-shadow: 0 8px 60px rgba(76, 175, 80, 0.8);
+    box-shadow: 0 8px 60px rgba(30, 80, 162, 0.8);
   }
   100% {
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
@@ -902,7 +902,7 @@ const scrollToDetailedResult = () => {
 }
 
 .result-header {
-  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  background: linear-gradient(135deg, #1e50a2 0%, #4d7dc8 100%);
   color: white;
   padding: 16px 24px;
 }
