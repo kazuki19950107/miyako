@@ -169,8 +169,9 @@
       <slot />
     </v-main>
 
-    <!-- モバイル：ボトムバー（クイックアクセス） -->
+    <!-- モバイル：ボトムバー（クイックアクセス） - mypageのみ表示 -->
     <v-bottom-navigation
+      v-if="route.path === '/mypage'"
       class="d-md-none"
       grow
       mode="shift"
