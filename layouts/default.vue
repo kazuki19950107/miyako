@@ -111,7 +111,7 @@
 
     <!-- PC：クイックアクション列 -->
     <v-sheet class="border-b-thin d-none d-md-block">
-      <v-container class="py-1 d-flex align-center">
+      <v-container class="py-0 d-flex align-center">
         <v-btn size="small" variant="tonal" @click="go('/admin/exit-form')">
           <v-icon start>mdi-calculator-variant</v-icon> 簡易査定
         </v-btn>

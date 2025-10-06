@@ -59,22 +59,24 @@ html, body {
 /* 9. exit-form用の固定ヘッダー+タブ */
 .sticky-stack {
   position: fixed !important;
-  top: 64px !important;
-  left: 0px !important;
-  right: 0 !important;
+  top: 68px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
   z-index: 1000 !important;
   background: #f7f9fc !important;
   padding: 0 16px !important;
+  max-width: 1400px !important;
+  width: 100% !important;
 }
 
 /* ← 背景を上に8px分伸ばす */
 .sticky-stack::before {
   content: "";
   position: absolute;
-  top: -8px;        /* 上に伸ばす距離 */
+  top: -12px;        /* 上に伸ばす距離 */
   left: 0;
   right: 0;
-  height: 8px;      /* 伸ばす高さ */
+  height: 12px;      /* 伸ばす高さ */
   background: #f7f9fc; /* 同じ背景色 */
 }
 

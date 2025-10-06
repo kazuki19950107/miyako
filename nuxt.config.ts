@@ -2,7 +2,8 @@ export default defineNuxtConfig({
   css: [
     "vuetify/lib/styles/main.sass",
     "@mdi/font/css/materialdesignicons.css",
-    "@/assets/styles/global.css"   // ここを追加！
+    "@/assets/styles/global.css",
+    "@/assets/styles/global-fix.css"
   ],
   build: {
     transpile: ["vuetify"],

@@ -146,17 +146,17 @@
 
     <!-- メインコンテンツ -->
     <v-main>
-      <v-container fluid class="pa-4">
+      <div class="pa-4">
         <!-- パンくずリスト -->
         <v-breadcrumbs
           :items="breadcrumbs"
           divider="/"
           class="pa-0 mb-4"
         ></v-breadcrumbs>
-        
+
         <!-- ページコンテンツ -->
         <slot />
-      </v-container>
+      </div>
     </v-main>
 
     <!-- 右サイド詳細パネル -->
@@ -216,6 +216,7 @@ const rail = ref(false)
 const detailPanel = ref(false)
 const search = ref('')
 const searchField = ref(null)
+
 
 // 通知
 const notificationCount = ref(3)
@@ -367,5 +368,4 @@ defineExpose({
 .v-list-item:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
-
 </style>
