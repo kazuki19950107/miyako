@@ -1,81 +1,35 @@
 <template>
-  <v-container class="pa-4" style="max-width: 1400px;">
-    <!-- ヘッダー -->
-    <v-card class="mb-4 elevation-3" style="border-radius: 16px; overflow: hidden;">
-      <v-card-title
-        class="text-h5 font-weight-bold text-white d-flex align-center"
-        style="background: linear-gradient(135deg, #1e50a2 0%, #154a8a 100%); min-height: 72px;"
-      >
-        <v-icon start color="white" size="32" class="mr-3">mdi-clipboard-list-outline</v-icon>
-        店舗売却ヒアリングシート
-        <v-spacer></v-spacer>
-        <!-- <v-chip color="rgba(255,255,255,0.2)" text-color="white" small outlined>
-          <v-icon left small>mdi-timer-outline</v-icon>
-          5-10分
-        </v-chip> -->
-      </v-card-title>
+  <v-container class="px-4 pt-2 pb-4 exit-form-container" style="max-width: 1400px;">
+    <!-- ★ 固定したい"ヘッダー＋タブ"をひとまとめにする -->
+    <div class="sticky-stack">
+      <!-- ヘッダー -->
+      <v-card class="mb-2 elevation-2 sticky-card">
+        <v-card-title
+          class="text-h6 font-weight-bold text-white d-flex align-center"
+          style="background: linear-gradient(135deg, #1e50a2 0%, #154a8a 100%); min-height: 48px; padding: 12px 16px;"
+        >
+          <v-icon size="24" class="mr-2" style="color: white !important;">mdi-clipboard-list-outline</v-icon>
+          店舗売却ヒアリングシート
+        </v-card-title>
+      </v-card>
 
-      <!-- <v-card-text class="py-3 white--text" style="background: linear-gradient(135deg, #1e50a2 0%, #154a8a 100%); opacity: .95;">
-        <div class="d-flex align-center">
-          <v-icon color="white" class="mr-2" size="20">mdi-information-outline</v-icon>
-          入力にかかる目安時間：5〜10分。必須項目は<b>＊</b>が付いています。
-        </div>
-      </v-card-text> -->
-
-      <!-- 進捗バー復活 -->
-      <!-- <v-card-text class="pb-4 pt-3" style="background:#f7f9fc;">
-        <div class="d-flex align-center mb-2">
-          <span class="text-caption font-weight-medium" style="color: #154a8a;">入力進捗</span>
-          <v-spacer></v-spacer>
-          <span class="text-caption font-weight-bold text-primary">{{ progressPercentage }}%</span>
-        </div>
-        <v-progress-linear
-          :value="progressPercentage"
-          height="10"
-          rounded
-          :color="progressPercentage === 100 ? 'success' : 'primary'"
-          background-color="rgba(30, 80, 162, 0.1)"
-        />
-        <div class="text-caption mt-1" style="color: #6b7280;">
-          必須項目の入力状況
-        </div>
-      </v-card-text> -->
-    </v-card>
-
-    <!-- タブ切り替え -->
-    <v-card class="mb-4 sticky-tabs-wrapper">
-      <v-tabs
-        v-model="activeTab"
-        background-color="white"
-        color="primary"
-        grow
-      >
-        <v-tab>
-          <v-icon left>mdi-account-details</v-icon>
-          基本情報
-        </v-tab>
-        <v-tab>
-          <v-icon left>mdi-calculator-variant</v-icon>
-          簡易査定
-        </v-tab>
-        <v-tab>
-          <v-icon left>mdi-clipboard-check</v-icon>
-          詳細確認
-        </v-tab>
-        <v-tab>
-          <v-icon left>mdi-draw</v-icon>
-          自由記述
-        </v-tab>
-        <v-tab>
-          <v-icon left>mdi-tools</v-icon>
-          設備詳細
-        </v-tab>
-        <v-tab>
-          <v-icon left>mdi-strategy</v-icon>
-          販売戦略
-        </v-tab>
-      </v-tabs>
-    </v-card>
+      <!-- タブ切り替え -->
+      <v-card class="mb-4 elevation-1 sticky-card">
+        <v-tabs
+          v-model="activeTab"
+          background-color="white"
+          color="primary"
+          grow
+        >
+          <v-tab><v-icon left>mdi-account-details</v-icon>基本情報</v-tab>
+          <v-tab><v-icon left>mdi-calculator-variant</v-icon>簡易査定</v-tab>
+          <v-tab><v-icon left>mdi-clipboard-check</v-icon>詳細確認</v-tab>
+          <v-tab><v-icon left>mdi-draw</v-icon>自由記述</v-tab>
+          <v-tab><v-icon left>mdi-tools</v-icon>設備詳細</v-tab>
+          <v-tab><v-icon left>mdi-strategy</v-icon>販売戦略</v-tab>
+        </v-tabs>
+      </v-card>
+    </div>
 
     <!-- タブコンテンツ -->
     <v-window v-model="activeTab" :touch="false">
@@ -3966,15 +3920,6 @@ useHead({
 </script>
 
 <style scoped>
-/* タブ固定用 */
-.sticky-tabs-wrapper {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  background: #fff !important;
-  box-shadow: 0 4px 12px rgba(30, 80, 162, 0.12) !important;
-}
-
 /* 手書きキャンバス */
 .canvas-container {
   width: 100%;
