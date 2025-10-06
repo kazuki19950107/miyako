@@ -43,7 +43,7 @@
     </v-card>
 
     <!-- タブ切り替え -->
-    <v-card class="mb-4">
+    <v-card class="mb-4 sticky-tabs-wrapper">
       <v-tabs
         v-model="activeTab"
         background-color="white"
@@ -63,6 +63,14 @@
           詳細確認
         </v-tab>
         <v-tab>
+          <v-icon left>mdi-draw</v-icon>
+          自由記述
+        </v-tab>
+        <v-tab>
+          <v-icon left>mdi-tools</v-icon>
+          設備詳細
+        </v-tab>
+        <v-tab>
           <v-icon left>mdi-strategy</v-icon>
           販売戦略
         </v-tab>
@@ -70,7 +78,7 @@
     </v-card>
 
     <!-- タブコンテンツ -->
-    <v-window v-model="activeTab">
+    <v-window v-model="activeTab" :touch="false">
       <!-- タブ1: 基本情報 -->
       <v-window-item :value="0">
         <v-form ref="basicForm" v-model="formValid">
@@ -333,7 +341,7 @@
                 <div class="mb-6">
                   <div class="text-subtitle-1 mb-4 font-weight-bold">
                     <v-icon small class="mr-1">mdi-currency-jpy</v-icon>
-                    想定金額
+                    希望金額
                   </div>
 
                   <v-row class="align-center">
@@ -346,7 +354,7 @@
                         :step="100000"
                         thumb-label
                         :disabled="showDetailPrice"
-                        label="概算（スライダー）"
+                        label="概算"
                         hint="最大1,000万円。より細かい金額や1,000万円超は［詳細入力］をタップ"
                         persistent-hint
                         color="primary"
@@ -430,7 +438,7 @@
             <v-card outlined class="section-card">
               <v-card-title class="section-title">
                 <v-icon left size="24" class="mr-2">mdi-map-marker-outline</v-icon>
-                場所関連の金額情報
+                立地情報
               </v-card-title>
               <v-card-text class="pt-6">
                 <v-row>
@@ -468,42 +476,36 @@
                     <div class="text-center text-h6">{{ formData.locationInfo.area }}坪</div>
                   </v-col>
 
-                  <!-- 坪単価（自動計算） -->
-                  <v-col cols="12" sm="6">
-                    <v-text-field
-                      :value="calculateRentPerTsubo"
-                      label="坪単価（自動計算）"
-                      outlined
-                      dense
-                      readonly
-                      suffix="円/坪"
-                      prepend-inner-icon="mdi-calculator"
-                    ></v-text-field>
-                  </v-col>
-
-                  <!-- 契約時期 -->
-                  <v-col cols="12" sm="6">
-                    <v-row>
-                      <v-col cols="6">
-                        <v-select
-                          v-model="formData.locationInfo.contractYear"
-                          label="契約年"
-                          :items="contractYearsList"
-                          outlined
-                          dense
-                          prepend-inner-icon="mdi-calendar"
-                        ></v-select>
-                      </v-col>
-                      <v-col cols="6">
-                        <v-select
-                          v-model="formData.locationInfo.contractMonth"
-                          label="契約月"
-                          :items="monthsList"
-                          outlined
-                          dense
-                        ></v-select>
-                      </v-col>
-                    </v-row>
+                  <!-- 立地評価 -->
+                  <v-col cols="12">
+                    <v-card class="pa-4" elevation="2" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                      <div class="text-subtitle-2 mb-2" style="color: #1565c0;">
+                        <v-icon small class="mr-1" color="#1565c0">mdi-map-marker-star</v-icon>
+                        立地評価
+                      </div>
+                      <div class="text-h5 font-weight-bold text-center mb-2" style="color: #0d47a1;">
+                        {{ calculateLocationEvaluation.toLocaleString() }}円
+                      </div>
+                      <v-divider class="my-2"></v-divider>
+                      <div class="text-caption grey--text text--darken-1">
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>坪単価:</span>
+                          <span class="font-weight-medium">{{ calculateRentPerTsubo }}円/坪</span>
+                        </div>
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>立地等級:</span>
+                          <span class="font-weight-medium">{{ calculateLocationCoefficient.grade }}</span>
+                        </div>
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>立地係数:</span>
+                          <span class="font-weight-medium">{{ calculateLocationCoefficient.coefficient }}</span>
+                        </div>
+                        <div class="d-flex justify-space-between">
+                          <span>面積係数:</span>
+                          <span class="font-weight-medium">{{ calculateAreaCoefficient.toFixed(1) }}</span>
+                        </div>
+                      </div>
+                    </v-card>
                   </v-col>
 
                   <!-- 開業時期 -->
@@ -518,21 +520,8 @@
                     ></v-text-field>
                   </v-col> -->
 
-                  <!-- 想定坪単価 -->
-                  <v-col cols="12" sm="6">
-                    <v-text-field
-                      v-model="formData.locationInfo.expectedRentPerTsubo"
-                      label="想定坪単価"
-                      outlined
-                      dense
-                      type="number"
-                      suffix="円/坪"
-                      prepend-inner-icon="mdi-trending-up"
-                    ></v-text-field>
-                  </v-col>
-
                   <!-- 場所の条件 -->
-                  <v-col cols="12">
+                  <!-- <v-col cols="12">
                     <v-select
                       v-model="formData.locationInfo.locationConditions"
                       label="場所の条件"
@@ -545,10 +534,10 @@
                       dense
                       prepend-inner-icon="mdi-map-marker"
                     ></v-select>
-                  </v-col>
+                  </v-col> -->
 
                   <!-- 開業投資額 -->
-                  <v-col cols="12" sm="6">
+                  <!-- <v-col cols="12" sm="6">
                     <v-slider
                       v-model="formData.locationInfo.initialInvestment"
                       :max="5000"
@@ -557,7 +546,7 @@
                                             class="mt-4"
                     ></v-slider>
                     <div class="text-center">開業投資額: {{ formData.locationInfo.initialInvestment }}万円</div>
-                  </v-col>
+                  </v-col> -->
 
                   <!-- 投資回収状況 -->
                   <!-- <v-col cols="12" sm="6">
@@ -572,7 +561,7 @@
                   </v-col> -->
 
                   <!-- 売上の現状 -->
-                  <v-col cols="12">
+                  <!-- <v-col cols="12">
                     <div class="text-subtitle-2 mb-2">売上の現状</div>
                     <v-slider
                       v-model="formData.locationInfo.currentRevenue"
@@ -582,11 +571,11 @@
                                             class="mt-4"
                     ></v-slider>
                     <div class="text-center text-h6">{{ formData.locationInfo.currentRevenue }}万円</div>
-                  </v-col>
+                  </v-col> -->
                 </v-row>
               </v-card-text>
             </v-card>
-            <div class="mb-4">
+            <!-- <div class="mb-4"> -->
               <!-- 営業年数 -->
               <!-- <v-col cols="12" sm="6">
                 <v-text-field
@@ -833,88 +822,371 @@
                   placeholder="例: 既に貸主から後継テナントの新条件を聞いている場合"
                 ></v-textarea>
               </v-col> -->
-            </div>
+            <!-- </div> -->
 
             <!-- 設備の状態 -->
             <v-card outlined class="mb-4 section-card">
               <v-card-title class="section-title">
                 <v-icon left size="24" class="mr-2">mdi-wrench</v-icon>
-                設備の状態
+                設備情報
               </v-card-title>
               <v-card-text class="pt-6">
                 <v-row>
                   <!-- 設備取得額 -->
-                  <v-col cols="12" md="6">
+                  <v-col cols="12">
                     <div class="text-subtitle-2 mb-2">
                       <v-icon small color="error" class="mr-1">mdi-asterisk</v-icon>
-                      設備取得額
+                      設備費用
                     </div>
-                    <v-slider
-                      v-model="formData.equipment.equipmentCost"
-                      :max="1000"
-                      :min="0"
-                      :step="10"
-                      class="mt-4"
-                    />
-                    <div class="text-center text-h6">{{ formData.equipment.equipmentCost }}万円</div>
-                  </v-col>
 
-                  <!-- 設備の使用年数 -->
-                  <v-col cols="12" md="6">
-                    <v-select
-                      v-model="formData.equipment.equipmentAge"
-                      label="設備の使用年数"
-                      :items="equipmentAgeOptions"
-                      outlined
-                      dense
-                      prepend-inner-icon="mdi-clock-outline"
-                      hint="償却年数: 7年（エアコン、厨房機器など）"
-                      persistent-hint
-                    />
+                    <v-row class="align-center">
+                      <v-col cols="12" md="8">
+                        <v-slider
+                          v-model="formData.equipment.equipmentCost"
+                          :max="1000"
+                          :min="0"
+                          :step="10"
+                          thumb-label
+                          :disabled="showDetailEquipmentCost"
+                          label="概算"
+                          hint="最大1,000万円。より細かい金額や1,000万円超は［詳細入力］をタップ"
+                          persistent-hint
+                          color="primary"
+                          track-color="primary"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="4" class="d-flex ga-2">
+                        <v-chip
+                          color="primary"
+                          variant="elevated"
+                          @click="showDetailEquipmentCost = !showDetailEquipmentCost"
+                          class="font-weight-bold"
+                          clickable
+                        >
+                          <v-icon start size="18" class="force-white-icon">{{ showDetailEquipmentCost ? 'mdi-arrow-left' : 'mdi-pencil-outline' }}</v-icon>
+                          {{ showDetailEquipmentCost ? 'スライダーに戻す' : '詳細入力' }}
+                        </v-chip>
+                      </v-col>
+
+                      <v-col v-if="showDetailEquipmentCost" cols="12" md="6">
+                        <v-text-field
+                          v-model.number="formData.equipment.equipmentCost"
+                          type="number"
+                          inputmode="numeric"
+                          :min="0"
+                          :step="10"
+                          label="詳細金額（万円）"
+                          outlined
+                          dense
+                          suffix="万円"
+                          prepend-inner-icon="mdi-currency-jpy"
+                        />
+                      </v-col>
+
+                      <v-col v-if="!showDetailEquipmentCost" cols="12">
+                        <div class="text-center text-h6">{{ formData.equipment.equipmentCost }}万円</div>
+                      </v-col>
+                    </v-row>
                   </v-col>
 
                   <!-- 内装取得額 -->
-                  <v-col cols="12" md="6">
+                  <v-col cols="12">
                     <div class="text-subtitle-2 mb-2">
                       <v-icon small color="error" class="mr-1">mdi-asterisk</v-icon>
-                      内装取得額
+                      内装費用
                     </div>
-                    <v-slider
-                      v-model="formData.equipment.interiorCost"
-                      :max="1000"
-                      :min="0"
-                      :step="10"
-                      class="mt-4"
-                    />
-                    <div class="text-center text-h6">{{ formData.equipment.interiorCost }}万円</div>
+
+                    <v-row class="align-center">
+                      <v-col cols="12" md="8">
+                        <v-slider
+                          v-model="formData.equipment.interiorCost"
+                          :max="1000"
+                          :min="0"
+                          :step="10"
+                          thumb-label
+                          :disabled="showDetailInteriorCost"
+                          label="概算"
+                          hint="最大1,000万円。より細かい金額や1,000万円超は［詳細入力］をタップ"
+                          persistent-hint
+                          color="primary"
+                          track-color="primary"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="4" class="d-flex ga-2">
+                        <v-chip
+                          color="primary"
+                          variant="elevated"
+                          @click="showDetailInteriorCost = !showDetailInteriorCost"
+                          class="font-weight-bold"
+                          clickable
+                        >
+                          <v-icon start size="18" class="force-white-icon">{{ showDetailInteriorCost ? 'mdi-arrow-left' : 'mdi-pencil-outline' }}</v-icon>
+                          {{ showDetailInteriorCost ? 'スライダーに戻す' : '詳細入力' }}
+                        </v-chip>
+                      </v-col>
+
+                      <v-col v-if="showDetailInteriorCost" cols="12" md="6">
+                        <v-text-field
+                          v-model.number="formData.equipment.interiorCost"
+                          type="number"
+                          inputmode="numeric"
+                          :min="0"
+                          :step="10"
+                          label="詳細金額（万円）"
+                          outlined
+                          dense
+                          suffix="万円"
+                          prepend-inner-icon="mdi-currency-jpy"
+                        />
+                      </v-col>
+
+                      <v-col v-if="!showDetailInteriorCost" cols="12">
+                        <div class="text-center text-h6">{{ formData.equipment.interiorCost }}万円</div>
+                      </v-col>
+                    </v-row>
                   </v-col>
 
-                  <!-- 内装の使用年数 -->
+                  <!-- 営業年数 -->
                   <v-col cols="12" md="6">
                     <v-select
-                      v-model="formData.equipment.interiorAge"
-                      label="内装の使用年数"
-                      :items="interiorAgeOptions"
+                      v-model="formData.equipment.businessYears"
+                      label="営業年数"
+                      :items="businessYearsOptions"
                       outlined
                       dense
-                      prepend-inner-icon="mdi-clock-outline"
-                      hint="償却年数: 15年（壁、床、天井など）"
+                      prepend-inner-icon="mdi-store-clock"
+                      hint="店舗の営業年数を選択してください"
                       persistent-hint
                     />
+                  </v-col>
+
+                  <!-- 設備評価 -->
+                  <v-col cols="12">
+                    <v-card class="pa-4" elevation="2" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+                      <div class="text-subtitle-2 mb-2" style="color: #2e7d32;">
+                        <v-icon small class="mr-1" color="#2e7d32">mdi-tools</v-icon>
+                        設備評価
+                      </div>
+                      <div class="text-h5 font-weight-bold text-center mb-2" style="color: #1b5e20;">
+                        {{ calculateEquipmentEvaluation.toLocaleString() }}万円
+                      </div>
+                      <v-divider class="my-2"></v-divider>
+                      <div class="text-caption grey--text text--darken-1">
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>設備残存価値:</span>
+                          <span class="font-weight-medium">{{ calculateEquipmentResidual.toLocaleString() }}万円</span>
+                        </div>
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>内装残存価値:</span>
+                          <span class="font-weight-medium">{{ calculateInteriorResidual.toLocaleString() }}万円</span>
+                        </div>
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>設備係数:</span>
+                          <span class="font-weight-medium">{{ formData.equipment.equipmentCoefficient !== undefined ? formData.equipment.equipmentCoefficient : 0.8 }}</span>
+                        </div>
+                        <div class="d-flex justify-space-between">
+                          <span>内装係数:</span>
+                          <span class="font-weight-medium">{{ (1 - (formData.equipment.equipmentCoefficient !== undefined ? formData.equipment.equipmentCoefficient : 0.8)).toFixed(1) }}</span>
+                        </div>
+                      </div>
+                    </v-card>
+                  </v-col>
+
+                  <!-- 詳細設定 -->
+                  <v-col cols="12">
+                    <v-card outlined>
+                      <v-card-text>
+                        <div
+                          class="d-flex align-center justify-space-between"
+                          style="cursor: pointer;"
+                          @click="showCoefficientSettings = !showCoefficientSettings"
+                        >
+                          <span class="text-subtitle-2">
+                            <v-icon small class="mr-2">mdi-tune</v-icon>
+                            詳細設定（係数調整）
+                          </span>
+                          <v-icon>{{ showCoefficientSettings ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                        </div>
+
+                        <v-expand-transition>
+                          <div v-show="showCoefficientSettings" class="mt-4">
+                            <v-row>
+                              <v-col cols="12">
+                                <div class="text-caption mb-2">スライダーで設備と内装の重みを調整できます</div>
+                              </v-col>
+
+                              <v-col cols="12">
+                                <div class="d-flex justify-space-between mb-2">
+                                  <span class="text-subtitle-2">設備重み {{ formData.equipment.equipmentCoefficient !== undefined ? formData.equipment.equipmentCoefficient : 0.8 }}</span>
+                                  <span class="text-subtitle-2">内装重み {{ (1 - (formData.equipment.equipmentCoefficient !== undefined ? formData.equipment.equipmentCoefficient : 0.8)).toFixed(1) }}</span>
+                                </div>
+                                <v-slider
+                                  v-model="formData.equipment.equipmentCoefficient"
+                                  :min="0"
+                                  :max="1"
+                                  :step="0.1"
+                                  thumb-label
+                                  color="primary"
+                                  track-color="secondary"
+                                  @input="updateInteriorCoefficient"
+                                >
+                                  <template v-slot:prepend>
+                                    <v-icon color="primary">mdi-tools</v-icon>
+                                  </template>
+                                  <template v-slot:append>
+                                    <v-icon color="secondary">mdi-palette</v-icon>
+                                  </template>
+                                </v-slider>
+                                <div class="text-center text-caption grey--text">
+                                  設備 {{ ((formData.equipment.equipmentCoefficient !== undefined ? formData.equipment.equipmentCoefficient : 0.8) * 10).toFixed(0) }} : 内装 {{ ((1 - (formData.equipment.equipmentCoefficient !== undefined ? formData.equipment.equipmentCoefficient : 0.8)) * 10).toFixed(0) }}
+                                </div>
+                              </v-col>
+
+                              <v-col cols="12">
+                                <v-btn
+                                  block
+                                  outlined
+                                  color="primary"
+                                  small
+                                  @click="resetCoefficients"
+                                >
+                                  <v-icon left small>mdi-refresh</v-icon>
+                                  デフォルトに戻す（8:2）
+                                </v-btn>
+                              </v-col>
+                            </v-row>
+                          </div>
+                        </v-expand-transition>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- 簡易査定 -->
+            <v-card outlined class="section-card">
+              <v-card-title class="section-title">
+                <v-icon left size="24" class="mr-2">mdi-calculator-variant</v-icon>
+                簡易査定
+              </v-card-title>
+              <v-card-text class="pt-6">
+                <v-row>
+                  <!-- 簡易査定結果 -->
+                  <v-col cols="12">
+                    <v-card class="pa-4" elevation="2" style="background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);">
+                      <div class="text-subtitle-2 mb-2" style="color: #f57c00;">
+                        <v-icon small class="mr-1" color="#f57c00">mdi-cash-multiple</v-icon>
+                        簡易査定額
+                      </div>
+                      <div class="text-h5 font-weight-bold text-center mb-2" style="color: #e65100;">
+                        {{ calculateSimpleValuation.toLocaleString() }}円
+                      </div>
+                      <v-divider class="my-2"></v-divider>
+                      <div class="text-caption grey--text text--darken-1">
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>立地評価:</span>
+                          <span class="font-weight-medium">{{ calculateLocationEvaluation.toLocaleString() }}円</span>
+                        </div>
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>設備評価:</span>
+                          <span class="font-weight-medium">{{ (calculateEquipmentEvaluation * 10000).toLocaleString() }}円</span>
+                        </div>
+                        <div class="d-flex justify-space-between mb-1">
+                          <span>立地重み:</span>
+                          <span class="font-weight-medium">{{ formData.valuation.locationWeight !== undefined ? formData.valuation.locationWeight : 0.6 }}</span>
+                        </div>
+                        <div class="d-flex justify-space-between">
+                          <span>設備重み:</span>
+                          <span class="font-weight-medium">{{ (1 - (formData.valuation.locationWeight !== undefined ? formData.valuation.locationWeight : 0.6)).toFixed(1) }}</span>
+                        </div>
+                      </div>
+                    </v-card>
+                  </v-col>
+
+                  <!-- 詳細設定 -->
+                  <v-col cols="12">
+                    <v-card outlined>
+                      <v-card-text>
+                        <div
+                          class="d-flex align-center justify-space-between"
+                          style="cursor: pointer;"
+                          @click="showValuationSettings = !showValuationSettings"
+                        >
+                          <span class="text-subtitle-2">
+                            <v-icon small class="mr-2">mdi-tune</v-icon>
+                            詳細設定（係数調整）
+                          </span>
+                          <v-icon>{{ showValuationSettings ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                        </div>
+
+                        <v-expand-transition>
+                          <div v-show="showValuationSettings" class="mt-4">
+                            <v-row>
+                              <v-col cols="12">
+                                <div class="text-caption mb-2">スライダーで立地と設備の重みを調整できます</div>
+                              </v-col>
+
+                              <v-col cols="12">
+                                <div class="d-flex justify-space-between mb-2">
+                                  <span class="text-subtitle-2">立地重み {{ formData.valuation.locationWeight !== undefined ? formData.valuation.locationWeight : 0.6 }}</span>
+                                  <span class="text-subtitle-2">設備重み {{ (1 - (formData.valuation.locationWeight !== undefined ? formData.valuation.locationWeight : 0.6)).toFixed(1) }}</span>
+                                </div>
+                                <v-slider
+                                  v-model="formData.valuation.locationWeight"
+                                  :min="0"
+                                  :max="1"
+                                  :step="0.1"
+                                  thumb-label
+                                  color="primary"
+                                  track-color="secondary"
+                                  @input="updateEquipmentWeight"
+                                >
+                                  <template v-slot:prepend>
+                                    <v-icon color="primary">mdi-map-marker</v-icon>
+                                  </template>
+                                  <template v-slot:append>
+                                    <v-icon color="secondary">mdi-tools</v-icon>
+                                  </template>
+                                </v-slider>
+                                <div class="text-center text-caption grey--text">
+                                  立地 {{ ((formData.valuation.locationWeight !== undefined ? formData.valuation.locationWeight : 0.6) * 10).toFixed(0) }} : 設備 {{ ((1 - (formData.valuation.locationWeight !== undefined ? formData.valuation.locationWeight : 0.6)) * 10).toFixed(0) }}
+                                </div>
+                              </v-col>
+
+                              <v-col cols="12">
+                                <v-btn
+                                  block
+                                  outlined
+                                  color="primary"
+                                  small
+                                  @click="resetValuationWeights"
+                                >
+                                  <v-icon left small>mdi-refresh</v-icon>
+                                  デフォルトに戻す（6:4）
+                                </v-btn>
+                              </v-col>
+                            </v-row>
+                          </div>
+                        </v-expand-transition>
+                      </v-card-text>
+                    </v-card>
                   </v-col>
                 </v-row>
               </v-card-text>
             </v-card>
 
             <!-- 今の売上情報 -->
-            <v-card outlined class="mb-4 section-card">
+            <!-- <v-card outlined class="mb-4 section-card">
               <v-card-title class="section-title">
                 <v-icon left size="24" class="mr-2">mdi-chart-line</v-icon>
                 今の売上情報
               </v-card-title>
               <v-card-text class="pt-6">
                 <v-row>
-                  <!-- 売上 -->
+
                   <v-col cols="12" md="6">
                     <div class="text-subtitle-2 mb-2">
                       <v-icon small color="error" class="mr-1">mdi-asterisk</v-icon>
@@ -930,7 +1202,7 @@
                     <div class="text-center text-h6">{{ formData.salesInfo.monthlyRevenue }}万円</div>
                   </v-col>
 
-                  <!-- 利益 -->
+
                   <v-col cols="12" md="6">
                     <div class="text-subtitle-2 mb-2">
                       <v-icon small color="error" class="mr-1">mdi-asterisk</v-icon>
@@ -947,7 +1219,7 @@
                   </v-col>
                 </v-row>
               </v-card-text>
-            </v-card>
+            </v-card> -->
 
 
             <!-- 排気・排水設備 -->
@@ -2385,8 +2657,111 @@
         </v-form>
       </v-window-item>
 
-      <!-- タブ4: 販売戦略 -->
+      <!-- タブ4: 自由記述 -->
       <v-window-item :value="3">
+        <v-card outlined class="section-card">
+          <v-card-title class="section-title">
+            <v-icon left size="24" class="mr-2">mdi-draw</v-icon>
+            自由記述（手書きメモ）
+          </v-card-title>
+          <v-card-text class="pt-6">
+            <div class="canvas-container">
+              <div class="canvas-toolbar mb-3">
+                <div class="d-flex tool-buttons-group">
+                  <v-btn
+                    size="small"
+                    @click="setDrawingMode('pen')"
+                    :class="['tool-btn', 'd-flex', 'align-center', drawingMode === 'pen' ? 'tool-btn-active' : 'tool-btn-inactive']"
+                  >
+                    <v-icon left>mdi-pen</v-icon>
+                    <span class="btn-text">ペン</span>
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    @click="setDrawingMode('eraser')"
+                    :class="['tool-btn', 'd-flex', 'align-center', drawingMode === 'eraser' ? 'tool-btn-active' : 'tool-btn-inactive']"
+                  >
+                    <v-icon left>mdi-eraser</v-icon>
+                    <span class="btn-text">消しゴム</span>
+                  </v-btn>
+                </div>
+                <v-spacer></v-spacer>
+                <v-btn size="small" class="clear-btn d-flex align-center" @click="clearCanvas">
+                  <v-icon left>mdi-delete</v-icon>
+                  <span class="btn-text">全消去</span>
+                </v-btn>
+              </div>
+
+              <div class="color-picker mb-3">
+                <span class="mr-2">色:</span>
+                <v-btn
+                  v-for="color in colors"
+                  :key="color"
+                  size="small"
+                  :color="color"
+                  class="mr-2"
+                  @click="setColor(color)"
+                  :style="{ border: selectedColor === color ? '3px solid #1e50a2' : 'none' }"
+                >
+                </v-btn>
+              </div>
+
+              <div class="pen-size mb-3 d-flex align-center">
+                <span class="mr-2">太さ:</span>
+                <v-slider
+                  v-model="penSize"
+                  :min="1"
+                  :max="20"
+                  :step="1"
+                  hide-details
+                  class="slider-control"
+                ></v-slider>
+                <div class="size-preview ml-4">
+                  <div
+                    class="size-preview-circle"
+                    :style="{
+                      width: (drawingMode === 'pen' ? penSize : penSize * 3) + 'px',
+                      height: (drawingMode === 'pen' ? penSize : penSize * 3) + 'px',
+                      backgroundColor: drawingMode === 'pen' ? selectedColor : 'transparent',
+                      border: drawingMode === 'eraser' ? '2px solid #999' : 'none'
+                    }"
+                  ></div>
+                  <span class="ml-2 text-caption">{{ drawingMode === 'pen' ? penSize : penSize * 3 }}px</span>
+                </div>
+              </div>
+
+              <canvas
+                ref="drawingCanvas"
+                class="drawing-canvas"
+                @mousedown="startDrawing"
+                @mousemove="onMouseMove"
+                @mouseup="stopDrawing"
+                @touchstart="startDrawing"
+                @touchmove="onTouchMove"
+                @touchend="stopDrawing"
+              ></canvas>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-window-item>
+
+      <!-- タブ5: 設備詳細 -->
+      <v-window-item :value="4">
+        <v-card outlined class="section-card">
+          <v-card-title class="section-title">
+            <v-icon left size="24" class="mr-2">mdi-tools</v-icon>
+            設備詳細
+          </v-card-title>
+          <v-card-text class="pt-6">
+            <v-alert type="info" variant="tonal">
+              設備詳細情報はこちらに追加予定です
+            </v-alert>
+          </v-card-text>
+        </v-card>
+      </v-window-item>
+
+      <!-- タブ6: 販売戦略 -->
+      <v-window-item :value="5">
         <v-form ref="strategyForm" v-model="strategyFormValid">
           <!-- 販売概要情報 -->
           <v-card outlined class="mb-4 section-card">
@@ -2770,6 +3145,10 @@ if (!authStore.isAuthenticated) {
 
 /* [ADD] 詳細入力の表示/非表示 */
 const showDetailPrice = ref(false)
+const showDetailEquipmentCost = ref(false)
+const showDetailInteriorCost = ref(false)
+const showCoefficientSettings = ref(false)
+const showValuationSettings = ref(false)
 
 /* [ADD] プリセット（任意・編集OK） */
 const pricePresets = [
@@ -2800,6 +3179,26 @@ const updatePriceFromChip = (value: number | null) => {
 
 // タブの状態管理
 const activeTab = ref(0)
+
+// タブ切り替え時の処理
+watch(activeTab, (newTab) => {
+  if (newTab === 3) { // 自由記述タブ（4番目）
+    nextTick(() => {
+      initCanvas()
+    })
+  }
+})
+
+// 手書きキャンバスの状態管理
+const drawingCanvas = ref<HTMLCanvasElement | null>(null)
+const isDrawing = ref(false)
+const drawingMode = ref('pen')
+const selectedColor = ref('black')
+const penSize = ref(3)
+const colors = ['black', 'red', 'blue', 'green', 'orange', 'purple']
+let ctx: CanvasRenderingContext2D | null = null
+let lastX = 0
+let lastY = 0
 
 // フォーム全体の状態
 const formValid = ref(false)
@@ -2842,8 +3241,24 @@ const contractYearsList = (() => {
 
 // 月リスト
 const monthsList = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-const equipmentAgeOptions = ['1年', '2年', '3年', '4年', '5年', '6年', '7年以上']
-const interiorAgeOptions = ['1年', '2年', '3年', '4年', '5年', '6年', '7年', '8年', '9年', '10年', '11年', '12年', '13年', '14年', '15年以上']
+const businessYearsOptions = [
+  { title: '1年未満', value: 0 },
+  { title: '1年', value: 1 },
+  { title: '2年', value: 2 },
+  { title: '3年', value: 3 },
+  { title: '4年', value: 4 },
+  { title: '5年', value: 5 },
+  { title: '6年', value: 6 },
+  { title: '7年', value: 7 },
+  { title: '8年', value: 8 },
+  { title: '9年', value: 9 },
+  { title: '10年', value: 10 },
+  { title: '11年', value: 11 },
+  { title: '12年', value: 12 },
+  { title: '13年', value: 13 },
+  { title: '14年', value: 14 },
+  { title: '15年以上', value: 15 }
+]
 const equipmentIssues = ['故障なし', '一部故障あり', 'リース残債あり', 'リース残債なし']
 const areaTypes = ['住宅街', '繁華街', 'ビジネス街', '学生街']
 const customerSegments = ['若者', '中高年', '高齢者', '外国人', '学生', 'ビジネスマン', 'ファミリー']
@@ -2924,6 +3339,9 @@ const formData = ref({
     equipmentAge: '',
     interiorCost: 0,
     interiorAge: '',
+    businessYears: 0,
+    equipmentCoefficient: 0.8,
+    interiorCoefficient: 0.2,
     equipmentStatus: [],
     hasNonTransferable: false,
     nonTransferableDetails: '',
@@ -3131,6 +3549,11 @@ const formData = ref({
     specialNotes: '',
     // 内部メモ
     internalMemo: ''
+  },
+  // 簡易査定
+  valuation: {
+    locationWeight: 0.6,
+    equipmentWeight: 0.4
   }
 })
 
@@ -3192,6 +3615,148 @@ const calculateRentPerTsubo = computed(() => {
     return Math.round(rent / area).toLocaleString()
   }
   return '0'
+})
+
+// 立地係数の計算（坪単価に基づく）
+const calculateLocationCoefficient = computed(() => {
+  const rent = Number(formData.value.locationInfo.rent) * 10000 // 万円を円に変換
+  const area = Number(formData.value.locationInfo.area)
+  if (rent <= 0 || area <= 0) return { grade: '', coefficient: 0 }
+
+  const tsuboPrice = rent / area // 坪単価（円）
+
+  if (tsuboPrice <= 10000) return { grade: '1等地A', coefficient: 1 }
+  if (tsuboPrice <= 15000) return { grade: '1等地B', coefficient: 2 }
+  if (tsuboPrice <= 20000) return { grade: '2等地A', coefficient: 3 }
+  if (tsuboPrice <= 30000) return { grade: '2等地B', coefficient: 4 }
+  if (tsuboPrice <= 50000) return { grade: '3等地A', coefficient: 5 }
+  return { grade: '3等地B', coefficient: 6 }
+})
+
+// 面積係数の計算（坪数に基づく）
+const calculateAreaCoefficient = computed(() => {
+  const area = Number(formData.value.locationInfo.area)
+  const locationCoef = calculateLocationCoefficient.value.coefficient
+
+  if (area <= 0 || locationCoef === 0) return 0
+
+  if (area <= 20) return locationCoef * 2
+  if (area <= 50) return locationCoef * 1.5
+  return locationCoef * 1.2
+})
+
+// 立地評価の計算
+const calculateLocationEvaluation = computed(() => {
+  const rent = Number(formData.value.locationInfo.rent) * 10000 // 万円を円に変換
+  const area = Number(formData.value.locationInfo.area)
+  const areaCoef = calculateAreaCoefficient.value
+
+  if (rent <= 0 || area <= 0 || areaCoef === 0) return 0
+
+  const tsuboPrice = rent / area // 坪単価
+  const evaluation = tsuboPrice * area * areaCoef // 立地評価
+
+  return Math.round(evaluation) // 円単位で返す
+})
+
+// 設備残存価値の計算（減価償却後）
+const calculateEquipmentResidual = computed(() => {
+  const equipmentCost = Number(formData.value.equipment.equipmentCost) || 0
+  const businessYears = Number(formData.value.equipment.businessYears) || 0
+  const depreciationYears = 7 // 設備の減価償却年数
+
+  if (equipmentCost <= 0) return 0
+
+  // 営業年数が償却年数を超えている場合は0
+  if (businessYears >= depreciationYears) return 0
+
+  // 残存価値 = 取得額 × (償却年数 - 営業年数) / 償却年数
+  const residualValue = equipmentCost * (depreciationYears - businessYears) / depreciationYears
+
+  return Math.round(residualValue * 10) / 10 // 小数点第1位まで
+})
+
+// 内装残存価値の計算（減価償却後）
+const calculateInteriorResidual = computed(() => {
+  const interiorCost = Number(formData.value.equipment.interiorCost) || 0
+  const businessYears = Number(formData.value.equipment.businessYears) || 0
+  const depreciationYears = 15 // 内装の減価償却年数
+
+  if (interiorCost <= 0) return 0
+
+  // 営業年数が償却年数を超えている場合は0
+  if (businessYears >= depreciationYears) return 0
+
+  // 残存価値 = 取得額 × (償却年数 - 営業年数) / 償却年数
+  const residualValue = interiorCost * (depreciationYears - businessYears) / depreciationYears
+
+  return Math.round(residualValue * 10) / 10 // 小数点第1位まで
+})
+
+// 設備評価の計算
+const calculateEquipmentEvaluation = computed(() => {
+  const equipmentResidual = calculateEquipmentResidual.value
+  const interiorResidual = calculateInteriorResidual.value
+
+  const equipmentCoefficient = Number(formData.value.equipment.equipmentCoefficient) || 0.8
+  const interiorCoefficient = Number(formData.value.equipment.interiorCoefficient) || 0.2
+
+  // 設備評価 = 設備残存価値 × 設備係数 + 内装残存価値 × 内装係数
+  const evaluation = (equipmentResidual * equipmentCoefficient) + (interiorResidual * interiorCoefficient)
+
+  return Math.round(evaluation * 10) / 10 // 小数点第1位まで
+})
+
+// 係数調整関数（設備・内装）
+const updateInteriorCoefficient = () => {
+  const equipmentCoef = Number(formData.value.equipment.equipmentCoefficient) || 0
+  formData.value.equipment.interiorCoefficient = Math.round((1 - equipmentCoef) * 10) / 10
+}
+
+const resetCoefficients = () => {
+  formData.value.equipment.equipmentCoefficient = 0.8
+  formData.value.equipment.interiorCoefficient = 0.2
+}
+
+// 簡易査定の計算
+const calculateSimpleValuation = computed(() => {
+  const locationEvaluation = calculateLocationEvaluation.value
+  const equipmentEvaluation = (calculateEquipmentEvaluation.value || 0) * 10000 // 万円を円に変換
+
+  const locationWeight = Number(formData.value.valuation.locationWeight) || 0.6
+  const equipmentWeight = Number(formData.value.valuation.equipmentWeight) || 0.4
+
+  // 簡易査定額 = 立地評価 × 立地重み + 設備評価 × 設備重み
+  const valuation = (locationEvaluation * locationWeight) + (equipmentEvaluation * equipmentWeight)
+
+  return Math.round(valuation) // 円単位で返す
+})
+
+// 係数調整関数（簡易査定）
+const updateEquipmentWeight = () => {
+  const locationWeight = Number(formData.value.valuation.locationWeight) || 0
+  formData.value.valuation.equipmentWeight = Math.round((1 - locationWeight) * 10) / 10
+}
+
+const resetValuationWeights = () => {
+  formData.value.valuation.locationWeight = 0.6
+  formData.value.valuation.equipmentWeight = 0.4
+}
+
+// 初期値設定
+onMounted(() => {
+  if (!formData.value.equipment.equipmentCoefficient) {
+    formData.value.equipment.equipmentCoefficient = 0.8
+  }
+  if (!formData.value.equipment.interiorCoefficient) {
+    formData.value.equipment.interiorCoefficient = 0.2
+  }
+  if (!formData.value.valuation.locationWeight) {
+    formData.value.valuation.locationWeight = 0.6
+  }
+  if (!formData.value.valuation.equipmentWeight) {
+    formData.value.valuation.equipmentWeight = 0.4
+  }
 })
 
 
@@ -3264,6 +3829,106 @@ const showErrorMessage = (message: string) => {
   showError.value = true
 }
 
+// 手書きキャンバス関数
+const initCanvas = () => {
+  const canvas = drawingCanvas.value
+  if (!canvas) return
+
+  // キャンバスサイズを設定
+  canvas.width = canvas.offsetWidth
+  canvas.height = 600
+
+  ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+  }
+}
+
+const setDrawingMode = (mode: string) => {
+  drawingMode.value = mode
+}
+
+const setColor = (color: string) => {
+  selectedColor.value = color
+}
+
+const clearCanvas = () => {
+  if (!ctx || !drawingCanvas.value) return
+  ctx.clearRect(0, 0, drawingCanvas.value.width, drawingCanvas.value.height)
+}
+
+const getCoordinates = (e: MouseEvent | TouchEvent) => {
+  const canvas = drawingCanvas.value
+  if (!canvas) return { x: 0, y: 0 }
+
+  const rect = canvas.getBoundingClientRect()
+
+  if (e instanceof MouseEvent) {
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    }
+  } else {
+    const touch = e.touches[0]
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    }
+  }
+}
+
+const startDrawing = (e: MouseEvent | TouchEvent) => {
+  if (e instanceof TouchEvent) {
+    e.preventDefault()
+  }
+
+  isDrawing.value = true
+  const coords = getCoordinates(e)
+  lastX = coords.x
+  lastY = coords.y
+}
+
+const onMouseMove = (e: MouseEvent) => {
+  if (isDrawing.value) {
+    draw(e)
+  }
+}
+
+const onTouchMove = (e: TouchEvent) => {
+  e.preventDefault()
+  if (isDrawing.value) {
+    draw(e)
+  }
+}
+
+const draw = (e: MouseEvent | TouchEvent) => {
+  if (!isDrawing.value || !ctx) return
+
+  const coords = getCoordinates(e)
+
+  ctx.beginPath()
+  ctx.moveTo(lastX, lastY)
+  ctx.lineTo(coords.x, coords.y)
+
+  if (drawingMode.value === 'pen') {
+    ctx.strokeStyle = selectedColor.value
+    ctx.lineWidth = penSize.value
+  } else {
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = penSize.value * 3
+  }
+
+  ctx.stroke()
+
+  lastX = coords.x
+  lastY = coords.y
+}
+
+const stopDrawing = () => {
+  isDrawing.value = false
+}
+
 // 下書き読み込み
 onMounted(() => {
   const draft = localStorage.getItem('exitFormDraft')
@@ -3278,6 +3943,20 @@ onMounted(() => {
       console.error('下書き読み込みエラー:', error)
     }
   }
+
+  // キャンバス初期化
+  nextTick(() => {
+    initCanvas()
+  })
+})
+
+// ウィンドウリサイズ時にキャンバスを再初期化
+onMounted(() => {
+  window.addEventListener('resize', initCanvas)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', initCanvas)
 })
 
 // ページタイトル
@@ -3287,6 +3966,147 @@ useHead({
 </script>
 
 <style scoped>
+/* タブ固定用 */
+.sticky-tabs-wrapper {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: #fff !important;
+  box-shadow: 0 4px 12px rgba(30, 80, 162, 0.12) !important;
+}
+
+/* 手書きキャンバス */
+.canvas-container {
+  width: 100%;
+}
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f7f9fc;
+  border-radius: 8px;
+}
+
+.tool-buttons-group {
+  gap: 4px;
+}
+
+.tool-btn {
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  margin-right: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.tool-btn:last-child {
+  margin-right: 0 !important;
+}
+
+.btn-text {
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.tool-btn-active {
+  background: linear-gradient(135deg, #1e50a2 0%, #154a8a 100%) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(30, 80, 162, 0.3) !important;
+}
+
+.tool-btn-active .v-icon {
+  color: white !important;
+}
+
+.tool-btn-inactive {
+  background: white !important;
+  color: #1e50a2 !important;
+  border: 2px solid #e1ecff !important;
+}
+
+.tool-btn-inactive .v-icon {
+  color: #1e50a2 !important;
+}
+
+.tool-btn-inactive:hover {
+  border-color: #1e50a2 !important;
+  background: #f7f9fc !important;
+}
+
+.clear-btn {
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%) !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.clear-btn .v-icon {
+  color: white !important;
+}
+
+.clear-btn:hover {
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4) !important;
+}
+
+.color-picker {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f7f9fc;
+  border-radius: 8px;
+}
+
+.pen-size {
+  padding: 8px 12px;
+  background: #f7f9fc;
+  border-radius: 8px;
+}
+
+.slider-control {
+  max-width: 200px;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.size-preview {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  padding: 4px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e1ecff;
+}
+
+.size-preview-circle {
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.drawing-canvas {
+  width: 100%;
+  height: 600px;
+  border: 2px solid #e1ecff;
+  border-radius: 8px;
+  background: white;
+  cursor: crosshair;
+  touch-action: none;
+}
+
 /* セクション見出しを統一 */
 .section-title {
   font-weight: 700 !important;
@@ -3350,6 +4170,16 @@ useHead({
   background: linear-gradient(135deg, #1e50a2 0%, #154a8a 100%) !important;
   border: 3px solid white !important;
   box-shadow: 0 2px 8px rgba(30, 80, 162, 0.3) !important;
+}
+
+/* iPadでスライダー操作時にタブが移動しないようにする */
+.v-slider {
+  touch-action: pan-y !important; /* 縦方向のスクロールのみ許可、横方向のタッチジェスチャーを無効化 */
+}
+
+.v-slider >>> .v-slider__track-container,
+.v-slider >>> .v-slider__thumb {
+  touch-action: none !important; /* スライダー本体とサムでタッチジェスチャーを完全に制御 */
 }
 
 /* チップの美化 */
@@ -3580,3 +4410,4 @@ useHead({
   background: linear-gradient(135deg, #154a8a, #1976d2);
 }
 </style>
+
