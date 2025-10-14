@@ -2707,9 +2707,95 @@
             設備詳細
           </v-card-title>
           <v-card-text class="pt-6">
-            <v-alert type="info" variant="tonal">
-              設備詳細情報はこちらに追加予定です
-            </v-alert>
+            <!-- PDFダウンロードボタン -->
+            <div class="d-flex justify-end mb-4 no-print">
+              <v-btn
+                color="primary"
+                @click="printEquipmentDetails"
+                :loading="isGeneratingPDF"
+                :disabled="isGeneratingPDF"
+                prepend-icon="mdi-file-pdf-box"
+              >
+                {{ isGeneratingPDF ? 'PDF生成中...' : 'PDFダウンロード' }}
+              </v-btn>
+            </div>
+
+            <!-- 印刷用コンテナ -->
+            <div id="equipment-print-area">
+              <!-- 1ページ目：設備リスト -->
+              <div class="equipment-list-page print-page">
+                <h2 class="page-title">設備リスト</h2>
+                <v-table class="equipment-table">
+                  <thead>
+                    <tr>
+                      <th class="text-center">No.</th>
+                      <th>設置場所</th>
+                      <th>品目</th>
+                      <th>メーカー</th>
+                      <th>型式・サイズ</th>
+                      <th class="text-center">数量</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, index) in equipmentItems" :key="index">
+                      <td class="text-center">{{ index + 1 }}</td>
+                      <td>{{ item.location }}</td>
+                      <td>{{ item.name }}</td>
+                      <td>{{ item.maker }}</td>
+                      <td>{{ item.model }}</td>
+                      <td class="text-center">{{ item.quantity }}</td>
+                    </tr>
+                  </tbody>
+                </v-table>
+
+                <!-- 備考セクション -->
+                <div class="equipment-notes">
+                  <h3 class="notes-title">備考</h3>
+
+                  <div class="note-section">
+                    <h4 class="note-subtitle">【買取対象物について】</h4>
+                    <p class="note-text">
+                      目的物リスト及び内装・外装の造作物、厨房機器、インフラ設備、その他譲渡人が残置するもの一切が買取対象物となります。<br>
+                      （スケルトン状態から付加されたダクト設備、グリストラップ、床下や天井上の各種インフラ設備。外部の給湯器や室外機、各種メーターから室内に至る電気・ガス等のインフラ設備、吸排水・吸排気等のインフラ設備を含みます。）
+                    </p>
+                  </div>
+
+                  <div class="note-section">
+                    <h4 class="note-subtitle">【性能保証について】</h4>
+                    <p class="note-text">
+                      対象物はあくまで中古品であり、性能保証はありません。
+                    </p>
+                  </div>
+
+                  <div class="note-section">
+                    <h4 class="note-subtitle">【引き渡しについて】</h4>
+                    <p class="note-text">
+                      本物件及び買取対象物は現状有姿での引渡しとなります。
+                    </p>
+                  </div>
+
+                  <div class="note-footer">
+                    <p class="note-text">
+                      ※お皿（残置）、グラス（残置）、調理器具（残置）、その他備品（残置）
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2ページ目：写真シート -->
+              <div class="equipment-photos-page print-page">
+                <h2 class="page-title">設備写真</h2>
+                <div class="photo-grid">
+                  <div v-for="(item, index) in equipmentItems" :key="index" class="photo-item">
+                    <div class="photo-header">{{ item.name }}</div>
+                    <div class="photo-placeholder">
+                      <v-icon size="48" color="grey-lighten-1">mdi-image-outline</v-icon>
+                      <div class="text-caption text-grey">写真 {{ index + 1 }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </v-card-text>
         </v-card>
       </v-window-item>
@@ -3086,7 +3172,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
 // テスト段階のため認証チェックをスキップ
 // 本番環境では以下のコメントを外して認証を有効化
@@ -3128,6 +3214,162 @@ const selectedPresetChip = ref<number | null>(null)
 const updatePriceFromChip = (value: number | null) => {
   if (value !== null) {
     formData.value.status.desiredPrice = value
+  }
+}
+
+// 設備詳細タブのダミーデータ（42件）
+const equipmentItems = ref([
+  { location: '厨房', name: '業務用冷蔵庫', maker: 'ホシザキ', model: 'HR-120A3', quantity: 1 },
+  { location: '厨房', name: '業務用冷凍庫', maker: 'ホシザキ', model: 'HF-120A3', quantity: 1 },
+  { location: '厨房', name: 'ガスコンロ', maker: 'タニコー', model: 'TGC-120', quantity: 1 },
+  { location: '厨房', name: 'フライヤー', maker: 'タニコー', model: 'TGFL-45', quantity: 1 },
+  { location: '厨房', name: '製氷機', maker: 'ホシザキ', model: 'IM-55M', quantity: 1 },
+  { location: '厨房', name: '食器洗浄機', maker: 'ホシザキ', model: 'JWE-400TUA3', quantity: 1 },
+  { location: '厨房', name: '作業台', maker: 'タニコー', model: 'TX-WT-120', quantity: 2 },
+  { location: '厨房', name: 'シンク（三槽）', maker: 'タニコー', model: 'TX-3S-120', quantity: 1 },
+  { location: '厨房', name: 'ガスレンジ', maker: 'リンナイ', model: 'RSB-206A', quantity: 1 },
+  { location: '厨房', name: '電子レンジ', maker: 'パナソニック', model: 'NE-1802', quantity: 1 },
+  { location: '厨房', name: '炊飯器', maker: 'タイガー', model: 'JNO-A360', quantity: 1 },
+  { location: '厨房', name: '包丁まな板殺菌庫', maker: 'エイシン', model: 'ESK-1H', quantity: 1 },
+  { location: '厨房', name: 'グリストラップ', maker: 'カネソウ', model: 'GXH-50E', quantity: 1 },
+  { location: '厨房', name: '換気扇', maker: '三菱', model: 'EF-35UBT', quantity: 2 },
+  { location: 'ホール', name: 'エアコン', maker: 'ダイキン', model: 'SZRC140BF', quantity: 2 },
+  { location: 'ホール', name: 'テーブル4人用', maker: 'ニトリ', model: 'T-4P-120', quantity: 8 },
+  { location: 'ホール', name: 'テーブル2人用', maker: 'ニトリ', model: 'T-2P-80', quantity: 4 },
+  { location: 'ホール', name: '椅子', maker: 'ニトリ', model: 'C-WD-01', quantity: 40 },
+  { location: 'ホール', name: 'カウンター席', maker: 'カリモク', model: 'CT-10', quantity: 6 },
+  { location: 'ホール', name: 'レジカウンター', maker: 'タカラスタンダード', model: 'RC-150', quantity: 1 },
+  { location: 'ホール', name: 'POSレジ', maker: 'カシオ', model: 'VT-8000', quantity: 1 },
+  { location: 'ホール', name: '券売機', maker: 'グローリー', model: 'VT-B20', quantity: 1 },
+  { location: 'ホール', name: '照明器具', maker: 'パナソニック', model: 'LGB50633LB1', quantity: 15 },
+  { location: 'ホール', name: '看板（LED）', maker: 'タカショー', model: 'HFD-W06S', quantity: 2 },
+  { location: 'ホール', name: '防犯カメラ', maker: 'パナソニック', model: 'WV-S1531LN', quantity: 4 },
+  { location: 'ホール', name: 'BGMスピーカー', maker: 'BOSE', model: 'DS40SE', quantity: 6 },
+  { location: '客席', name: 'テーブルクロス', maker: 'シンコール', model: 'TC-W120', quantity: 12 },
+  { location: '客席', name: '食器棚', maker: 'イトーキ', model: 'SC-180', quantity: 2 },
+  { location: '客席', name: '観葉植物', maker: 'グリーンポット', model: 'GP-L01', quantity: 5 },
+  { location: '事務所', name: '事務机', maker: 'コクヨ', model: 'SD-ISN1275', quantity: 2 },
+  { location: '事務所', name: '事務椅子', maker: 'オカムラ', model: 'CP81BR', quantity: 2 },
+  { location: '事務所', name: 'パソコン', maker: 'Dell', model: 'OptiPlex 3080', quantity: 1 },
+  { location: '事務所', name: 'プリンター', maker: 'エプソン', model: 'PX-M7110F', quantity: 1 },
+  { location: '事務所', name: 'キャビネット', maker: 'イトーキ', model: 'HE-046-3', quantity: 2 },
+  { location: 'トイレ', name: '便器', maker: 'TOTO', model: 'CES9898', quantity: 3 },
+  { location: 'トイレ', name: '洗面台', maker: 'LIXIL', model: 'LCYH-906', quantity: 2 },
+  { location: 'トイレ', name: 'ハンドドライヤー', maker: '三菱', model: 'JT-MC105G', quantity: 2 },
+  { location: '倉庫', name: 'スチールラック', maker: 'アイリスオーヤマ', model: 'MR-1218J', quantity: 4 },
+  { location: '倉庫', name: '台車', maker: 'トラスコ', model: 'MWP-500', quantity: 2 },
+  { location: '倉庫', name: '掃除機', maker: 'ダイソン', model: 'V11 Fluffy', quantity: 2 },
+  { location: '外部', name: '室外機', maker: 'ダイキン', model: 'RCU-AP140C', quantity: 2 },
+  { location: '外部', name: 'ゴミ箱（業務用）', maker: 'テラモト', model: 'DS-224-012-0', quantity: 3 }
+])
+
+// PDF生成中の状態管理
+const isGeneratingPDF = ref(false)
+
+// 設備詳細PDF生成関数（html2canvas使用）
+const printEquipmentDetails = async () => {
+  // クライアントサイドチェック
+  if (!process.client) return
+
+  // 既に処理中の場合は実行しない
+  if (isGeneratingPDF.value) return
+
+  isGeneratingPDF.value = true
+
+  try {
+    // 動的インポート
+    const { default: jsPDF } = await import('jspdf')
+    const html2canvas = (await import('html2canvas')).default
+
+    // PDF作成
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    })
+
+    const pageWidth = 210
+    const pageHeight = 297
+
+    // 余白設定
+    const marginTop = 10 // 上下の余白
+    const marginSide = 10 // 左右の余白
+
+    // 1ページ目：設備リスト（左右センター、上下余白あり）
+    const listPage = document.querySelector('.equipment-list-page') as HTMLElement
+    if (listPage) {
+      const canvas1 = await html2canvas(listPage, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgData1 = canvas1.toDataURL('image/png')
+
+      // 左右余白を考慮した幅
+      const availableWidth = pageWidth - (marginSide * 2)
+      const availableHeight = pageHeight - (marginTop * 2)
+
+      let imgWidth = availableWidth
+      let imgHeight = (canvas1.height * availableWidth) / canvas1.width
+
+      // 高さが超える場合はスケール調整
+      if (imgHeight > availableHeight) {
+        imgHeight = availableHeight
+        imgWidth = (canvas1.width * availableHeight) / canvas1.height
+      }
+
+      // 左右センタリング
+      const xOffset = (pageWidth - imgWidth) / 2
+      // 上余白
+      const yOffset = marginTop
+
+      doc.addImage(imgData1, 'PNG', xOffset, yOffset, imgWidth, imgHeight)
+    }
+
+    // 2ページ目：写真グリッド（上下左右センター）
+    doc.addPage()
+    const photosPage = document.querySelector('.equipment-photos-page') as HTMLElement
+    if (photosPage) {
+      const canvas2 = await html2canvas(photosPage, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgData2 = canvas2.toDataURL('image/png')
+
+      // 左右余白を考慮した幅
+      const availableWidth = pageWidth - (marginSide * 2)
+      const availableHeight = pageHeight - (marginTop * 2)
+
+      let imgWidth = availableWidth
+      let imgHeight = (canvas2.height * availableWidth) / canvas2.width
+
+      // 高さが超える場合はスケール調整
+      if (imgHeight > availableHeight) {
+        imgHeight = availableHeight
+        imgWidth = (canvas2.width * availableHeight) / canvas2.height
+      }
+
+      // 左右センタリング
+      const xOffset = (pageWidth - imgWidth) / 2
+      // 上下センタリング
+      const yOffset = (pageHeight - imgHeight) / 2
+
+      doc.addImage(imgData2, 'PNG', xOffset, yOffset, imgWidth, imgHeight)
+    }
+
+    // PDF保存
+    doc.save('設備詳細.pdf')
+  } catch (error) {
+    console.error('PDF生成エラー:', error)
+    alert('PDF生成に失敗しました。')
+  } finally {
+    // 処理完了後にローディング状態を解除
+    isGeneratingPDF.value = false
   }
 }
 
@@ -3788,14 +4030,32 @@ const initCanvas = () => {
   const canvas = drawingCanvas.value
   if (!canvas) return
 
-  // キャンバスサイズを設定
-  canvas.width = canvas.offsetWidth
-  canvas.height = 600
+  // 既存の描画内容を保存
+  let imageData: ImageData | null = null
+  if (ctx && canvas.width > 0 && canvas.height > 0) {
+    try {
+      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    } catch (e) {
+      console.warn('キャンバス内容の保存に失敗:', e)
+    }
+  }
 
+  // キャンバスサイズを設定
+  const newWidth = canvas.offsetWidth
+  const newHeight = 600
+  canvas.width = newWidth
+  canvas.height = newHeight
+
+  // コンテキストを再取得
   ctx = canvas.getContext('2d')
   if (ctx) {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
+
+    // 保存した描画内容を復元
+    if (imageData) {
+      ctx.putImageData(imageData, 0, 0)
+    }
   }
 }
 
@@ -4335,6 +4595,478 @@ useHead({
 ::placeholder {
   color: #9ca3af !important;
   opacity: 0.8;
+}
+
+/* ========================================
+   設備詳細タブ 印刷用スタイル
+   ======================================== */
+
+/* 印刷時の基本設定 */
+@media print {
+  /* A4サイズ設定 */
+  @page {
+    size: A4;
+    margin: 10mm 12mm;
+  }
+
+  /* 印刷時に不要な要素を非表示 */
+  .no-print,
+  .sticky-stack,
+  .v-footer,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  /* ページ全体の設定 */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .v-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* v-window構造を保持 */
+  .v-window {
+    display: block !important;
+  }
+
+  /* 全てのタブ内容を非表示 */
+  .v-window-item {
+    display: none !important;
+  }
+
+  /* 設備詳細タブ（value=4）のみ表示 */
+  .v-window-item:nth-child(5) {
+    display: block !important;
+  }
+
+  /* 他のタブのv-cardを非表示 */
+  .v-window-item:not(:nth-child(5)) .v-card {
+    display: none !important;
+  }
+
+  /* 設備詳細タブのv-card-titleとアラートを非表示 */
+  .v-window-item:nth-child(5) .v-card-title,
+  .v-window-item:nth-child(5) .section-title {
+    display: none !important;
+  }
+
+  /* 設備詳細タブのv-cardの枠線を削除 */
+  .v-window-item:nth-child(5) .v-card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* 印刷用コンテナを確実に表示 */
+  #equipment-print-area {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* ページ区切り設定 */
+  .print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  .print-page:last-child {
+    page-break-after: auto;
+  }
+
+  /* ページタイトル */
+  .page-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #333;
+    text-align: center;
+  }
+
+  /* 1ページ目：設備リストテーブル */
+  .equipment-list-page {
+    width: 100%;
+  }
+
+  .equipment-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8px;
+  }
+
+  .equipment-table thead tr {
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .equipment-table th,
+  .equipment-table td {
+    border: 1px solid #333 !important;
+    padding: 2px 4px;
+    text-align: left;
+    line-height: 1.2;
+  }
+
+  .equipment-table th {
+    font-weight: bold;
+    background-color: #e0e0e0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 9px;
+  }
+
+  .equipment-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 備考セクション（印刷用） */
+  .equipment-notes {
+    margin-top: 8px;
+    padding: 6px;
+    border: 1px solid #333;
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .notes-title {
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #333;
+  }
+
+  .note-section {
+    margin-bottom: 4px;
+  }
+
+  .note-subtitle {
+    font-size: 9px;
+    font-weight: bold;
+    margin-bottom: 2px;
+  }
+
+  .note-text {
+    font-size: 7px;
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  .note-footer {
+    margin-top: 4px;
+    padding-top: 3px;
+    border-top: 1px solid #ddd;
+  }
+
+  /* 2ページ目：写真グリッド */
+  .equipment-photos-page {
+    width: 100%;
+    height: 100%;
+  }
+
+  .equipment-photos-page .page-title {
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+  }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(7, 1fr);
+    gap: 2px;
+    width: 100%;
+    height: 252mm;
+  }
+
+  .photo-item {
+    border: 1px solid #999;
+    display: flex;
+    flex-direction: column;
+    page-break-inside: avoid;
+    height: 100%;
+  }
+
+  .photo-header {
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 2px 3px;
+    font-size: 7px;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .photo-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #fafafa !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    padding: 3px;
+  }
+
+  .photo-placeholder .v-icon {
+    opacity: 0.3;
+    font-size: 20px !important;
+  }
+
+  .photo-placeholder .text-caption {
+    font-size: 6px;
+    color: #999 !important;
+  }
+}
+
+/* 画面表示用スタイル */
+.equipment-list-page,
+.equipment-photos-page {
+  margin-bottom: 30px;
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(30, 80, 162, 0.08);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid #1976d2;
+  color: #1e50a2;
+  display: flex;
+  align-items: center;
+}
+
+.page-title::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #1e50a2 0%, #1976d2 100%);
+  margin-right: 12px;
+  border-radius: 2px;
+}
+
+.equipment-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.equipment-table th,
+.equipment-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e1ecff;
+  text-align: left;
+}
+
+.equipment-table th {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.equipment-table th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.equipment-table th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.equipment-table tbody tr {
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.equipment-table tbody tr:nth-child(even) {
+  background-color: #f8faff;
+}
+
+.equipment-table tbody tr:hover {
+  background-color: #e8f4ff;
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(30, 80, 162, 0.12);
+}
+
+.equipment-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.equipment-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
+
+.equipment-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.equipment-table td {
+  color: #374151;
+  font-size: 13px;
+}
+
+.equipment-table td:first-child,
+.equipment-table td:last-child {
+  text-align: center;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+/* 備考セクション（画面表示用） */
+.equipment-notes {
+  margin-top: 25px;
+  padding: 20px 24px;
+  border: 2px solid #e1ecff;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+  box-shadow: 0 1px 3px rgba(30, 80, 162, 0.08);
+}
+
+.notes-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #1976d2;
+  color: #1e50a2;
+  display: flex;
+  align-items: center;
+}
+
+.notes-title::before {
+  content: '📝';
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.note-section {
+  margin-bottom: 15px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 6px;
+}
+
+.note-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #1e50a2;
+}
+
+.note-text {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+  color: #4b5563;
+}
+
+.note-footer {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 2px dashed #e1ecff;
+}
+
+.note-footer .note-text {
+  font-style: italic;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.photo-item {
+  border: 2px solid #e1ecff;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.photo-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(30, 80, 162, 0.15);
+  border-color: #1976d2;
+}
+
+.photo-header {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.3px;
+}
+
+.photo-placeholder {
+  aspect-ratio: 4/3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+  padding: 20px;
+}
+
+.photo-placeholder .v-icon {
+  opacity: 0.25;
+  margin-bottom: 8px;
+  color: #1976d2;
+}
+
+.photo-placeholder .text-caption {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 1200px) {
+  .photo-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .photo-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* スクロールバーの美化 */
