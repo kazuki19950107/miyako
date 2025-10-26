@@ -81,7 +81,7 @@
                         </VList>
                       </VCol>
                       <VCol cols="12" md="6">
-                        <VCard color="primary" dark>
+                        <VCard color="primary" class="text-white">
                           <VCardTitle class="text-h6">査定結果</VCardTitle>
                           <VCardText>
                             <div class="text-h4">{{ property.assessment?.toLocaleString() }}円</div>
