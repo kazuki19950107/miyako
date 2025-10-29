@@ -1,16 +1,74 @@
 <template>
   <div>
-    <!-- お客様入力画面ボタン -->
-    <div class="mt-0 mb-4 d-flex justify-end">
-      <v-btn
-        color="primary"
-        elevation="2"
-        @click="$emit('open-customer-input')"
-      >
-        <v-icon left small style="color: white !important;">mdi-open-in-new</v-icon>
-        お客様入力画面
-      </v-btn>
-    </div>
+    <!-- QRコードとお客様入力画面ボタン -->
+    <v-row class="mt-0 mb-4">
+      <!-- お客様入力画面ボタン -->
+      <v-col cols="12" md="4" class="d-flex align-center">
+        <v-btn
+          color="primary"
+          elevation="2"
+          block
+          large
+          @click="$emit('open-customer-input')"
+        >
+          <v-icon left small style="color: white !important;">mdi-open-in-new</v-icon>
+          お客様入力画面
+        </v-btn>
+      </v-col>
+
+      <!-- QRコード表示エリア -->
+      <v-col cols="12" md="8">
+        <v-card outlined class="qr-card">
+          <v-card-text>
+            <!-- ID入力とQRコード生成ボタン -->
+            <v-row class="mb-3">
+              <v-col cols="12" md="8">
+                <v-text-field
+                  v-model="localStoreId"
+                  label="店舗ID"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-identifier"
+                  placeholder="店舗IDを入力してください"
+                  hint="このIDをもとにQRコードが生成されます"
+                  persistent-hint
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4" class="d-flex align-center">
+                <v-btn
+                  color="primary"
+                  elevation="2"
+                  block
+                  @click="generateQRCode"
+                >
+                  <v-icon left small style="color: white !important;">mdi-qrcode-scan</v-icon>
+                  QRコード生成
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <!-- QRコードと説明 -->
+            <div class="d-flex align-center">
+              <div class="flex-grow-1 mr-4">
+                <div class="text-subtitle-2 mb-2">
+                  <v-icon small class="mr-1">mdi-qrcode</v-icon>
+                  お客様入力用QRコード
+                </div>
+                <div class="text-caption grey--text">
+                  このQRコードをスキャンして入力画面にアクセスできます
+                </div>
+                <div class="text-caption mt-2">
+                  <strong>URL:</strong> {{ customerInputUrl }}
+                </div>
+              </div>
+              <div class="qr-code-container">
+                <canvas ref="qrcodeCanvas"></canvas>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <!-- 物件・契約情報 -->
     <v-card outlined class="mb-4 section-card">
@@ -715,8 +773,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import QRCode from 'qrcode'
+
 // Props
 const props = defineProps<{
+  storeId?: string
   customerInput: {
     property: {
       previousTenantInfo: string
@@ -822,6 +884,62 @@ const emit = defineEmits<{
   'update:customerInput': [value: typeof props.customerInput]
   'open-customer-input': []
 }>()
+
+// QRコード関連
+const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
+const localStoreId = ref(props.storeId || 'sample-store-id')
+
+// お客様入力用URLを生成
+const customerInputUrl = computed(() => {
+  const baseUrl = window.location.origin
+  const storeId = localStoreId.value || 'sample-store-id'
+  return `${baseUrl}/customer-input/${storeId}`
+})
+
+// QRコードを生成
+const generateQRCode = async () => {
+  if (!localStoreId.value) {
+    alert('店舗IDを入力してください')
+    return
+  }
+
+  // canvasがまだ描画されていない場合、少し待ってから再試行
+  if (!qrcodeCanvas.value) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
+  if (!qrcodeCanvas.value) {
+    console.error('Canvas要素が見つかりません')
+    return
+  }
+
+  try {
+    await QRCode.toCanvas(qrcodeCanvas.value, customerInputUrl.value, {
+      width: 200,
+      margin: 2,
+      color: {
+        dark: '#154a8a',
+        light: '#ffffff'
+      }
+    })
+  } catch (error) {
+    console.error('QRコード生成エラー:', error)
+    alert('QRコードの生成に失敗しました')
+  }
+}
+
+// マウント時にダミーQRコードを生成
+onMounted(() => {
+  generateQRCode()
+})
+
+// propsのstoreIdが変更されたらlocalStoreIdを更新
+watch(() => props.storeId, (newId) => {
+  if (newId) {
+    localStoreId.value = newId
+    generateQRCode()
+  }
+})
 
 // Update methods for property
 const updateProperty = (key: string, value: any) => {
@@ -1056,6 +1174,28 @@ const updateDefect = (key: string, value: any) => {
 </script>
 
 <style scoped>
+/* QRコード関連 */
+.qr-card {
+  border-radius: 16px !important;
+  border: 2px solid #e1ecff !important;
+  box-shadow: 0 4px 12px rgba(30, 80, 162, 0.08) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%) !important;
+}
+
+.qr-code-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e1ecff;
+}
+
+.qr-code-container canvas {
+  display: block;
+}
+
 /* セクション見出しを統一 */
 .section-title {
   font-weight: 700 !important;

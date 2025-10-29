@@ -333,13 +333,21 @@
                   <span>内装残存価値:</span>
                   <span class="font-weight-medium">{{ calculateInteriorResidual.toLocaleString() }}万円</span>
                 </div>
+                <div v-if="equipment.handoverCondition === '居抜き（有償）'" class="d-flex justify-space-between mb-1">
+                  <span>居抜き残存価値:</span>
+                  <span class="font-weight-medium">{{ calculateHandoverResidual.toLocaleString() }}万円</span>
+                </div>
                 <div class="d-flex justify-space-between mb-1">
                   <span>設備係数:</span>
-                  <span class="font-weight-medium">{{ equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8 }}</span>
+                  <span class="font-weight-medium">{{ equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8 }} （{{ (calculateEquipmentResidual * (equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8)).toLocaleString() }}万円）</span>
                 </div>
-                <div class="d-flex justify-space-between">
+                <div class="d-flex justify-space-between mb-1">
                   <span>内装係数:</span>
-                  <span class="font-weight-medium">{{ (1 - (equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8)).toFixed(1) }}</span>
+                  <span class="font-weight-medium">{{ (equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2).toFixed(1) }} （{{ (calculateInteriorResidual * (equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2)).toLocaleString() }}万円）</span>
+                </div>
+                <div v-if="equipment.handoverCondition === '居抜き（有償）'" class="d-flex justify-space-between">
+                  <span>居抜き係数:</span>
+                  <span class="font-weight-medium">{{ (equipment.handoverCoefficient !== undefined ? equipment.handoverCoefficient : 0).toFixed(1) }} （{{ (calculateHandoverResidual * (equipment.handoverCoefficient !== undefined ? equipment.handoverCoefficient : 0)).toLocaleString() }}万円）</span>
                 </div>
               </div>
             </v-card>
@@ -363,18 +371,99 @@
 
                 <v-expand-transition>
                   <div v-show="showCoefficientSettings" class="mt-4">
-                    <v-row>
+                    <!-- 居抜き（有償）の時は3つのスライダー -->
+                    <v-row v-if="equipment.handoverCondition === '居抜き（有償）'">
+                      <v-col cols="12">
+                        <div class="text-caption mb-2">スライダーで設備・内装・居抜きの重みを調整できます（合計1.0）</div>
+                      </v-col>
+
+                      <!-- 設備スライダー -->
+                      <v-col cols="12">
+                        <div class="text-subtitle-2 mb-2">設備重み {{ (equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8).toFixed(1) }}</div>
+                        <v-slider
+                          :model-value="equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8"
+                          @update:model-value="updateThreeCoefficients('equipment', $event)"
+                          :min="0"
+                          :max="1"
+                          :step="0.1"
+                          thumb-label
+                          color="primary"
+                        >
+                          <template v-slot:prepend>
+                            <v-icon color="primary">mdi-tools</v-icon>
+                          </template>
+                        </v-slider>
+                      </v-col>
+
+                      <!-- 内装スライダー -->
+                      <v-col cols="12">
+                        <div class="text-subtitle-2 mb-2">内装重み {{ (equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2).toFixed(1) }}</div>
+                        <v-slider
+                          :model-value="equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2"
+                          @update:model-value="updateThreeCoefficients('interior', $event)"
+                          :min="0"
+                          :max="1"
+                          :step="0.1"
+                          thumb-label
+                          color="secondary"
+                        >
+                          <template v-slot:prepend>
+                            <v-icon color="secondary">mdi-palette</v-icon>
+                          </template>
+                        </v-slider>
+                      </v-col>
+
+                      <!-- 居抜きスライダー -->
+                      <v-col cols="12">
+                        <div class="text-subtitle-2 mb-2">居抜き重み {{ (equipment.handoverCoefficient !== undefined ? equipment.handoverCoefficient : 0).toFixed(1) }}</div>
+                        <v-slider
+                          :model-value="equipment.handoverCoefficient !== undefined ? equipment.handoverCoefficient : 0"
+                          @update:model-value="updateThreeCoefficients('handover', $event)"
+                          :min="0"
+                          :max="1"
+                          :step="0.1"
+                          thumb-label
+                          color="success"
+                        >
+                          <template v-slot:prepend>
+                            <v-icon color="success">mdi-home-export-outline</v-icon>
+                          </template>
+                        </v-slider>
+                      </v-col>
+
+                      <v-col cols="12">
+                        <div class="text-center text-caption grey--text mb-2">
+                          設備 {{ ((equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8) * 10).toFixed(0) }} : 内装 {{ ((equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2) * 10).toFixed(0) }} : 居抜き {{ ((equipment.handoverCoefficient !== undefined ? equipment.handoverCoefficient : 0) * 10).toFixed(0) }}
+                        </div>
+                      </v-col>
+
+                      <v-col cols="12">
+                        <v-btn
+                          block
+                          outlined
+                          color="primary"
+                          small
+                          @click="resetCoefficientsLocal"
+                        >
+                          <v-icon left small>mdi-refresh</v-icon>
+                          デフォルトに戻す（8:2:0）
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+
+                    <!-- 居抜き（有償）以外の時は2つのスライダー -->
+                    <v-row v-else>
                       <v-col cols="12">
                         <div class="text-caption mb-2">スライダーで設備と内装の重みを調整できます</div>
                       </v-col>
 
                       <v-col cols="12">
                         <div class="d-flex justify-space-between mb-2">
-                          <span class="text-subtitle-2">設備重み {{ equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8 }}</span>
-                          <span class="text-subtitle-2">内装重み {{ (1 - (equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8)).toFixed(1) }}</span>
+                          <span class="text-subtitle-2">設備重み {{ (equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8).toFixed(1) }}</span>
+                          <span class="text-subtitle-2">内装重み {{ (equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2).toFixed(1) }}</span>
                         </div>
                         <v-slider
-                          :model-value="equipment.equipmentCoefficient"
+                          :model-value="equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8"
                           @update:model-value="updateCoefficientAndEmit"
                           :min="0"
                           :max="1"
@@ -391,7 +480,7 @@
                           </template>
                         </v-slider>
                         <div class="text-center text-caption grey--text">
-                          設備 {{ ((equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8) * 10).toFixed(0) }} : 内装 {{ ((1 - (equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8)) * 10).toFixed(0) }}
+                          設備 {{ ((equipment.equipmentCoefficient !== undefined ? equipment.equipmentCoefficient : 0.8) * 10).toFixed(0) }} : 内装 {{ ((equipment.interiorCoefficient !== undefined ? equipment.interiorCoefficient : 0.2) * 10).toFixed(0) }}
                         </div>
                       </v-col>
 
@@ -548,6 +637,7 @@ const props = defineProps<{
     handoverAmount: number
     equipmentCoefficient: number
     interiorCoefficient: number
+    handoverCoefficient: number
   }
   valuation: {
     locationWeight: number
@@ -666,14 +756,29 @@ const calculateInteriorResidual = computed(() => {
   return Math.round(residualValue * 10) / 10
 })
 
+const calculateHandoverResidual = computed(() => {
+  const handoverAmount = Number(props.equipment.handoverAmount) || 0
+  const businessYears = Number(props.equipment.businessYears) || 0
+  const depreciationYears = 5
+
+  if (handoverAmount <= 0) return 0
+  if (businessYears >= depreciationYears) return 0
+
+  const residualValue = handoverAmount * (depreciationYears - businessYears) / depreciationYears
+
+  return Math.round(residualValue * 10) / 10
+})
+
 const calculateEquipmentEvaluation = computed(() => {
   const equipmentResidual = calculateEquipmentResidual.value
   const interiorResidual = calculateInteriorResidual.value
+  const handoverResidual = calculateHandoverResidual.value
 
-  const equipmentCoefficient = Number(props.equipment.equipmentCoefficient) || 0.8
-  const interiorCoefficient = Number(props.equipment.interiorCoefficient) || 0.2
+  const equipmentCoefficient = props.equipment.equipmentCoefficient !== undefined ? Number(props.equipment.equipmentCoefficient) : 0.8
+  const interiorCoefficient = props.equipment.interiorCoefficient !== undefined ? Number(props.equipment.interiorCoefficient) : 0.2
+  const handoverCoefficient = props.equipment.handoverCoefficient !== undefined ? Number(props.equipment.handoverCoefficient) : 0
 
-  const evaluation = (equipmentResidual * equipmentCoefficient) + (interiorResidual * interiorCoefficient)
+  const evaluation = (equipmentResidual * equipmentCoefficient) + (interiorResidual * interiorCoefficient) + (handoverResidual * handoverCoefficient)
 
   return Math.round(evaluation * 10) / 10
 })
@@ -712,12 +817,78 @@ const updateCoefficientAndEmit = (value: number) => {
   })
 }
 
-const resetCoefficientsLocal = () => {
+const updateThreeCoefficients = (type: 'equipment' | 'interior' | 'handover', newValue: number) => {
+  const equipCoef = props.equipment.equipmentCoefficient !== undefined ? props.equipment.equipmentCoefficient : 0.8
+  const interCoef = props.equipment.interiorCoefficient !== undefined ? props.equipment.interiorCoefficient : 0.2
+  const handCoef = props.equipment.handoverCoefficient !== undefined ? props.equipment.handoverCoefficient : 0
+
+  // 新しい値を丸める
+  const rounded = Math.round(newValue * 10) / 10
+  const remaining = Math.round((1 - rounded) * 10) / 10
+
+  let newEquip = equipCoef
+  let newInter = interCoef
+  let newHand = handCoef
+
+  if (type === 'equipment') {
+    newEquip = rounded
+    // 残りを内装と居抜きで元の比率を保って配分
+    const otherTotal = interCoef + handCoef
+    if (otherTotal > 0) {
+      newInter = Math.round((interCoef / otherTotal * remaining) * 10) / 10
+      newHand = Math.round((remaining - newInter) * 10) / 10
+    } else {
+      newInter = Math.round(remaining * 0.5 * 10) / 10
+      newHand = Math.round((remaining - newInter) * 10) / 10
+    }
+  } else if (type === 'interior') {
+    newInter = rounded
+    // 残りを設備と居抜きで元の比率を保って配分
+    const otherTotal = equipCoef + handCoef
+    if (otherTotal > 0) {
+      newEquip = Math.round((equipCoef / otherTotal * remaining) * 10) / 10
+      newHand = Math.round((remaining - newEquip) * 10) / 10
+    } else {
+      newEquip = Math.round(remaining * 0.5 * 10) / 10
+      newHand = Math.round((remaining - newEquip) * 10) / 10
+    }
+  } else if (type === 'handover') {
+    newHand = rounded
+    // 残りを設備と内装で元の比率を保って配分
+    const otherTotal = equipCoef + interCoef
+    if (otherTotal > 0) {
+      newEquip = Math.round((equipCoef / otherTotal * remaining) * 10) / 10
+      newInter = Math.round((remaining - newEquip) * 10) / 10
+    } else {
+      newEquip = Math.round(remaining * 0.5 * 10) / 10
+      newInter = Math.round((remaining - newEquip) * 10) / 10
+    }
+  }
+
   emit('update:equipment', {
     ...props.equipment,
-    equipmentCoefficient: 0.8,
-    interiorCoefficient: 0.2
+    equipmentCoefficient: newEquip,
+    interiorCoefficient: newInter,
+    handoverCoefficient: newHand
   })
+}
+
+const resetCoefficientsLocal = () => {
+  if (props.equipment.handoverCondition === '居抜き（有償）') {
+    emit('update:equipment', {
+      ...props.equipment,
+      equipmentCoefficient: 0.8,
+      interiorCoefficient: 0.2,
+      handoverCoefficient: 0
+    })
+  } else {
+    emit('update:equipment', {
+      ...props.equipment,
+      equipmentCoefficient: 0.8,
+      interiorCoefficient: 0.2,
+      handoverCoefficient: 0
+    })
+  }
 }
 
 const updateValuationWeightAndEmit = (value: number) => {
