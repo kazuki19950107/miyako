@@ -787,8 +787,8 @@ const calculateSimpleValuation = computed(() => {
   const locationEvaluation = calculateLocationEvaluation.value
   const equipmentEvaluation = (calculateEquipmentEvaluation.value || 0) * 10000
 
-  const locationWeight = Number(props.valuation.locationWeight) || 0.6
-  const equipmentWeight = Number(props.valuation.equipmentWeight) || 0.4
+  const locationWeight = props.valuation.locationWeight !== undefined ? Number(props.valuation.locationWeight) : 0.6
+  const equipmentWeight = props.valuation.equipmentWeight !== undefined ? Number(props.valuation.equipmentWeight) : 0.4
 
   const valuation = (locationEvaluation * locationWeight) + (equipmentEvaluation * equipmentWeight)
 

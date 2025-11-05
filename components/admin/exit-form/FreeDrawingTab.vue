@@ -71,38 +71,35 @@
         </div>
 
         <!-- ページタブ -->
-        <div class="page-tabs mb-3">
-          <v-chip-group
-            v-model="currentPage"
-            mandatory
-            active-class="primary--text"
+        <div class="page-tabs mb-3 d-flex align-center ga-2">
+          <v-chip
+            v-for="(page, index) in canvasPages"
+            :key="index"
+            small
+            :color="currentPage === index ? 'primary' : ''"
+            :variant="currentPage === index ? 'flat' : 'outlined'"
+            class="page-chip"
+            @click="currentPage = index"
           >
-            <v-chip
-              v-for="(page, index) in canvasPages"
-              :key="index"
-              small
-              class="page-chip"
+            ページ {{ index + 1 }}
+            <v-icon
+              v-if="canvasPages.length > 1"
+              x-small
+              class="ml-2"
+              @click.stop="removePage(index)"
             >
-              ページ {{ index + 1 }}
-              <v-icon
-                v-if="canvasPages.length > 1"
-                x-small
-                class="ml-2"
-                @click.stop="removePage(index)"
-              >
-                mdi-close
-              </v-icon>
-            </v-chip>
-            <v-chip
-              small
-              color="primary"
-              outlined
-              @click="addPage"
-            >
-              <v-icon small>mdi-plus</v-icon>
-              追加
-            </v-chip>
-          </v-chip-group>
+              mdi-close
+            </v-icon>
+          </v-chip>
+          <v-chip
+            small
+            color="primary"
+            outlined
+            @click="addPage"
+          >
+            <v-icon small>mdi-plus</v-icon>
+            追加
+          </v-chip>
         </div>
 
         <canvas
@@ -147,13 +144,15 @@ let lastY = 0
 // ページ管理
 const currentPage = ref(0)
 const canvasPages = ref<string[]>([...props.canvasPagesData])
+const skipSave = ref(false)
 
 // ページ切り替え時の処理
 watch(currentPage, (newPage, oldPage) => {
-  if (oldPage !== undefined) {
+  if (oldPage !== undefined && !skipSave.value) {
     // 前のページを保存してから新しいページを読み込む
     saveCurrentPage(oldPage)
   }
+  skipSave.value = false
   nextTick(() => {
     loadPage(newPage)
   })
@@ -252,14 +251,25 @@ const addPage = () => {
 const removePage = (index: number) => {
   if (canvasPages.value.length <= 1) return
 
+  // 削除前に現在のページを保存
+  if (currentPage.value !== index) {
+    saveCurrentPage()
+  }
+
   // ページを削除
   canvasPages.value.splice(index, 1)
 
-  // 現在のページインデックスを調整
+  // 現在のページインデックスを調整（watchの保存をスキップ）
+  skipSave.value = true
   if (currentPage.value >= canvasPages.value.length) {
     currentPage.value = canvasPages.value.length - 1
   } else if (currentPage.value > index) {
     currentPage.value--
+  } else if (currentPage.value === index) {
+    // 削除したページが現在のページの場合、強制的に再読み込み
+    nextTick(() => {
+      loadPage(currentPage.value)
+    })
   }
 
   emit('update:canvasPagesData', [...canvasPages.value])
