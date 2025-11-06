@@ -110,6 +110,8 @@
     </v-app-bar>
 
     <!-- PC：クイックアクション列 -->
+    <!-- 【テスト】レイアウトシフト原因調査のため一時コメントアウト -->
+    <!--
     <v-sheet class="border-b-thin d-none d-md-block">
       <v-container class="py-0 d-flex align-center">
         <v-btn size="small" variant="tonal" @click="go('/admin/exit-form')">
@@ -125,6 +127,7 @@
         <div class="text-caption text-medium-emphasis">Ctrl + K で検索</div>
       </v-container>
     </v-sheet>
+    -->
 
     <!-- モバイル：右ドロワー -->
     <v-navigation-drawer

@@ -89,7 +89,9 @@
       <v-window-item :value="6">
         <AdminExitFormSalesStrategyTab
           v-model:salesOverview="formData.salesOverview"
+          v-model:formattedSalesOverview="formData.formattedSalesOverview"
           v-model:strategy="formData.strategy"
+          @format-with-ai="handleFormatWithAI"
         />
       </v-window-item>
     </v-window>
@@ -166,6 +168,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
 import { ref, computed, watch, nextTick } from 'vue'
+import { useGpt } from '@/composables/useGpt'
 
 // テスト段階のため認証チェックをスキップ
 // 本番環境では以下のコメントを外して認証を有効化
@@ -175,6 +178,9 @@ if (!authStore.isAuthenticated) {
   await navigateTo('/admin/login')
 }
 */
+
+// GPT composable
+const { isProcessing, processWithGpt } = useGpt()
 
 /* [ADD] 詳細入力の表示/非表示 */
 const showDetailPrice = ref(false)
@@ -593,6 +599,14 @@ const formData = ref({
     ownerManagement: '',
     risks: ''
   },
+  // AI整形後の販売用情報
+  formattedSalesOverview: {
+    schedule: '',
+    propertyOverview: '',
+    currentTenant: '',
+    ownerManagement: '',
+    risks: ''
+  },
   // タブ3: 販売戦略
   strategy: {
     // 物件の特徴
@@ -983,6 +997,85 @@ const resetForm = () => {
 // お客様入力画面を開く
 const openCustomerInput = () => {
   window.open('/customer-input', '_blank')
+}
+
+// AIで整形処理
+const handleFormatWithAI = async () => {
+  try {
+    // 住所と立地概要を組み合わせて整形
+    const address = formData.value.contact.address || ''
+    const propertyOverview = formData.value.salesOverview.propertyOverview || ''
+
+    // 立地概要のプロンプト
+    const propertyPrompt = `
+以下の情報を基に、不動産販売用の魅力的な立地概要を200文字程度で作成してください。
+
+【住所】
+${address}
+
+【現在の立地概要】
+${propertyOverview}
+
+【要件】
+- 具体的な地名や最寄り駅などの情報を含める
+- 周辺環境や立地の特徴を強調する
+- 簡潔で分かりやすい文章にする
+- 購入検討者が興味を持つような表現にする
+    `.trim()
+
+    // GPT APIで立地概要を整形
+    const formattedPropertyOverview = await processWithGpt(
+      address + '\n' + propertyOverview,
+      propertyPrompt
+    )
+
+    // その他のフィールドも同様に整形
+    const schedulePrompt = `
+以下のスケジュール情報を整形して、分かりやすく簡潔にまとめてください（100文字程度）。
+
+${formData.value.salesOverview.schedule || '情報なし'}
+    `.trim()
+
+    const currentTenantPrompt = `
+以下の現況テナント情報を整形して、分かりやすく簡潔にまとめてください（150文字程度）。
+
+${formData.value.salesOverview.currentTenant || '情報なし'}
+    `.trim()
+
+    const ownerManagementPrompt = `
+以下のオーナー・管理会社情報を整形して、分かりやすく簡潔にまとめてください（100文字程度）。
+
+${formData.value.salesOverview.ownerManagement || '情報なし'}
+    `.trim()
+
+    const risksPrompt = `
+以下のリスク情報を整形して、明確かつ簡潔にまとめてください（150文字程度）。
+
+${formData.value.salesOverview.risks || '情報なし'}
+    `.trim()
+
+    // 並行処理でAI整形を実行
+    const [formattedSchedule, formattedCurrentTenant, formattedOwnerManagement, formattedRisks] = await Promise.all([
+      formData.value.salesOverview.schedule ? processWithGpt(formData.value.salesOverview.schedule, schedulePrompt) : Promise.resolve(''),
+      formData.value.salesOverview.currentTenant ? processWithGpt(formData.value.salesOverview.currentTenant, currentTenantPrompt) : Promise.resolve(''),
+      formData.value.salesOverview.ownerManagement ? processWithGpt(formData.value.salesOverview.ownerManagement, ownerManagementPrompt) : Promise.resolve(''),
+      formData.value.salesOverview.risks ? processWithGpt(formData.value.salesOverview.risks, risksPrompt) : Promise.resolve('')
+    ])
+
+    // 整形結果を反映
+    formData.value.formattedSalesOverview = {
+      schedule: formattedSchedule,
+      propertyOverview: formattedPropertyOverview,
+      currentTenant: formattedCurrentTenant,
+      ownerManagement: formattedOwnerManagement,
+      risks: formattedRisks
+    }
+
+    showSuccessMessage('AIで整形しました')
+  } catch (error) {
+    console.error('AI整形エラー:', error)
+    showErrorMessage('整形中にエラーが発生しました')
+  }
 }
 
 // メッセージ表示
