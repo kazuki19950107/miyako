@@ -71,35 +71,37 @@
         </div>
 
         <!-- ページタブ -->
-        <div class="page-tabs mb-3 d-flex align-center ga-2">
-          <v-chip
-            v-for="(page, index) in canvasPages"
-            :key="index"
-            small
-            :color="currentPage === index ? 'primary' : ''"
-            :variant="currentPage === index ? 'flat' : 'outlined'"
-            class="page-chip"
-            @click="currentPage = index"
-          >
-            ページ {{ index + 1 }}
-            <v-icon
-              v-if="canvasPages.length > 1"
-              x-small
-              class="ml-2"
-              @click.stop="removePage(index)"
+        <div class="page-tabs-container mb-3">
+          <div class="page-tabs-scroll d-flex align-center ga-2">
+            <v-chip
+              v-for="(page, index) in canvasPages"
+              :key="index"
+              small
+              :color="currentPage === index ? 'primary' : ''"
+              :variant="currentPage === index ? 'flat' : 'outlined'"
+              class="page-chip"
+              @click="currentPage = index"
             >
-              mdi-close
-            </v-icon>
-          </v-chip>
-          <v-chip
-            small
-            color="primary"
-            outlined
-            @click="addPage"
-          >
-            <v-icon small>mdi-plus</v-icon>
-            追加
-          </v-chip>
+              <span class="page-number">{{ index + 1 }}</span>
+              <v-icon
+                v-if="canvasPages.length > 1"
+                small
+                class="ml-1 close-icon"
+                @click.stop="removePage(index)"
+              >
+                mdi-close
+              </v-icon>
+            </v-chip>
+            <v-chip
+              small
+              color="primary"
+              outlined
+              @click="addPage"
+              class="add-page-chip"
+            >
+              <v-icon small>mdi-plus</v-icon>
+            </v-chip>
+          </div>
         </div>
 
         <canvas
@@ -319,9 +321,9 @@ const onMouseMove = (e: MouseEvent) => {
 const onTouchMove = (e: TouchEvent) => {
   // 2本指以上のタッチはスクロールとして扱う
   if (e.touches.length >= 2) {
-    return
+    return  // preventDefault()を呼ばずにreturnすることでスクロールを許可
   }
-  e.preventDefault()
+  e.preventDefault()  // 1本指の場合のみスクロールを防止
   if (isDrawing.value) {
     draw(e)
   }
@@ -469,12 +471,73 @@ defineExpose({
   transition: all 0.2s;
 }
 
-.page-tabs {
-  margin-bottom: 16px;
+/* ページタブのスクロール対応 */
+.page-tabs-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.page-tabs-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #1e50a2 #f5f5f5;
+}
+
+.page-tabs-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.page-tabs-scroll::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.page-tabs-scroll::-webkit-scrollbar-thumb {
+  background: #1e50a2;
+  border-radius: 3px;
+}
+
+.page-tabs-scroll::-webkit-scrollbar-thumb:hover {
+  background: #154a8a;
 }
 
 .page-chip {
   cursor: pointer;
+  flex-shrink: 0;
+  min-width: 60px;
+  height: 32px !important;
+  padding: 0 8px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-number {
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.close-icon {
+  font-size: 16px !important;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.close-icon:hover {
+  transform: scale(1.2);
+}
+
+.add-page-chip {
+  flex-shrink: 0;
+  min-width: 40px !important;
+  height: 32px !important;
 }
 
 .drawing-canvas {
@@ -484,6 +547,6 @@ defineExpose({
   background-color: white;
   width: 100%;
   height: 1800px;
-  touch-action: none;
+  touch-action: pan-y;  /* 縦スクロールは許可、1本指の横スクロールとピンチズームは無効 */
 }
 </style>
