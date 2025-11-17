@@ -89,7 +89,6 @@
       <v-window-item :value="6">
         <AdminExitFormSalesStrategyTab
           v-model:salesOverview="formData.salesOverview"
-          v-model:formattedSalesOverview="formData.formattedSalesOverview"
           v-model:strategy="formData.strategy"
           @format-with-ai="handleFormatWithAI"
         />
@@ -333,8 +332,377 @@ const storeDefects = ['なし', '雨漏り', '水漏れ', '騒音問題', 'そ�
 const permits = ['保健所', '消防署', '警察署']
 const equipmentStatusOptions = ['問題なし', '譲渡しない設備あり', '故障している設備あり', 'リースの残債がある設備あり', '貸主設備あり']
 
+// ========================================
+// 開発用テストデータ設定（納品時はisDevelopment = falseに変更）
+// ========================================
+const isDevelopment = true // 🚨 納品時は false に変更すること
+
+const TEST_DATA = {
+  contact: {
+    storeName: 'イタリアン食堂ベルパエーゼ',
+    ownerName: '山田 太郎',
+    address: '大阪府大阪市北区梅田1-2-3 梅田ビル1F',
+    phoneNumber: '06-1234-5678'
+  },
+  status: {
+    selectedClosingReasons: ['体調不良', '売上不振'],
+    reasonOtherText: '',
+    landlordNotification: '済み（2024年10月に通知）',
+    nextTenantPermission: '次のテナントは飲食店であれば可',
+    employeeNotification: '通知済み',
+    otherConsultation: 'なし',
+    consultationCompany: '',
+    businessContinuation: '閉店希望',
+    closingDate: '2024年12月31日',
+    desiredSalePeriod: '3ヶ月以内',
+    desiredPrice: 500,
+    marketPriceAwareness: 'ある程度理解している',
+    equipmentTransferValue: 450
+  },
+  locationInfo: {
+    rent: 50,
+    area: 15,
+    contractYear: '2020年',
+    contractMonth: '4月',
+    expectedRentPerTsubo: 0,
+    locationConditions: ['駅近', '人通りが多い'],
+    openingDate: '2020年4月1日',
+    initialInvestment: 1200,
+    investmentRecovery: '50%程度',
+    currentRevenue: 0
+  },
+  salesInfo: {
+    monthlyRevenue: 180,
+    monthlyProfit: 20
+  },
+  basicInfo: {
+    yearsInBusiness: '4年',
+    initialState: '居抜き',
+    initialStatePrice: '300万円',
+    previousTenantInfo: '以前はフレンチレストラン',
+    hasNegotiation: true,
+    negotiationDetails: '改装時に原状回復の一部免除を交渉済み',
+    usageRestrictions: '深夜営業不可',
+    hasDrawings: true,
+    drawingDetails: '契約時の図面あり（PDF）',
+    landlordInvoiceStatus: '登録済み',
+    electricityContract: '関西電力',
+    electricityCustomerNumber: '1234567890',
+    gasContract: '大阪ガス',
+    gasCustomerNumber: '9876543210',
+    waterContract: '大阪市水道局',
+    waterCustomerNumber: '5555666677',
+    garbageDisposalRules: 'ビル指定の収集日（月・木）',
+    garbageDisposalCost: '月額5,000円',
+    hasOtherCosts: false,
+    otherCostsDetails: '',
+    declarations: '特になし',
+    newTenantConditions: '飲食店であれば業態自由'
+  },
+  equipment: {
+    equipmentCost: 800,
+    equipmentAge: '4年',
+    interiorCost: 400,
+    interiorAge: '4年',
+    businessYears: 4,
+    handoverCondition: '現状渡し',
+    handoverAmount: 500,
+    equipmentCoefficient: 0.8,
+    interiorCoefficient: 0.2,
+    equipmentStatus: ['問題なし'],
+    hasNonTransferable: false,
+    nonTransferableDetails: '',
+    hasBroken: false,
+    brokenDetails: '',
+    hasLeaseDebt: false,
+    leaseDebtDetails: '',
+    hasLandlordEquipment: false,
+    landlordEquipmentDetails: '',
+    exhaustType: 'ダクト',
+    exhaustRoute: '屋上まで直通',
+    drainageType: 'グリストラップあり',
+    electricityMeter: {
+      location: '店舗奥',
+      capacity: '60A',
+      powerCapacity: '6kVA'
+    },
+    gasMeter: {
+      location: '店舗入口横',
+      capacity: '16号'
+    },
+    waterMeter: {
+      location: '厨房内',
+      pipeCapacity: '20mm'
+    },
+    outdoorUnitLocation: 'ビル裏側',
+    mdfLocation: '店舗奥壁面',
+    defects: ['なし'],
+    defectOtherText: '',
+    permits: ['保健所', '消防署']
+  },
+  recruitment: {
+    highSales: '280万円',
+    lowSales: '120万円',
+    lunchHours: '11:30-14:30',
+    dinnerHours: '18:00-22:00',
+    lunchAvgSpend: '1,200円',
+    dinnerAvgSpend: '3,500円',
+    closingDays: '火曜日',
+    salesMemo: '週末のディナーが好調',
+    areaTypes: ['ビジネス街', '繁華街'],
+    customerSegments: ['ビジネスマン', '若者'],
+    areaMemo: '梅田駅から徒歩3分の好立地',
+    appealPoints: '駅近、角地、視認性良好',
+    priorityPoint: '立地の良さ',
+    specialConditions: '特になし',
+    sellingPrice: '500万円',
+    listingPrice: '450万円',
+    viewingAvailability: '営業時間外に可能',
+    allowEmail: '可',
+    allowWebListing: '可',
+    progressReportMethod: 'メール',
+    sellingStrategy: '立地を重視する買い手を優先',
+    contractPhotos: [],
+    mainCustomerAge: '30-40代',
+    mainCustomerGender: '男性多め',
+    businessType: 'イタリアン',
+    viewingConditions: '営業終了後のみ',
+    publicationConditions: '制限なし'
+  },
+  utilities: {
+    electricMeterNumber: '1234567890',
+    electricContract: '関西電力',
+    electricCapacity: '60A',
+    gasMeterNumber: '9876543210',
+    gasType: '都市ガス',
+    gasCapacity: '16号',
+    waterMeterNumber: '5555666677',
+    waterPressure: '標準'
+  },
+  business: {
+    openingHours: '11:30-14:30, 18:00-22:00',
+    closedDays: '火曜日',
+    seatingCapacity: 28,
+    staffCount: 4,
+    businessMemo: 'ランチとディナーの二部営業'
+  },
+  externalContacts: [
+    {
+      type: '管理会社',
+      companyName: '梅田不動産管理株式会社',
+      contactPerson: '佐藤 花子',
+      companyPhone: '06-9999-8888',
+      personPhone: '090-1111-2222'
+    }
+  ],
+  propertyFeatures: {
+    strengths: ['重飲食可', 'グリストラップあり', 'ダクト屋上まで設置', '専門設備・内装あり'],
+    limitations: ['営業時間制限あり']
+  },
+  detailCheck: {
+    landlord_negotiation: true,
+    landlord_negotiation_detail: '原状回復の一部免除を交渉済み',
+    usage_restriction: true,
+    usage_restriction_detail: '深夜営業不可（23時まで）',
+    floor_plan: true,
+    floor_plan_type: '契約時の図面あり',
+    section_a_memo: '',
+    electricity_company: '関西電力',
+    electricity_customer_number: '1234567890',
+    gas_company: '大阪ガス',
+    gas_customer_number: '9876543210',
+    water_company: '大阪市水道局',
+    water_customer_number: '5555666677',
+    landlord_payment: false,
+    landlord_payment_detail: '',
+    section_b_memo: '',
+    garbage_disposal_cost: 5000,
+    other_monthly_costs: false,
+    other_monthly_costs_detail: '',
+    other_monthly_costs_amount: 0,
+    declarations: '特になし',
+    new_tenant_conditions: '飲食店であれば業態自由',
+    section_c_memo: '',
+    equipment_investment: 800,
+    equipment_age: 4,
+    interior_investment: 400,
+    interior_age: 4,
+    non_transferable_equipment: false,
+    non_transferable_equipment_detail: '',
+    broken_equipment: false,
+    broken_equipment_detail: '',
+    lease_debt: false,
+    lease_debt_amount: 0,
+    landlord_equipment: false,
+    landlord_equipment_detail: '',
+    section_d_memo: '',
+    exhaust_equipment: 'ダクト',
+    exhaust_route: '屋上まで直通',
+    drainage_equipment: 'グリストラップあり',
+    electric_meter_location: '店舗奥',
+    electric_capacity: '60A',
+    power_capacity: '6kVA',
+    gas_meter_location: '店舗入口横',
+    gas_capacity: '16号',
+    water_meter_location: '厨房内',
+    water_pipe_capacity: '20mm',
+    outdoor_unit_location: 'ビル裏側',
+    mdf_location: '店舗奥壁面',
+    section_e_memo: '',
+    highest_sales_month: 280,
+    lowest_sales_month: 120,
+    lunch_hours: '11:30-14:30',
+    dinner_hours: '18:00-22:00',
+    lunch_avg_price: 1200,
+    dinner_avg_price: 3500,
+    closed_days: '火曜日',
+    seat_count: 28,
+    section_f_memo: '週末のディナーが好調',
+    area_types: ['ビジネス街', '繁華街'],
+    customer_segments: ['ビジネスマン', '若者'],
+    main_customer_age: '30-40代',
+    main_customer_gender: '男性',
+    customer_type: 'ビジネスマン中心',
+    access_info: '梅田駅から徒歩3分',
+    surrounding_environment: '周辺にオフィスビルと商業施設が多い',
+    section_g_memo: ''
+  },
+  salesOverview: {
+    schedule: '',
+    propertyOverview: '',
+    currentTenant: '',
+    ownerManagement: '',
+    risks: ''
+  },
+  strategy: {
+    locationFeatures: ['駅近', '角地'],
+    locationDescription: '梅田駅徒歩3分の好立地',
+    equipmentFeatures: ['問題なし'],
+    equipmentDescription: '設備は良好な状態',
+    targetBuyer: 'イタリアン・カフェ業態',
+    recommendedBusiness: 'イタリアン、カフェ',
+    sellingPrice: 500,
+    minimumPrice: 450,
+    negotiability: '応相談',
+    catchCopy: '',
+    salesPitch: '',
+    specialNotes: '',
+    internalMemo: ''
+  },
+  valuation: {
+    locationWeight: 0.6,
+    equipmentWeight: 0.4
+  },
+  customerInput: {
+    property: {
+      previousTenantInfo: '以前はフレンチレストラン',
+      negotiation: {
+        status: 'あり',
+        detail: '原状回復の一部免除を交渉済み'
+      },
+      usageRestrictions: '深夜営業不可（23時まで）',
+      floorPlan: {
+        status: 'あり',
+        detail: '契約時の図面あり（PDF）'
+      },
+      invoiceRegistration: {
+        status: '登録済み',
+        detail: ''
+      }
+    },
+    scheduleDates: {
+      terminationNoticeSubmitted: 'している',
+      terminationNoticeDate: '2024-10-15',
+      vacancyDate: '2025-01-31',
+      contractEndDate: '2025-01-31',
+      businessEndDate: '2024-12-31',
+      handoverDesiredDate: '2025-02-01'
+    },
+    utilities: {
+      electricity: {
+        contractType: '個別契約',
+        customerNumber: '1234567890'
+      },
+      gas: {
+        contractType: '個別契約',
+        customerNumber: '9876543210'
+      },
+      water: {
+        contractType: '個別契約',
+        customerNumber: '5555666677'
+      },
+      garbage: {
+        rules: 'ビル指定の収集日（月・木）',
+        cost: '月額5,000円'
+      },
+      otherCosts: {
+        status: 'なし',
+        detail: ''
+      }
+    },
+    disclosure: {
+      priorNotice: '特になし',
+      newConditions: '飲食店であれば業態自由'
+    },
+    equipment: {
+      notTransfer: {
+        status: 'なし',
+        detail: ''
+      },
+      broken: {
+        status: 'なし',
+        detail: ''
+      },
+      lease: {
+        status: 'なし',
+        detail: ''
+      },
+      landlordEquipment: {
+        status: 'なし',
+        detail: ''
+      },
+      kitchenware: {
+        status: '全て残置する',
+        detail: ''
+      },
+      seats: '28席（テーブル席20席、カウンター8席）'
+    },
+    facilityDetails: {
+      ventilation: {
+        type: 'ダクト',
+        route: ['屋上']
+      },
+      drainage: {
+        type: 'グリストラップ'
+      },
+      electricityMeter: {
+        location: '店舗奥',
+        capacity: '60A',
+        powerCapacity: '6kVA'
+      },
+      gasMeter: {
+        location: '店舗入口横',
+        capacity: '16号'
+      },
+      waterMeter: {
+        location: '厨房内',
+        drainageCapacity: '20mm'
+      },
+      outsideWall: 'ビル裏側',
+      mdfLocation: '店舗奥壁面'
+    },
+    environment: {
+      defect: {
+        status: 'なし',
+        detail: ''
+      },
+      permits: ['保健所', '消防署']
+    }
+  }
+}
+
 // フォームデータ構造
-const formData = ref({
+const formData = ref(isDevelopment ? TEST_DATA : {
   // セクション1: 連絡先・現状の把握
   contact: {
     storeName: '',
@@ -492,16 +860,6 @@ const formData = ref({
     staffCount: 0,
     businessMemo: ''
   },
-  // 設備追加情報
-  equipment: {
-    issueStatus: [],
-    exhaustType: '',
-    drainageType: '',
-    exhaustDrainageMemo: '',
-    internetType: '',
-    securitySystem: '',
-    otherEquipment: ''
-  },
   // セクション5: 連絡窓口
   externalContacts: [],
   // 物件の特徴
@@ -599,14 +957,6 @@ const formData = ref({
     ownerManagement: '',
     risks: ''
   },
-  // AI整形後の販売用情報
-  formattedSalesOverview: {
-    schedule: '',
-    propertyOverview: '',
-    currentTenant: '',
-    ownerManagement: '',
-    risks: ''
-  },
   // タブ3: 販売戦略
   strategy: {
     // 物件の特徴
@@ -649,6 +999,14 @@ const formData = ref({
         status: '登録済み',
         detail: ''
       }
+    },
+    scheduleDates: {
+      terminationNoticeSubmitted: '',
+      terminationNoticeDate: '',
+      vacancyDate: '',
+      contractEndDate: '',
+      businessEndDate: '',
+      handoverDesiredDate: ''
     },
     utilities: {
       electricity: {
@@ -1000,83 +1358,286 @@ const openCustomerInput = () => {
 }
 
 // AIで整形処理
+// ========================================
+// AI生成プロンプトの初期設定
+// ========================================
+const AI_PROMPT_SETTINGS = {
+  // 共通の注意事項
+  commonRules: `【重要な注意事項】
+- 入力されている情報のみを使用すること
+- データがない項目は出力しないこと
+- 推測や一般的な情報を追加しないこと
+- 社内資料のため、「ですます調」ではなく簡潔な表現を使用すること`,
+
+  // 1. スケジュール
+  schedule: {
+    format: '箇条書き',
+    maxLength: 200,
+    rules: `- 必ず箇条書き（• または -）で出力すること
+- 日付は「YYYY年MM月DD日」形式で表示すること
+- 「である調」または体言止めを使用すること（例：「〇月〇日 退店予定」）`,
+    instruction: '以下の情報をもとに、販売用のスケジュール情報を箇条書き形式で生成すること。社内資料のため簡潔な表現で。'
+  },
+
+  // 2. 立地概要
+  location: {
+    format: '文章',
+    maxLength: 200,
+    rules: `- 具体的な施設名や駅名など、実際に入力されている情報のみを使用すること
+- 「〇〇駅徒歩〇分」などの具体的な表現を優先すること
+- 抽象的な表現（「商業施設」など）は避け、実際の施設名を使用すること
+- 「である調」または名詞止めで簡潔に記載すること（例：「梅田駅徒歩3分。周辺にオフィスビル多数」）`,
+    instruction: '以下の情報をもとに、販売用の立地概要を生成すること。社内資料のため簡潔な表現で。'
+  },
+
+  // 3. 現況テナント
+  currentTenant: {
+    format: '文章',
+    maxLength: 250,
+    rules: `- 営業時間、客単価、客層などを具体的に記載すること
+- 売上実績がある場合は必ず含めること
+- 「である調」または名詞止めで簡潔に記載すること（例：「イタリアン。ランチ1,200円、ディナー3,500円。30-40代ビジネスマン中心」）`,
+    instruction: '以下の情報をもとに、現況テナントの営業概要を生成すること。社内資料のため簡潔な表現で。'
+  },
+
+  // 4. オーナー・管理会社
+  landlord: {
+    format: '文章',
+    maxLength: 150,
+    rules: `- 大家との関係性（良好、普通、注意が必要など）を明記すること
+- 交渉済みの内容は必ず含めること
+- 「である調」または名詞止めで簡潔に記載すること（例：「個人オーナー。原状回復一部免除で交渉済み」）`,
+    instruction: '以下の情報をもとに、オーナー・管理会社との関係性をまとめること。社内資料のため簡潔な表現で。'
+  },
+
+  // 5. リスク
+  risks: {
+    format: '箇条書き',
+    maxLength: 200,
+    rules: `- 必ず箇条書き（• または -）で出力すること
+- リスクがない場合は「特になし」と記載すること
+- 金額が伴う項目（リース残債など）は必ず金額を明記すること
+- 「である調」または体言止めを使用すること（例：「営業時間制限あり（23時まで）」）`,
+    instruction: '以下の情報をもとに、リスク情報を箇条書きでまとめること。社内資料のため簡潔な表現で。'
+  }
+}
+
+// データ収集関数
+const collectDataForAI = () => {
+  return {
+    // 1. スケジュール情報
+    schedule: {
+      // BasicInfoTab
+      landlordNotification: formData.value.status.landlordNotification || '',
+      nextTenantPermission: formData.value.status.nextTenantPermission || '',
+      businessContinuation: formData.value.status.businessContinuation || '',
+      closingDate: formData.value.status.closingDate || '',
+      desiredSalePeriod: formData.value.status.desiredSalePeriod || '',
+      // CustomerInputTab
+      terminationNoticeSubmitted: formData.value.customerInput.scheduleDates?.terminationNoticeSubmitted || '',
+      terminationNoticeDate: formData.value.customerInput.scheduleDates?.terminationNoticeDate || '',
+      vacancyDate: formData.value.customerInput.scheduleDates?.vacancyDate || '',
+      contractEndDate: formData.value.customerInput.scheduleDates?.contractEndDate || '',
+      businessEndDate: formData.value.customerInput.scheduleDates?.businessEndDate || '',
+      handoverDesiredDate: formData.value.customerInput.scheduleDates?.handoverDesiredDate || ''
+    },
+
+    // 2. 立地概要情報
+    location: {
+      // BasicInfoTab
+      address: formData.value.contact.address || '',
+      // EquipmentCheckTab
+      accessInfo: formData.value.detailCheck.access_info || '',
+      areaTypes: formData.value.detailCheck.area_types || [],
+      surroundingEnvironment: formData.value.detailCheck.surrounding_environment || ''
+    },
+
+    // 3. 現況テナント情報
+    currentTenant: {
+      // BasicInfoTab
+      storeName: formData.value.contact.storeName || '',
+      // EquipmentCheckTab
+      lunchHours: formData.value.detailCheck.lunch_hours || '',
+      dinnerHours: formData.value.detailCheck.dinner_hours || '',
+      lunchAvgPrice: formData.value.detailCheck.lunch_avg_price || '',
+      dinnerAvgPrice: formData.value.detailCheck.dinner_avg_price || '',
+      closedDays: formData.value.detailCheck.closed_days || '',
+      seatCount: formData.value.detailCheck.seat_count || '',
+      mainCustomerAge: formData.value.detailCheck.main_customer_age || '',
+      mainCustomerGender: formData.value.detailCheck.main_customer_gender || '',
+      customerType: formData.value.detailCheck.customer_type || '',
+      highestSalesMonth: formData.value.detailCheck.highest_sales_month || '',
+      lowestSalesMonth: formData.value.detailCheck.lowest_sales_month || '',
+      // 物件の特徴（強み）
+      propertyStrengths: formData.value.propertyFeatures?.strengths || []
+    },
+
+    // 4. オーナー・管理会社情報
+    landlord: {
+      // BasicInfoTab
+      landlordNotification: formData.value.status.landlordNotification || '',
+      nextTenantPermission: formData.value.status.nextTenantPermission || '',
+      // EquipmentCheckTab
+      landlordNegotiation: formData.value.detailCheck.landlord_negotiation || '',
+      landlordNegotiationDetail: formData.value.detailCheck.landlord_negotiation_detail || '',
+      // CustomerInputTab
+      negotiationStatus: formData.value.customerInput.property?.negotiation?.status || '',
+      negotiationDetail: formData.value.customerInput.property?.negotiation?.detail || '',
+      priorNotice: formData.value.customerInput.disclosure?.priorNotice || '',
+      newConditions: formData.value.customerInput.disclosure?.newConditions || ''
+    },
+
+    // 5. リスク情報
+    risks: {
+      // EquipmentCheckTab
+      limitations: formData.value.propertyFeatures?.limitations || [],
+      usageRestriction: formData.value.detailCheck.usage_restriction || '',
+      usageRestrictionDetail: formData.value.detailCheck.usage_restriction_detail || '',
+      brokenEquipment: formData.value.detailCheck.broken_equipment || '',
+      brokenEquipmentDetail: formData.value.detailCheck.broken_equipment_detail || '',
+      leaseDebt: formData.value.detailCheck.lease_debt || '',
+      leaseDebtAmount: formData.value.detailCheck.lease_debt_amount || '',
+      // CustomerInputTab
+      usageRestrictions: formData.value.customerInput.property?.usageRestrictions || '',
+      equipmentBrokenStatus: formData.value.customerInput.equipment?.broken?.status || '',
+      equipmentBrokenDetail: formData.value.customerInput.equipment?.broken?.detail || '',
+      equipmentLeaseStatus: formData.value.customerInput.equipment?.lease?.status || '',
+      equipmentLeaseDetail: formData.value.customerInput.equipment?.lease?.detail || '',
+      defectStatus: formData.value.customerInput.environment?.defect?.status || '',
+      defectDetail: formData.value.customerInput.environment?.defect?.detail || '',
+      disclosurePriorNotice: formData.value.customerInput.disclosure?.priorNotice || ''
+    }
+  }
+}
+
 const handleFormatWithAI = async () => {
   try {
-    // 住所と立地概要を組み合わせて整形
-    const address = formData.value.contact.address || ''
-    const propertyOverview = formData.value.salesOverview.propertyOverview || ''
+    // データ収集
+    const collectedData = collectDataForAI()
 
-    // 立地概要のプロンプト
-    const propertyPrompt = `
-以下の情報を基に、不動産販売用の魅力的な立地概要を200文字程度で作成してください。
-
-【住所】
-${address}
-
-【現在の立地概要】
-${propertyOverview}
-
-【要件】
-- 具体的な地名や最寄り駅などの情報を含める
-- 立地の強み・セールスポイントを最大限に表現する
-- 視認性、アクセス性、集客力などのビジネス上の優位性を強調する
-- 「駅近」「角地」「1階路面店」「人通り多数」などの具体的な強みを前面に出す
-- 周辺環境の魅力（商業施設、住宅街、オフィス街など）を訴求する
-- 簡潔で分かりやすく、購入検討者が「ここは良い立地だ」と感じる文章にする
-    `.trim()
-
-    // GPT APIで立地概要を整形
-    const formattedPropertyOverview = await processWithGpt(
-      address + '\n' + propertyOverview,
-      propertyPrompt
-    )
-
-    // その他のフィールドも同様に整形
+    // 1. スケジュールのプロンプト生成
     const schedulePrompt = `
-以下のスケジュール情報を整形して、分かりやすく簡潔にまとめてください（100文字程度）。
+${AI_PROMPT_SETTINGS.schedule.instruction}
 
-${formData.value.salesOverview.schedule || '情報なし'}
+${AI_PROMPT_SETTINGS.commonRules}
+${AI_PROMPT_SETTINGS.schedule.rules}
+
+【出力形式】${AI_PROMPT_SETTINGS.schedule.format}（最大${AI_PROMPT_SETTINGS.schedule.maxLength}文字程度）
+
+【収集データ】
+- 解約通知: ${collectedData.schedule.terminationNoticeSubmitted}${collectedData.schedule.terminationNoticeDate ? ` (提出日: ${collectedData.schedule.terminationNoticeDate})` : ''}
+- オーナー許可: ${collectedData.schedule.landlordNotification}
+- 居抜き許可: ${collectedData.schedule.nextTenantPermission}
+- 営業継続: ${collectedData.schedule.businessContinuation}${collectedData.schedule.closingDate ? ` (閉店予定日: ${collectedData.schedule.closingDate})` : ''}
+- 営業終了日: ${collectedData.schedule.businessEndDate}
+- 退店日: ${collectedData.schedule.vacancyDate}
+- 契約終了日: ${collectedData.schedule.contractEndDate}
+- 引き渡し希望日: ${collectedData.schedule.handoverDesiredDate}
+- 販売希望時期: ${collectedData.schedule.desiredSalePeriod}
     `.trim()
 
+    // 2. 立地概要のプロンプト生成
+    const locationPrompt = `
+${AI_PROMPT_SETTINGS.location.instruction}
+
+${AI_PROMPT_SETTINGS.commonRules}
+${AI_PROMPT_SETTINGS.location.rules}
+
+【出力形式】${AI_PROMPT_SETTINGS.location.format}（最大${AI_PROMPT_SETTINGS.location.maxLength}文字程度）
+
+【収集データ】
+- 住所: ${collectedData.location.address}
+- アクセス: ${collectedData.location.accessInfo}
+- エリアタイプ: ${collectedData.location.areaTypes.join('、')}
+- 周辺環境: ${collectedData.location.surroundingEnvironment}
+    `.trim()
+
+    // 3. 現況テナントのプロンプト生成
     const currentTenantPrompt = `
-以下の現況テナント情報を整形して、分かりやすく簡潔にまとめてください（150文字程度）。
+${AI_PROMPT_SETTINGS.currentTenant.instruction}
 
-${formData.value.salesOverview.currentTenant || '情報なし'}
+${AI_PROMPT_SETTINGS.commonRules}
+${AI_PROMPT_SETTINGS.currentTenant.rules}
+
+【出力形式】${AI_PROMPT_SETTINGS.currentTenant.format}（最大${AI_PROMPT_SETTINGS.currentTenant.maxLength}文字程度）
+
+【収集データ】
+- 屋号: ${collectedData.currentTenant.storeName}
+- ランチ営業時間: ${collectedData.currentTenant.lunchHours}
+- ディナー営業時間: ${collectedData.currentTenant.dinnerHours}
+- ランチ客単価: ${collectedData.currentTenant.lunchAvgPrice}円
+- ディナー客単価: ${collectedData.currentTenant.dinnerAvgPrice}円
+- 席数: ${collectedData.currentTenant.seatCount}席
+- 定休日: ${collectedData.currentTenant.closedDays}
+- メイン客層年代: ${collectedData.currentTenant.mainCustomerAge}
+- メイン客層性別: ${collectedData.currentTenant.mainCustomerGender}
+- 客層タイプ: ${collectedData.currentTenant.customerType}
+- 最高売上月: ${collectedData.currentTenant.highestSalesMonth}万円
+- 最低売上月: ${collectedData.currentTenant.lowestSalesMonth}万円
+- 強みとなる特徴: ${collectedData.currentTenant.propertyStrengths.length > 0 ? collectedData.currentTenant.propertyStrengths.join('、') : 'なし'}
     `.trim()
 
-    const ownerManagementPrompt = `
-以下のオーナー・管理会社情報を整形して、分かりやすく簡潔にまとめてください（100文字程度）。
+    // 4. オーナー・管理会社のプロンプト生成
+    const landlordPrompt = `
+${AI_PROMPT_SETTINGS.landlord.instruction}
 
-${formData.value.salesOverview.ownerManagement || '情報なし'}
+${AI_PROMPT_SETTINGS.commonRules}
+${AI_PROMPT_SETTINGS.landlord.rules}
+
+【出力形式】${AI_PROMPT_SETTINGS.landlord.format}（最大${AI_PROMPT_SETTINGS.landlord.maxLength}文字程度）
+
+【収集データ】
+- 大家への閉店告知: ${collectedData.landlord.landlordNotification}
+- 居抜き許可: ${collectedData.landlord.nextTenantPermission}
+- 大家との交渉: ${collectedData.landlord.landlordNegotiation}${collectedData.landlord.landlordNegotiationDetail ? ` (内容: ${collectedData.landlord.landlordNegotiationDetail})` : ''}
+- 契約時の条件交渉: ${collectedData.landlord.negotiationStatus}${collectedData.landlord.negotiationDetail ? ` (詳細: ${collectedData.landlord.negotiationDetail})` : ''}
+- 事前申告: ${collectedData.landlord.priorNotice}
+- 新条件: ${collectedData.landlord.newConditions}
     `.trim()
 
+    // 5. リスクのプロンプト生成
     const risksPrompt = `
-以下のリスク情報を整形して、明確かつ簡潔にまとめてください（150文字程度）。
+${AI_PROMPT_SETTINGS.risks.instruction}
 
-${formData.value.salesOverview.risks || '情報なし'}
+${AI_PROMPT_SETTINGS.commonRules}
+${AI_PROMPT_SETTINGS.risks.rules}
+
+【出力形式】${AI_PROMPT_SETTINGS.risks.format}（最大${AI_PROMPT_SETTINGS.risks.maxLength}文字程度）
+
+【収集データ】
+- 注意が必要な特徴: ${collectedData.risks.limitations.length > 0 ? collectedData.risks.limitations.join('、') : 'なし'}
+- 利用制限: ${collectedData.risks.usageRestriction}${collectedData.risks.usageRestrictionDetail ? ` (詳細: ${collectedData.risks.usageRestrictionDetail})` : ''}
+- 物件の利用制限: ${collectedData.risks.usageRestrictions}
+- 故障設備: ${collectedData.risks.brokenEquipment}${collectedData.risks.brokenEquipmentDetail ? ` (詳細: ${collectedData.risks.brokenEquipmentDetail})` : ''}
+- 故障設備（お客様入力）: ${collectedData.risks.equipmentBrokenStatus}${collectedData.risks.equipmentBrokenDetail ? ` (詳細: ${collectedData.risks.equipmentBrokenDetail})` : ''}
+- リース残債: ${collectedData.risks.leaseDebt}${collectedData.risks.leaseDebtAmount ? ` (金額: ${collectedData.risks.leaseDebtAmount}万円)` : ''}
+- リース残債（お客様入力）: ${collectedData.risks.equipmentLeaseStatus}${collectedData.risks.equipmentLeaseDetail ? ` (詳細: ${collectedData.risks.equipmentLeaseDetail})` : ''}
+- 店舗瑕疵: ${collectedData.risks.defectStatus}${collectedData.risks.defectDetail ? ` (詳細: ${collectedData.risks.defectDetail})` : ''}
+- 事前申告: ${collectedData.risks.disclosurePriorNotice}
     `.trim()
 
-    // 並行処理でAI整形を実行
-    const [formattedSchedule, formattedCurrentTenant, formattedOwnerManagement, formattedRisks] = await Promise.all([
-      formData.value.salesOverview.schedule ? processWithGpt(formData.value.salesOverview.schedule, schedulePrompt) : Promise.resolve(''),
-      formData.value.salesOverview.currentTenant ? processWithGpt(formData.value.salesOverview.currentTenant, currentTenantPrompt) : Promise.resolve(''),
-      formData.value.salesOverview.ownerManagement ? processWithGpt(formData.value.salesOverview.ownerManagement, ownerManagementPrompt) : Promise.resolve(''),
-      formData.value.salesOverview.risks ? processWithGpt(formData.value.salesOverview.risks, risksPrompt) : Promise.resolve('')
+    // 並行処理でAI生成を実行
+    const [formattedSchedule, formattedLocation, formattedCurrentTenant, formattedLandlord, formattedRisks] = await Promise.all([
+      processWithGpt('スケジュール情報', schedulePrompt),
+      processWithGpt('立地概要情報', locationPrompt),
+      processWithGpt('現況テナント情報', currentTenantPrompt),
+      processWithGpt('オーナー・管理会社情報', landlordPrompt),
+      processWithGpt('リスク情報', risksPrompt)
     ])
 
-    // 整形結果を反映
-    formData.value.formattedSalesOverview = {
+    // 生成結果を反映
+    formData.value.salesOverview = {
       schedule: formattedSchedule,
-      propertyOverview: formattedPropertyOverview,
+      propertyOverview: formattedLocation,
       currentTenant: formattedCurrentTenant,
-      ownerManagement: formattedOwnerManagement,
+      ownerManagement: formattedLandlord,
       risks: formattedRisks
     }
 
-    showSuccessMessage('AIで整形しました')
+    showSuccessMessage('AIで出力しました')
   } catch (error) {
-    console.error('AI整形エラー:', error)
-    showErrorMessage('整形中にエラーが発生しました')
+    console.error('AI生成エラー:', error)
+    showErrorMessage('生成中にエラーが発生しました')
   }
 }
 

@@ -119,6 +119,89 @@
             ></v-text-field>
           </v-col>
 
+          <!-- スケジュール詳細 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-2">
+              <v-icon small class="mr-1">mdi-calendar-clock</v-icon>
+              スケジュール詳細について教えてください
+            </div>
+          </v-col>
+
+          <!-- 解約通知 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-2">解約通知の提出</div>
+            <v-radio-group
+              :model-value="customerInput.scheduleDates.terminationNoticeSubmitted"
+              @update:model-value="updateScheduleDates('terminationNoticeSubmitted', $event)"
+              row
+            >
+              <v-radio label="している" value="している"></v-radio>
+              <v-radio label="していない" value="していない"></v-radio>
+            </v-radio-group>
+            <v-text-field
+              v-if="customerInput.scheduleDates.terminationNoticeSubmitted === 'している'"
+              :model-value="customerInput.scheduleDates.terminationNoticeDate"
+              @update:model-value="updateScheduleDates('terminationNoticeDate', $event)"
+              label="解約通知提出日"
+              outlined
+              dense
+              type="date"
+              class="mt-2"
+            ></v-text-field>
+          </v-col>
+
+          <!-- 退店日 -->
+          <v-col cols="12" md="6">
+            <v-text-field
+              :model-value="customerInput.scheduleDates.vacancyDate"
+              @update:model-value="updateScheduleDates('vacancyDate', $event)"
+              label="退店予定日"
+              outlined
+              dense
+              type="date"
+              prepend-inner-icon="mdi-exit-run"
+            ></v-text-field>
+          </v-col>
+
+          <!-- 契約終了日 -->
+          <v-col cols="12" md="6">
+            <v-text-field
+              :model-value="customerInput.scheduleDates.contractEndDate"
+              @update:model-value="updateScheduleDates('contractEndDate', $event)"
+              label="契約終了日"
+              outlined
+              dense
+              type="date"
+              prepend-inner-icon="mdi-calendar-end"
+            ></v-text-field>
+          </v-col>
+
+          <!-- 営業終了日 -->
+          <v-col cols="12" md="6">
+            <v-text-field
+              :model-value="customerInput.scheduleDates.businessEndDate"
+              @update:model-value="updateScheduleDates('businessEndDate', $event)"
+              label="営業終了日"
+              outlined
+              dense
+              type="date"
+              prepend-inner-icon="mdi-store-off"
+            ></v-text-field>
+          </v-col>
+
+          <!-- 引き渡し希望日 -->
+          <v-col cols="12" md="6">
+            <v-text-field
+              :model-value="customerInput.scheduleDates.handoverDesiredDate"
+              @update:model-value="updateScheduleDates('handoverDesiredDate', $event)"
+              label="引き渡し希望日"
+              outlined
+              dense
+              type="date"
+              prepend-inner-icon="mdi-hand-heart"
+            ></v-text-field>
+          </v-col>
+
           <!-- 物件の利用制限 -->
           <v-col cols="12">
             <v-textarea
@@ -796,6 +879,14 @@ const props = defineProps<{
         detail: string
       }
     }
+    scheduleDates: {
+      terminationNoticeSubmitted: string
+      terminationNoticeDate: string
+      vacancyDate: string
+      contractEndDate: string
+      businessEndDate: string
+      handoverDesiredDate: string
+    }
     utilities: {
       electricity: {
         contractType: string
@@ -1169,6 +1260,14 @@ const updateDefect = (key: string, value: any) => {
       ...props.customerInput.environment,
       defect: { ...props.customerInput.environment.defect, [key]: value }
     }
+  })
+}
+
+// Update method for scheduleDates
+const updateScheduleDates = (key: string, value: any) => {
+  emit('update:customerInput', {
+    ...props.customerInput,
+    scheduleDates: { ...props.customerInput.scheduleDates, [key]: value }
   })
 }
 </script>

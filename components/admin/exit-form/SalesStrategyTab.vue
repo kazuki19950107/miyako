@@ -2,9 +2,21 @@
   <v-form ref="strategyForm" v-model="formValid">
     <!-- 販売用情報 -->
     <v-card outlined class="mb-4 section-card">
-      <v-card-title class="section-title">
+      <v-card-title class="section-title d-flex align-center">
         <v-icon left size="24" class="mr-2">mdi-clipboard-text-outline</v-icon>
         販売用情報
+        <v-spacer></v-spacer>
+        <v-btn
+          color="primary"
+          small
+          @click="formatWithAI"
+          :loading="isFormatting"
+          :disabled="isFormatting"
+          class="ai-output-btn"
+        >
+          <v-icon left small style="color: white !important;">mdi-auto-fix</v-icon>
+          AIで出力
+        </v-btn>
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
@@ -73,100 +85,6 @@
       </v-card-text>
     </v-card>
 
-    <!-- AIで整形ボタン -->
-    <div class="text-center mb-4">
-      <v-btn
-        color="primary"
-        size="large"
-        @click="formatWithAI"
-        :loading="isFormatting"
-        :disabled="isFormatting"
-        elevation="2"
-        class="ai-format-btn"
-      >
-        <v-icon left>mdi-auto-fix</v-icon>
-        AIで整形
-      </v-btn>
-    </div>
-
-    <!-- AI整形後の販売用情報 -->
-    <v-card outlined class="mb-4 section-card">
-      <v-card-title class="section-title">
-        <v-icon left size="24" class="mr-2">mdi-robot-outline</v-icon>
-        AI整形後の販売用情報
-      </v-card-title>
-      <v-card-text class="pt-6">
-        <v-row>
-          <v-col cols="12" md="6">
-            <v-textarea
-              :model-value="formattedSalesOverview.schedule"
-              @update:model-value="updateFormattedSalesOverview('schedule', $event)"
-              label="スケジュール（整形済み）"
-              outlined
-              dense
-              rows="3"
-              prepend-inner-icon="mdi-calendar-clock"
-              class="formatted-field"
-              placeholder="AIで整形された内容がここに表示されます"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-textarea
-              :model-value="formattedSalesOverview.propertyOverview"
-              @update:model-value="updateFormattedSalesOverview('propertyOverview', $event)"
-              label="立地概要（整形済み）"
-              outlined
-              dense
-              rows="3"
-              prepend-inner-icon="mdi-home-outline"
-              class="formatted-field"
-              placeholder="AIで整形された内容がここに表示されます"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-textarea
-              :model-value="formattedSalesOverview.currentTenant"
-              @update:model-value="updateFormattedSalesOverview('currentTenant', $event)"
-              label="現況テナント（整形済み）"
-              outlined
-              dense
-              rows="3"
-              prepend-inner-icon="mdi-store"
-              class="formatted-field"
-              placeholder="AIで整形された内容がここに表示されます"
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-textarea
-              :model-value="formattedSalesOverview.ownerManagement"
-              @update:model-value="updateFormattedSalesOverview('ownerManagement', $event)"
-              label="オーナー・管理会社（整形済み）"
-              outlined
-              dense
-              rows="3"
-              prepend-inner-icon="mdi-account-tie"
-              class="formatted-field"
-              placeholder="AIで整形された内容がここに表示されます"
-            />
-          </v-col>
-          <v-col cols="12">
-            <v-textarea
-              :model-value="formattedSalesOverview.risks"
-              @update:model-value="updateFormattedSalesOverview('risks', $event)"
-              label="リスク（整形済み）"
-              outlined
-              dense
-              rows="4"
-              prepend-inner-icon="mdi-alert-outline"
-              color="warning"
-              class="formatted-field"
-              placeholder="AIで整形された内容がここに表示されます"
-            />
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-
     <!-- 販売方針の決定 -->
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
@@ -228,13 +146,6 @@ const props = defineProps<{
     ownerManagement: string
     risks: string
   }
-  formattedSalesOverview: {
-    schedule: string
-    propertyOverview: string
-    currentTenant: string
-    ownerManagement: string
-    risks: string
-  }
   strategy: {
     sellingPrice: number
     minimumPrice: number
@@ -245,7 +156,6 @@ const props = defineProps<{
 // Emits
 const emit = defineEmits<{
   'update:salesOverview': [value: typeof props.salesOverview]
-  'update:formattedSalesOverview': [value: typeof props.formattedSalesOverview]
   'update:strategy': [value: typeof props.strategy]
   'format-with-ai': []
 }>()
@@ -260,10 +170,6 @@ const isFormatting = ref(false)
 // Update functions
 const updateSalesOverview = (key: string, value: any) => {
   emit('update:salesOverview', { ...props.salesOverview, [key]: value })
-}
-
-const updateFormattedSalesOverview = (key: string, value: any) => {
-  emit('update:formattedSalesOverview', { ...props.formattedSalesOverview, [key]: value })
 }
 
 const updateStrategy = (key: string, value: any) => {
@@ -322,27 +228,16 @@ defineExpose({
   transition: box-shadow 0.3s ease;
 }
 
-/* AI整形後フィールドのスタイル */
-.formatted-field {
-  background-color: #f0f4ff !important;
-}
-
-.formatted-field:focus-within {
-  background-color: #ffffff !important;
-}
-
-/* AIで整形ボタンのスタイル */
-.ai-format-btn {
-  padding: 8px 32px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.5px !important;
+/* AIで出力ボタンのスタイル */
+.ai-output-btn {
   text-transform: none !important;
-  border-radius: 24px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
 }
 
-.ai-format-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(30, 80, 162, 0.25) !important;
-  transition: all 0.3s ease;
+.ai-output-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 80, 162, 0.25) !important;
+  transition: all 0.2s ease;
 }
 </style>
