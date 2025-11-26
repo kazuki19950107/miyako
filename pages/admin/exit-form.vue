@@ -347,15 +347,15 @@ const TEST_DATA = {
   status: {
     selectedClosingReasons: ['体調不良', '売上不振'],
     reasonOtherText: '',
-    landlordNotification: '済み（2024年10月に通知）',
-    nextTenantPermission: '次のテナントは飲食店であれば可',
-    employeeNotification: '通知済み',
-    otherConsultation: 'なし',
+    landlordNotification: 'している',
+    nextTenantPermission: 'している',
+    employeeNotification: 'している',
+    otherConsultation: 'していない',
     consultationCompany: '',
-    businessContinuation: '閉店希望',
+    businessContinuation: 'すでに決めている',
     closingDate: '2024年12月31日',
     desiredSalePeriod: '3ヶ月以内',
-    desiredPrice: 500,
+    desiredPrice: 5000000,
     marketPriceAwareness: 'ある程度理解している',
     equipmentTransferValue: 450
   },
@@ -560,9 +560,9 @@ const TEST_DATA = {
     section_f_memo: '週末のディナーが好調',
     area_types: ['ビジネス街', '繁華街'],
     customer_segments: ['ビジネスマン', '若者'],
-    main_customer_age: '30-40代',
-    main_customer_gender: '男性',
-    customer_type: 'ビジネスマン中心',
+    main_customer_age: '30代',
+    main_customer_gender: '男性中心',
+    customer_type: 'サラリーマン',
     access_info: '梅田駅から徒歩3分',
     surrounding_environment: '周辺にオフィスビルと商業施設が多い',
     section_g_memo: ''
@@ -620,15 +620,15 @@ const TEST_DATA = {
     },
     utilities: {
       electricity: {
-        contractType: '個別契約',
+        contractType: '直接契約',
         customerNumber: '1234567890'
       },
       gas: {
-        contractType: '個別契約',
+        contractType: '直接契約',
         customerNumber: '9876543210'
       },
       water: {
-        contractType: '個別契約',
+        contractType: '直接契約',
         customerNumber: '5555666677'
       },
       garbage: {
