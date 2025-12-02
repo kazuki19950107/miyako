@@ -132,8 +132,113 @@
                 </template>
               </v-select>
 
-              <!-- 次居抜きの許可 -->
+              <!-- 誰に話しているか（チェックボックス） -->
               <div v-if="status.landlordNotification === 'している'" class="mt-4">
+                <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
+                  誰に話しているか
+                </div>
+                <v-row>
+                  <v-col cols="6">
+                    <v-checkbox
+                      :model-value="status.notifiedLandlord"
+                      @update:model-value="updateStatus('notifiedLandlord', $event)"
+                      label="家主"
+                      hide-details
+                      color="primary"
+                    />
+                  </v-col>
+                  <v-col cols="6">
+                    <v-checkbox
+                      :model-value="status.notifiedManagement"
+                      @update:model-value="updateStatus('notifiedManagement', $event)"
+                      label="管理会社"
+                      hide-details
+                      color="primary"
+                    />
+                  </v-col>
+                </v-row>
+
+                <!-- 家主の連絡先 -->
+                <div v-if="status.notifiedLandlord" class="mt-4 pa-3" style="background: #f8faff; border-radius: 8px;">
+                  <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
+                    <v-icon small class="mr-1">mdi-account</v-icon>
+                    家主の連絡先
+                  </div>
+                  <v-row dense>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        :model-value="status.landlordName"
+                        @update:model-value="updateStatus('landlordName', $event)"
+                        label="会社名/氏名"
+                        outlined
+                        dense
+                        placeholder="例: 田中 一郎"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        :model-value="status.landlordContact"
+                        @update:model-value="updateStatus('landlordContact', $event)"
+                        label="担当者"
+                        outlined
+                        dense
+                        placeholder="例: 本人"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        :model-value="status.landlordPhone"
+                        @update:model-value="updateStatus('landlordPhone', $event)"
+                        label="連絡先"
+                        outlined
+                        dense
+                        placeholder="例: 090-1234-5678"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <!-- 管理会社の連絡先 -->
+                <div v-if="status.notifiedManagement" class="mt-4 pa-3" style="background: #f8faff; border-radius: 8px;">
+                  <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
+                    <v-icon small class="mr-1">mdi-office-building</v-icon>
+                    管理会社の連絡先
+                  </div>
+                  <v-row dense>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        :model-value="status.managementCompany"
+                        @update:model-value="updateStatus('managementCompany', $event)"
+                        label="会社名"
+                        outlined
+                        dense
+                        placeholder="例: ○○不動産管理"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        :model-value="status.managementContact"
+                        @update:model-value="updateStatus('managementContact', $event)"
+                        label="担当者"
+                        outlined
+                        dense
+                        placeholder="例: 佐藤 花子"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="4">
+                      <v-text-field
+                        :model-value="status.managementPhone"
+                        @update:model-value="updateStatus('managementPhone', $event)"
+                        label="連絡先"
+                        outlined
+                        dense
+                        placeholder="例: 06-1234-5678"
+                      ></v-text-field>
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <!-- 次居抜きの許可 -->
                 <v-select
                   :model-value="status.nextTenantPermission"
                   @update:model-value="updateStatus('nextTenantPermission', $event)"
@@ -142,8 +247,22 @@
                   outlined
                   dense
                   prepend-inner-icon="mdi-check-circle"
+                  class="mt-4"
                 ></v-select>
               </div>
+            </div>
+
+            <!-- 解約通知の有無 -->
+            <div class="mb-6">
+              <v-select
+                :model-value="status.terminationNotice"
+                @update:model-value="updateStatus('terminationNotice', $event)"
+                label="解約通知の有無"
+                :items="['有り', '無し']"
+                outlined
+                dense
+                prepend-inner-icon="mdi-file-document-outline"
+              ></v-select>
             </div>
 
             <!-- 従業員への告知 -->
@@ -215,6 +334,16 @@
                   いつまでに売りたいか <span class="red--text">*</span>
                 </template>
               </v-select>
+              <v-text-field
+                v-if="status.desiredSalePeriod === '日付を指定する'"
+                :model-value="status.desiredSaleDate"
+                @update:model-value="updateStatus('desiredSaleDate', $event)"
+                label="希望売却日"
+                outlined
+                dense
+                type="date"
+                class="mt-3"
+              ></v-text-field>
             </div>
 
             <!-- 他の会社への相談 -->
@@ -234,16 +363,30 @@
                   他の会社に相談しているか <span class="red--text">*</span>
                 </template>
               </v-select>
-              <v-text-field
-                v-if="status.otherConsultation === 'している'"
-                :model-value="status.consultationCompany"
-                @update:model-value="updateStatus('consultationCompany', $event)"
-                label="相談先の会社名"
-                outlined
-                dense
-                class="mt-3"
-                placeholder="会社名を入力"
-              ></v-text-field>
+              <div v-if="status.otherConsultation === 'している'" class="mt-3">
+                <v-row dense>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      :model-value="status.consultationCompany"
+                      @update:model-value="updateStatus('consultationCompany', $event)"
+                      label="相談先の会社名"
+                      outlined
+                      dense
+                      placeholder="会社名を入力"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      :model-value="status.consultationStartDate"
+                      @update:model-value="updateStatus('consultationStartDate', $event)"
+                      label="いつから依頼しているか"
+                      outlined
+                      dense
+                      type="date"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </div>
             </div>
 
           </v-col>
@@ -338,6 +481,20 @@
                 </span>
               </div>
             </v-col>
+
+            <!-- ⑥ 希望額の理由 -->
+            <v-col cols="12">
+              <v-textarea
+                :model-value="status.desiredPriceReason"
+                @update:model-value="updateStatus('desiredPriceReason', $event)"
+                label="希望額の理由"
+                outlined
+                dense
+                rows="2"
+                placeholder="例: 初期投資の回収、借入金の返済、次の事業資金など"
+                prepend-inner-icon="mdi-text-box-outline"
+              ></v-textarea>
+            </v-col>
           </v-row>
         </div>
       </v-card-text>
@@ -361,13 +518,25 @@ const props = defineProps<{
     reasonOtherText: string
     landlordNotification: string
     nextTenantPermission: string
+    notifiedLandlord: boolean
+    landlordName: string
+    landlordContact: string
+    landlordPhone: string
+    notifiedManagement: boolean
+    managementCompany: string
+    managementContact: string
+    managementPhone: string
+    terminationNotice: string
     employeeNotification: string
     businessContinuation: string
     closingDate: string
     desiredSalePeriod: string
+    desiredSaleDate: string
     otherConsultation: string
     consultationCompany: string
+    consultationStartDate: string
     desiredPrice: number
+    desiredPriceReason: string
   }
 }>()
 
@@ -392,7 +561,7 @@ const rules = {
 
 // Options
 const closingReasons = ['売上不振', '体調不良', '後継者不在', '他事業に注力', '家族の事情', '賃料が高い', '人材不足', 'その他']
-const salePeriods = ['1ヶ月以内', '3ヶ月以内', '6ヶ月以内', '1年以内', '急いでいない']
+const salePeriods = ['1ヶ月以内', '3ヶ月以内', '6ヶ月以内', '1年以内', '急いでいない', '日付を指定する']
 
 const quickPresets = [
   { text: '300万', value: 3000000 },

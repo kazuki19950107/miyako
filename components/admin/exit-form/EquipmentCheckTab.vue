@@ -1,135 +1,6 @@
 <template>
   <v-form ref="detailForm" v-model="formValid">
 
-    <!-- 物件の特徴チェック -->
-    <v-card outlined class="mb-4 section-card">
-      <v-card-title class="section-title">
-        <v-icon left size="24" class="mr-2">mdi-check-circle-outline</v-icon>
-        物件の特徴
-      </v-card-title>
-      <v-card-text class="pt-6">
-        <v-row>
-          <!-- 強みとなる特徴 -->
-          <v-col cols="12" md="6">
-            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
-              <v-icon small class="mr-1" color="success">mdi-plus-circle</v-icon>
-              強みとなる特徴
-            </div>
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-checkbox
-                  :model-value="propertyFeatures.strengths"
-                  @update:model-value="updatePropertyFeatures('strengths', $event)"
-                  label="重飲食可"
-                  value="重飲食可"
-                  multiple
-                  hide-details
-                  color="success"
-                  class="mb-2"
-                />
-                <v-checkbox
-                  :model-value="propertyFeatures.strengths"
-                  @update:model-value="updatePropertyFeatures('strengths', $event)"
-                  label="食べログ3.5以上"
-                  value="食べログ3.5以上"
-                  multiple
-                  hide-details
-                  color="success"
-                  class="mb-2"
-                />
-                <v-checkbox
-                  :model-value="propertyFeatures.strengths"
-                  @update:model-value="updatePropertyFeatures('strengths', $event)"
-                  label="グリストラップあり"
-                  value="グリストラップあり"
-                  multiple
-                  hide-details
-                  color="success"
-                  class="mb-2"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-checkbox
-                  :model-value="propertyFeatures.strengths"
-                  @update:model-value="updatePropertyFeatures('strengths', $event)"
-                  label="ダクト屋上まで設置"
-                  value="ダクト屋上まで設置"
-                  multiple
-                  hide-details
-                  color="success"
-                  class="mb-2"
-                />
-                <v-checkbox
-                  :model-value="propertyFeatures.strengths"
-                  @update:model-value="updatePropertyFeatures('strengths', $event)"
-                  label="専門設備・内装あり"
-                  value="専門設備・内装あり"
-                  multiple
-                  hide-details
-                  color="success"
-                  class="mb-2"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <!-- 注意が必要な特徴 -->
-          <v-col cols="12" md="6">
-            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
-              <v-icon small class="mr-1" color="warning">mdi-alert-circle</v-icon>
-              注意が必要な特徴
-            </div>
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-checkbox
-                  :model-value="propertyFeatures.limitations"
-                  @update:model-value="updatePropertyFeatures('limitations', $event)"
-                  label="軽飲食のみ"
-                  value="軽飲食のみ"
-                  multiple
-                  hide-details
-                  color="warning"
-                  class="mb-2"
-                />
-                <v-checkbox
-                  :model-value="propertyFeatures.limitations"
-                  @update:model-value="updatePropertyFeatures('limitations', $event)"
-                  label="業種制限あり"
-                  value="業種制限あり"
-                  multiple
-                  hide-details
-                  color="warning"
-                  class="mb-2"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-checkbox
-                  :model-value="propertyFeatures.limitations"
-                  @update:model-value="updatePropertyFeatures('limitations', $event)"
-                  label="営業時間制限あり"
-                  value="営業時間制限あり"
-                  multiple
-                  hide-details
-                  color="warning"
-                  class="mb-2"
-                />
-                <v-checkbox
-                  :model-value="propertyFeatures.limitations"
-                  @update:model-value="updatePropertyFeatures('limitations', $event)"
-                  label="故障している設備あり"
-                  value="故障している設備あり"
-                  multiple
-                  hide-details
-                  color="warning"
-                  class="mb-2"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-
     <!-- A. 交渉・制限・図面 -->
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
@@ -138,6 +9,52 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
+          <!-- 賃貸借契約書写真 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-file-document</v-icon>
+              賃貸借契約書
+            </div>
+            <v-file-input
+              :model-value="detailCheck.lease_contract_photos"
+              @update:model-value="updateDetailCheck('lease_contract_photos', $event)"
+              label="賃貸借契約書の写真をアップロード"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <!-- プレビュー -->
+            <div v-if="detailCheck.lease_contract_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.lease_contract_photos)"
+                :key="index"
+                :src="photo"
+                width="100"
+                height="100"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
           <!-- 大家との交渉 -->
           <v-col cols="12" sm="6" md="6">
             <v-radio-group
@@ -205,6 +122,52 @@
               placeholder="例: 竣工図、レイアウト図"
               class="mt-2"
             />
+          </v-col>
+
+          <!-- 平面図写真 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-floor-plan</v-icon>
+              平面図
+            </div>
+            <v-file-input
+              :model-value="detailCheck.floor_plan_photos"
+              @update:model-value="updateDetailCheck('floor_plan_photos', $event)"
+              label="平面図の写真をアップロード"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <!-- プレビュー -->
+            <div v-if="detailCheck.floor_plan_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.floor_plan_photos)"
+                :key="index"
+                :src="photo"
+                width="100"
+                height="100"
+                cover
+                class="rounded border"
+              />
+            </div>
           </v-col>
 
           <v-col cols="12">
@@ -314,6 +277,154 @@
               placeholder="例: 共益費、管理費"
               class="mt-2"
             />
+          </v-col>
+
+          <v-col cols="12"><v-divider class="my-4" /></v-col>
+
+          <!-- 電気・ガス・水道の請求書写真 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-receipt-text</v-icon>
+              電気・ガス・水道の請求書
+            </div>
+            <v-alert type="info" variant="tonal" class="mb-4" density="compact">
+              各ライフラインの請求書の写真をアップロードしてください
+            </v-alert>
+          </v-col>
+
+          <!-- 電気請求書 -->
+          <v-col cols="12" md="4">
+            <div class="text-subtitle-2 mb-2" style="color: #1e50a2;">
+              <v-icon small class="mr-1">mdi-flash</v-icon>
+              電気請求書
+            </div>
+            <v-file-input
+              :model-value="detailCheck.electricity_bill_photos"
+              @update:model-value="updateDetailCheck('electricity_bill_photos', $event)"
+              label="電気請求書の写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.electricity_bill_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.electricity_bill_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- ガス請求書 -->
+          <v-col cols="12" md="4">
+            <div class="text-subtitle-2 mb-2" style="color: #1e50a2;">
+              <v-icon small class="mr-1">mdi-fire</v-icon>
+              ガス請求書
+            </div>
+            <v-file-input
+              :model-value="detailCheck.gas_bill_photos"
+              @update:model-value="updateDetailCheck('gas_bill_photos', $event)"
+              label="ガス請求書の写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.gas_bill_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.gas_bill_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- 水道請求書 -->
+          <v-col cols="12" md="4">
+            <div class="text-subtitle-2 mb-2" style="color: #1e50a2;">
+              <v-icon small class="mr-1">mdi-water</v-icon>
+              水道請求書
+            </div>
+            <v-file-input
+              :model-value="detailCheck.water_bill_photos"
+              @update:model-value="updateDetailCheck('water_bill_photos', $event)"
+              label="水道請求書の写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.water_bill_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.water_bill_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
           </v-col>
 
           <v-col cols="12">
@@ -555,6 +666,286 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
+          <!-- 設備リスト写真セクション -->
+          <v-col cols="12">
+            <v-alert type="info" variant="tonal" class="mb-4">
+              <v-icon class="mr-2">mdi-camera</v-icon>
+              設備リストの写真をアップロードしてください（厨房、ダクト、グリストラップ、各メーター）
+            </v-alert>
+          </v-col>
+
+          <!-- 厨房設備写真 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-stove</v-icon>
+              厨房設備
+            </div>
+            <v-file-input
+              :model-value="detailCheck.kitchen_equipment_photos"
+              @update:model-value="updateDetailCheck('kitchen_equipment_photos', $event)"
+              label="厨房設備の写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.kitchen_equipment_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.kitchen_equipment_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- ダクト写真 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-air-filter</v-icon>
+              ダクト
+            </div>
+            <v-file-input
+              :model-value="detailCheck.duct_photos"
+              @update:model-value="updateDetailCheck('duct_photos', $event)"
+              label="ダクトの写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.duct_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.duct_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- グリストラップ写真 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-water-pump</v-icon>
+              グリストラップ
+            </div>
+            <v-file-input
+              :model-value="detailCheck.grease_trap_photos"
+              @update:model-value="updateDetailCheck('grease_trap_photos', $event)"
+              label="グリストラップの写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.grease_trap_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.grease_trap_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- 電気メーター写真 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-flash</v-icon>
+              電気メーター
+            </div>
+            <v-file-input
+              :model-value="detailCheck.electric_meter_photos"
+              @update:model-value="updateDetailCheck('electric_meter_photos', $event)"
+              label="電気メーターの写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.electric_meter_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.electric_meter_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- ガスメーター写真 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-fire</v-icon>
+              ガスメーター
+            </div>
+            <v-file-input
+              :model-value="detailCheck.gas_meter_photos"
+              @update:model-value="updateDetailCheck('gas_meter_photos', $event)"
+              label="ガスメーターの写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.gas_meter_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.gas_meter_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <!-- 水道メーター写真 -->
+          <v-col cols="12" md="6">
+            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
+              <v-icon small class="mr-1" color="primary">mdi-water</v-icon>
+              水道メーター
+            </div>
+            <v-file-input
+              :model-value="detailCheck.water_meter_photos"
+              @update:model-value="updateDetailCheck('water_meter_photos', $event)"
+              label="水道メーターの写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.water_meter_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.water_meter_photos)"
+                :key="index"
+                :src="photo"
+                width="80"
+                height="80"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+
+          <v-col cols="12"><v-divider class="my-4" /></v-col>
+
           <!-- 排気設備 -->
           <v-col cols="12" md="6">
             <v-text-field
@@ -976,6 +1367,9 @@ const props = defineProps<{
     floor_plan: string
     floor_plan_type: string
     section_a_memo: string
+    // 写真: 賃貸借契約書・平面図
+    lease_contract_photos: File[]
+    floor_plan_photos: File[]
 
     // B. ライフライン契約・支払い
     electricity_company: string
@@ -987,6 +1381,10 @@ const props = defineProps<{
     landlord_payment: string
     landlord_payment_detail: string
     section_b_memo: string
+    // 写真: 請求書
+    electricity_bill_photos: File[]
+    gas_bill_photos: File[]
+    water_bill_photos: File[]
 
     // C. その他申告・費用
     garbage_disposal_cost: string
@@ -1022,6 +1420,13 @@ const props = defineProps<{
     outdoor_unit_location: string
     mdf_location: string
     section_e_memo: string
+    // 写真: 設備リスト
+    kitchen_equipment_photos: File[]
+    duct_photos: File[]
+    grease_trap_photos: File[]
+    electric_meter_photos: File[]
+    gas_meter_photos: File[]
+    water_meter_photos: File[]
 
     // F. 売上・営業時間
     highest_sales_month: string
@@ -1055,6 +1460,17 @@ const emit = defineEmits<{
 // Internal state
 const formValid = ref(false)
 const detailForm = ref(null)
+
+// 写真のプレビューURL生成
+const getPhotoUrls = (files: File[] | null): string[] => {
+  if (!files || !Array.isArray(files)) return []
+  return files.map(file => {
+    if (file instanceof File) {
+      return URL.createObjectURL(file)
+    }
+    return ''
+  }).filter(url => url !== '')
+}
 
 // Methods
 const updatePropertyFeatures = (key: string, value: any) => {

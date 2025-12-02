@@ -1,5 +1,5 @@
 <template>
-  <v-container class="px-4 pt-4 pt-md-0 pb-4 exit-form-container" style="max-width: 1400px;">
+  <v-container class="px-4 pt-4 pb-4 exit-form-container" style="max-width: 1400px;">
     <!-- ★ 固定したい"ヘッダー＋タブ"をひとまとめにする -->
     <div class="sticky-stack">
       <!-- ヘッダー -->
@@ -45,6 +45,7 @@
       <!-- タブ2: 簡易査定 -->
       <v-window-item :value="1">
         <AdminExitFormQuickValuationTab
+          v-model:propertyFeatures="formData.propertyFeatures"
           v-model:locationInfo="formData.locationInfo"
           v-model:equipment="formData.equipment"
           v-model:valuation="formData.valuation"
@@ -183,10 +184,6 @@ const { isProcessing, processWithGpt } = useGpt()
 
 /* [ADD] 詳細入力の表示/非表示 */
 const showDetailPrice = ref(false)
-const showDetailEquipmentCost = ref(false)
-const showDetailInteriorCost = ref(false)
-const showDetailHandoverAmount = ref(false)
-const showCoefficientSettings = ref(false)
 const showValuationSettings = ref(false)
 
 /* [ADD] プリセット（任意・編集OK） */
@@ -349,13 +346,25 @@ const TEST_DATA = {
     reasonOtherText: '',
     landlordNotification: 'している',
     nextTenantPermission: 'している',
+    notifiedLandlord: true,
+    landlordName: '田中 一郎',
+    landlordContact: '本人',
+    landlordPhone: '090-1111-2222',
+    notifiedManagement: true,
+    managementCompany: '梅田不動産管理',
+    managementContact: '佐藤 花子',
+    managementPhone: '06-9999-8888',
+    terminationNotice: '有り',
     employeeNotification: 'している',
     otherConsultation: 'していない',
     consultationCompany: '',
+    consultationStartDate: '',
     businessContinuation: 'すでに決めている',
     closingDate: '2024年12月31日',
     desiredSalePeriod: '3ヶ月以内',
+    desiredSaleDate: '',
     desiredPrice: 5000000,
+    desiredPriceReason: '初期投資の回収のため',
     marketPriceAwareness: 'ある程度理解している',
     equipmentTransferValue: 450
   },
@@ -400,15 +409,12 @@ const TEST_DATA = {
     newTenantConditions: '飲食店であれば業態自由'
   },
   equipment: {
-    equipmentCost: 800,
+    constructionCost: 1200,
     equipmentAge: '4年',
-    interiorCost: 400,
     interiorAge: '4年',
     businessYears: 4,
     handoverCondition: '現状渡し',
     handoverAmount: 500,
-    equipmentCoefficient: 0.8,
-    interiorCoefficient: 0.2,
     equipmentStatus: ['問題なし'],
     hasNonTransferable: false,
     nonTransferableDetails: '',
@@ -496,8 +502,10 @@ const TEST_DATA = {
     }
   ],
   propertyFeatures: {
-    strengths: ['重飲食可', 'グリストラップあり', 'ダクト屋上まで設置', '専門設備・内装あり'],
-    limitations: ['営業時間制限あり']
+    strengths: ['重飲食可', 'グリストラップあり', 'ダクト屋上まで設置'],
+    limitations: ['営業時間制限あり'],
+    businessType: '一般飲食',
+    floorType: '路面店'
   },
   detailCheck: {
     landlord_negotiation: true,
@@ -507,6 +515,9 @@ const TEST_DATA = {
     floor_plan: true,
     floor_plan_type: '契約時の図面あり',
     section_a_memo: '',
+    // 写真: 賃貸借契約書・平面図
+    lease_contract_photos: [],
+    floor_plan_photos: [],
     electricity_company: '関西電力',
     electricity_customer_number: '1234567890',
     gas_company: '大阪ガス',
@@ -516,6 +527,10 @@ const TEST_DATA = {
     landlord_payment: false,
     landlord_payment_detail: '',
     section_b_memo: '',
+    // 写真: 請求書
+    electricity_bill_photos: [],
+    gas_bill_photos: [],
+    water_bill_photos: [],
     garbage_disposal_cost: 5000,
     other_monthly_costs: false,
     other_monthly_costs_detail: '',
@@ -549,6 +564,13 @@ const TEST_DATA = {
     outdoor_unit_location: 'ビル裏側',
     mdf_location: '店舗奥壁面',
     section_e_memo: '',
+    // 写真: 設備リスト
+    kitchen_equipment_photos: [],
+    duct_photos: [],
+    grease_trap_photos: [],
+    electric_meter_photos: [],
+    gas_meter_photos: [],
+    water_meter_photos: [],
     highest_sales_month: 280,
     lowest_sales_month: 120,
     lunch_hours: '11:30-14:30',
@@ -715,13 +737,25 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     reasonOtherText: '',
     landlordNotification: '',
     nextTenantPermission: '',
+    notifiedLandlord: false,
+    landlordName: '',
+    landlordContact: '',
+    landlordPhone: '',
+    notifiedManagement: false,
+    managementCompany: '',
+    managementContact: '',
+    managementPhone: '',
+    terminationNotice: '',
     employeeNotification: '',
     otherConsultation: '',
     consultationCompany: '',
+    consultationStartDate: '',
     businessContinuation: '',
     closingDate: '',
     desiredSalePeriod: '',
+    desiredSaleDate: '',
     desiredPrice: 0,
+    desiredPriceReason: '',
     marketPriceAwareness: '',
     equipmentTransferValue: 0
   },
@@ -770,15 +804,12 @@ const formData = ref(isDevelopment ? TEST_DATA : {
   },
   // セクション3: 設備の確認
   equipment: {
-    equipmentCost: 0,
+    constructionCost: 0,
     equipmentAge: '',
-    interiorCost: 0,
     interiorAge: '',
     businessYears: 0,
     handoverCondition: '',
     handoverAmount: 0,
-    equipmentCoefficient: 0.8,
-    interiorCoefficient: 0.2,
     equipmentStatus: [],
     hasNonTransferable: false,
     nonTransferableDetails: '',
@@ -865,7 +896,9 @@ const formData = ref(isDevelopment ? TEST_DATA : {
   // 物件の特徴
   propertyFeatures: {
     strengths: [],
-    limitations: []
+    limitations: [],
+    businessType: '',
+    floorType: ''
   },
   // タブ2: 詳細確認
   detailCheck: {
@@ -877,6 +910,9 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     floor_plan: null,
     floor_plan_type: '',
     section_a_memo: '',
+    // 写真: 賃貸借契約書・平面図
+    lease_contract_photos: [],
+    floor_plan_photos: [],
 
     // B. ライフライン契約・支払い
     electricity_company: '',
@@ -888,6 +924,10 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     landlord_payment: null,
     landlord_payment_detail: '',
     section_b_memo: '',
+    // 写真: 請求書
+    electricity_bill_photos: [],
+    gas_bill_photos: [],
+    water_bill_photos: [],
 
     // C. その他申告・費用
     garbage_disposal_cost: 0,
@@ -927,6 +967,13 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     outdoor_unit_location: '',
     mdf_location: '',
     section_e_memo: '',
+    // 写真: 設備リスト
+    kitchen_equipment_photos: [],
+    duct_photos: [],
+    grease_trap_photos: [],
+    electric_meter_photos: [],
+    gas_meter_photos: [],
+    water_meter_photos: [],
 
     // F. 売上・営業時間
     highest_sales_month: 0,
@@ -1131,8 +1178,8 @@ const progressPercentage = computed(() => {
 
   // 設備情報 (2項目)
   total += 2
-  if (formData.value.equipment.equipmentAge !== '') completed++
-  if (formData.value.equipment.interiorCost > 0) completed++
+  if (formData.value.equipment.businessYears > 0) completed++
+  if (formData.value.equipment.constructionCost > 0) completed++
 
   // 売却戦略 (1項目)
   total += 1
@@ -1193,64 +1240,32 @@ const calculateLocationEvaluation = computed(() => {
   return Math.round(evaluation) // 円単位で返す
 })
 
-// 設備残存価値の計算（減価償却後）
-const calculateEquipmentResidual = computed(() => {
-  const equipmentCost = Number(formData.value.equipment.equipmentCost) || 0
-  const businessYears = Number(formData.value.equipment.businessYears) || 0
-  const depreciationYears = 7 // 設備の減価償却年数
+// 営業年数に基づく減価償却率
+const getDepreciationRate = (years: number): number => {
+  if (years <= 1) return 0.7   // 1年: 70%
+  if (years === 2) return 0.6  // 2年: 60%
+  if (years === 3) return 0.5  // 3年: 50%
+  if (years === 4) return 0.4  // 4年: 40%
+  if (years === 5) return 0.35 // 5年: 35%
+  if (years === 6) return 0.3  // 6年: 30%
+  if (years === 7) return 0.25 // 7年: 25%
+  if (years === 8) return 0.2  // 8年: 20%
+  if (years >= 9 && years <= 10) return 0.15 // 9〜10年: 15%
+  return 0.1 // 10年以上: 10%
+}
 
-  if (equipmentCost <= 0) return 0
-
-  // 営業年数が償却年数を超えている場合は0
-  if (businessYears >= depreciationYears) return 0
-
-  // 残存価値 = 取得額 × (償却年数 - 営業年数) / 償却年数
-  const residualValue = equipmentCost * (depreciationYears - businessYears) / depreciationYears
-
-  return Math.round(residualValue * 10) / 10 // 小数点第1位まで
-})
-
-// 内装残存価値の計算（減価償却後）
-const calculateInteriorResidual = computed(() => {
-  const interiorCost = Number(formData.value.equipment.interiorCost) || 0
-  const businessYears = Number(formData.value.equipment.businessYears) || 0
-  const depreciationYears = 15 // 内装の減価償却年数
-
-  if (interiorCost <= 0) return 0
-
-  // 営業年数が償却年数を超えている場合は0
-  if (businessYears >= depreciationYears) return 0
-
-  // 残存価値 = 取得額 × (償却年数 - 営業年数) / 償却年数
-  const residualValue = interiorCost * (depreciationYears - businessYears) / depreciationYears
-
-  return Math.round(residualValue * 10) / 10 // 小数点第1位まで
-})
-
-// 設備評価の計算
+// 設備評価の計算（新しい減価償却ロジック）
 const calculateEquipmentEvaluation = computed(() => {
-  const equipmentResidual = calculateEquipmentResidual.value
-  const interiorResidual = calculateInteriorResidual.value
+  const constructionCost = Number(formData.value.equipment.constructionCost) || 0
+  const businessYears = Number(formData.value.equipment.businessYears) || 0
 
-  const equipmentCoefficient = Number(formData.value.equipment.equipmentCoefficient) || 0.8
-  const interiorCoefficient = Number(formData.value.equipment.interiorCoefficient) || 0.2
+  if (constructionCost <= 0) return 0
 
-  // 設備評価 = 設備残存価値 × 設備係数 + 内装残存価値 × 内装係数
-  const evaluation = (equipmentResidual * equipmentCoefficient) + (interiorResidual * interiorCoefficient)
+  const rate = getDepreciationRate(businessYears)
+  const residualValue = constructionCost * rate
 
-  return Math.round(evaluation * 10) / 10 // 小数点第1位まで
+  return Math.round(residualValue * 10) / 10 // 小数点第1位まで
 })
-
-// 係数調整関数（設備・内装）
-const updateInteriorCoefficient = () => {
-  const equipmentCoef = Number(formData.value.equipment.equipmentCoefficient) || 0
-  formData.value.equipment.interiorCoefficient = Math.round((1 - equipmentCoef) * 10) / 10
-}
-
-const resetCoefficients = () => {
-  formData.value.equipment.equipmentCoefficient = 0.8
-  formData.value.equipment.interiorCoefficient = 0.2
-}
 
 // 簡易査定の計算
 const calculateSimpleValuation = computed(() => {
@@ -1279,12 +1294,6 @@ const resetValuationWeights = () => {
 
 // 初期値設定
 onMounted(() => {
-  if (!formData.value.equipment.equipmentCoefficient) {
-    formData.value.equipment.equipmentCoefficient = 0.8
-  }
-  if (!formData.value.equipment.interiorCoefficient) {
-    formData.value.equipment.interiorCoefficient = 0.2
-  }
   if (!formData.value.valuation.locationWeight) {
     formData.value.valuation.locationWeight = 0.6
   }
