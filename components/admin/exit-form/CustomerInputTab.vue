@@ -1,8 +1,7 @@
 <template>
   <div>
-    <!-- QRコードとお客様入力画面ボタン -->
+    <!-- QRコードとお客様入力画面ボタン（一時的に非表示）
     <v-row class="mt-0 mb-4">
-      <!-- お客様入力画面ボタン -->
       <v-col cols="12" md="4" class="d-flex align-center">
         <v-btn
           color="primary"
@@ -16,11 +15,9 @@
         </v-btn>
       </v-col>
 
-      <!-- QRコード表示エリア -->
       <v-col cols="12" md="8">
         <v-card outlined class="qr-card">
           <v-card-text>
-            <!-- ID入力とQRコード生成ボタン -->
             <v-row class="mb-3">
               <v-col cols="12" md="8">
                 <v-text-field
@@ -47,7 +44,6 @@
               </v-col>
             </v-row>
 
-            <!-- QRコードと説明 -->
             <div class="d-flex align-center">
               <div class="flex-grow-1 mr-4">
                 <div class="text-subtitle-2 mb-2">
@@ -69,6 +65,7 @@
         </v-card>
       </v-col>
     </v-row>
+    -->
 
     <!-- 物件・契約情報 -->
     <v-card outlined class="mb-4 section-card">
@@ -258,21 +255,22 @@
               <v-radio label="未登録" value="未登録"></v-radio>
             </v-radio-group>
             <v-text-field
-              v-if="customerInput.property.invoiceRegistration.status === '未登録'"
+              v-if="customerInput.property.invoiceRegistration.status === '登録済み'"
               :model-value="customerInput.property.invoiceRegistration.detail"
               @update:model-value="updateInvoiceRegistration('detail', $event)"
-              label="詳細"
+              label="インボイス番号"
               outlined
               dense
               class="mt-2"
-              placeholder="未登録の理由などを記入してください"
+              placeholder="T1234567890123"
+              prepend-inner-icon="mdi-identifier"
             ></v-text-field>
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
 
-    <!-- ライフライン・契約情報 -->
+    <!-- ライフライン・契約情報（詳細確認タブへ移動済み）
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
         <v-icon left size="24" class="mr-2">mdi-lightning-bolt-outline</v-icon>
@@ -280,7 +278,6 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
-          <!-- 電気の契約状況 -->
           <v-col cols="12" md="6">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-flash</v-icon>
@@ -306,7 +303,6 @@
             ></v-text-field>
           </v-col>
 
-          <!-- ガスの契約状況 -->
           <v-col cols="12" md="6">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-fire</v-icon>
@@ -332,7 +328,6 @@
             ></v-text-field>
           </v-col>
 
-          <!-- 水道の契約状況 -->
           <v-col cols="12" md="6">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-water</v-icon>
@@ -358,7 +353,6 @@
             ></v-text-field>
           </v-col>
 
-          <!-- ゴミ出し方法 -->
           <v-col cols="12" md="6">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-delete-outline</v-icon>
@@ -383,7 +377,6 @@
             ></v-text-field>
           </v-col>
 
-          <!-- その他費用 -->
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-cash-multiple</v-icon>
@@ -412,8 +405,9 @@
         </v-row>
       </v-card-text>
     </v-card>
+    -->
 
-    <!-- 申告・条件情報 -->
+    <!-- 申告・条件情報（詳細確認タブへ移動済み）
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
         <v-icon left size="24" class="mr-2">mdi-alert-decagram-outline</v-icon>
@@ -421,7 +415,6 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
-          <!-- 事前申告 -->
           <v-col cols="12">
             <v-textarea
               :model-value="customerInput.disclosure.priorNotice"
@@ -435,7 +428,6 @@
             ></v-textarea>
           </v-col>
 
-          <!-- 新条件 -->
           <v-col cols="12">
             <v-textarea
               :model-value="customerInput.disclosure.newConditions"
@@ -451,6 +443,7 @@
         </v-row>
       </v-card-text>
     </v-card>
+    -->
 
     <!-- 設備情報 -->
     <v-card outlined class="mb-4 section-card">
@@ -593,21 +586,114 @@
 
           <!-- 席数 -->
           <v-col cols="12">
+            <div class="text-subtitle-2 mb-3">
+              <v-icon small class="mr-1">mdi-chair-rolling</v-icon>
+              座席数について教えてください
+            </div>
+
+            <!-- 座席入力リスト -->
+            <div class="seats-input-container">
+              <div
+                v-for="(seat, index) in customerInput.equipment.seatingList || []"
+                :key="index"
+                class="seat-row d-flex align-center ga-2 mb-2 flex-wrap"
+              >
+                <v-select
+                  :model-value="seat.floor"
+                  @update:model-value="updateSeatingItem(index, 'floor', $event)"
+                  :items="['1', '2', '3', 'B1', 'B2']"
+                  label="階"
+                  outlined
+                  dense
+                  hide-details
+                  style="min-width: 100px; flex: 1;"
+                ></v-select>
+                <span class="text-body-2">階</span>
+
+                <v-select
+                  :model-value="seat.capacity"
+                  @update:model-value="updateSeatingItem(index, 'capacity', $event)"
+                  :items="['1', '2', '3', '4', '5', '6', '7', '8', '10', '12']"
+                  label="人数"
+                  outlined
+                  dense
+                  hide-details
+                  style="min-width: 100px; flex: 1;"
+                ></v-select>
+                <span class="text-body-2">人掛け</span>
+
+                <v-select
+                  :model-value="seat.type"
+                  @update:model-value="updateSeatingItem(index, 'type', $event)"
+                  :items="['カウンター', 'テーブル']"
+                  label="種類"
+                  outlined
+                  dense
+                  hide-details
+                  style="min-width: 120px; flex: 1;"
+                ></v-select>
+
+                <v-text-field
+                  :model-value="seat.count"
+                  @update:model-value="updateSeatingItem(index, 'count', $event)"
+                  label="卓数"
+                  outlined
+                  dense
+                  hide-details
+                  type="number"
+                  min="1"
+                  style="min-width: 100px; flex: 1;"
+                ></v-text-field>
+                <span class="text-body-2">卓</span>
+
+                <v-btn
+                  icon
+                  size="small"
+                  color="error"
+                  variant="text"
+                  @click="removeSeatingItem(index)"
+                >
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+              </div>
+
+              <v-btn
+                color="primary"
+                variant="outlined"
+                size="small"
+                @click="addSeatingItem"
+                class="mt-2"
+              >
+                <v-icon left size="small">mdi-plus</v-icon>
+                席を追加
+              </v-btn>
+            </div>
+
+            <!-- 合計席数表示 -->
+            <v-divider class="my-3"></v-divider>
+            <div class="d-flex align-center">
+              <span class="text-subtitle-2 mr-2">合計：</span>
+              <span class="text-h6 font-weight-bold primary--text">{{ calculateTotalSeats }}</span>
+              <span class="text-subtitle-2 ml-1">席</span>
+            </div>
+
+            <!-- メモ欄 -->
             <v-text-field
               :model-value="customerInput.equipment.seats"
               @update:model-value="updateEquipment('seats', $event)"
-              label="席数について教えてください"
+              label="座席に関するメモ"
               outlined
               dense
-              prepend-inner-icon="mdi-chair-rolling"
-              placeholder="メモ"
+              class="mt-3"
+              placeholder="その他の座席情報があれば記入"
             ></v-text-field>
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
 
-    <!-- 店舗設備詳細 -->
+    <!-- 店舗設備詳細（設備詳細タブへ移動済み） -->
+    <!--
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
         <v-icon left size="24" class="mr-2">mdi-cog-outline</v-icon>
@@ -615,41 +701,62 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
-          <!-- 排気設備の種類 -->
-          <v-col cols="12" md="6">
+          排気設備の種類
+          <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-air-filter</v-icon>
               排気設備の種類について教えてください
             </div>
-            <v-radio-group
-              :model-value="customerInput.facilityDetails.ventilation.type"
-              @update:model-value="updateVentilation('type', $event)"
-              row
-            >
-              <v-radio label="換気扇" value="換気扇"></v-radio>
-              <v-radio label="ダクト" value="ダクト"></v-radio>
-            </v-radio-group>
+            <div class="text-caption mb-2 grey- -text">※複数ある場合は両方にチェックしてください</div>
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-checkbox
+                  :model-value="customerInput.facilityDetails.ventilation.hasFan"
+                  @update:model-value="updateVentilation('hasFan', $event)"
+                  label="換気扇"
+                  hide-details
+                  color="primary"
+                ></v-checkbox>
+                <v-select
+                  v-if="customerInput.facilityDetails.ventilation.hasFan"
+                  :model-value="customerInput.facilityDetails.ventilation.fanRoute"
+                  @update:model-value="updateVentilation('fanRoute', $event)"
+                  :items="['店舗側面', '店舗前面', '店舗背面', '屋上']"
+                  label="換気扇の排気ルート"
+                  outlined
+                  dense
+                  multiple
+                  chips
+                  small-chips
+                  class="mt-2"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-checkbox
+                  :model-value="customerInput.facilityDetails.ventilation.hasDuct"
+                  @update:model-value="updateVentilation('hasDuct', $event)"
+                  label="ダクト"
+                  hide-details
+                  color="primary"
+                ></v-checkbox>
+                <v-select
+                  v-if="customerInput.facilityDetails.ventilation.hasDuct"
+                  :model-value="customerInput.facilityDetails.ventilation.ductRoute"
+                  @update:model-value="updateVentilation('ductRoute', $event)"
+                  :items="['店舗側面', '店舗前面', '店舗背面', '屋上']"
+                  label="ダクトの排気ルート"
+                  outlined
+                  dense
+                  multiple
+                  chips
+                  small-chips
+                  class="mt-2"
+                ></v-select>
+              </v-col>
+            </v-row>
           </v-col>
 
-          <!-- 排気ルート -->
-          <v-col cols="12" md="6">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-directions-fork</v-icon>
-              排気ルートについて教えてください
-            </div>
-            <v-select
-              :model-value="customerInput.facilityDetails.ventilation.route"
-              @update:model-value="updateVentilation('route', $event)"
-              :items="['店舗側面', '店舗前面', '店舗背面', '屋上']"
-              outlined
-              dense
-              multiple
-              chips
-              small-chips
-            ></v-select>
-          </v-col>
-
-          <!-- 排水設備の種類 -->
+          排水設備の種類
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-water-pump</v-icon>
@@ -665,7 +772,7 @@
             </v-radio-group>
           </v-col>
 
-          <!-- 電気メーターの場所と容量 -->
+          電気メーターの場所と容量
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-flash-outline</v-icon>
@@ -705,7 +812,7 @@
             </v-row>
           </v-col>
 
-          <!-- ガスメーターの場所と容量 -->
+          ガスメーターの場所と容量
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-fire-circle</v-icon>
@@ -735,7 +842,7 @@
             </v-row>
           </v-col>
 
-          <!-- 水道メーターの場所と排水管の容量 -->
+          水道メーターの場所と排水管の容量
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-water-outline</v-icon>
@@ -765,93 +872,39 @@
             </v-row>
           </v-col>
 
-          <!-- 室外機の場所 -->
+          室外機の場所
           <v-col cols="12">
+            <div class="text-subtitle-2 mb-2">
+              <v-icon small class="mr-1">mdi-air-conditioner</v-icon>
+              室外機の場所について教えてください
+            </div>
             <v-textarea
               :model-value="customerInput.facilityDetails.outsideWall"
               @update:model-value="updateFacilityDetails('outsideWall', $event)"
-              label="室外機の場所について教えてください"
+              label="場所"
               outlined
               dense
               rows="2"
-              prepend-inner-icon="mdi-air-conditioner"
+              placeholder="例）店舗背面、屋上、ベランダなど"
             ></v-textarea>
-          </v-col>
-
-          <!-- MDF盤の場所 -->
-          <v-col cols="12">
-            <v-text-field
-              :model-value="customerInput.facilityDetails.mdfLocation"
-              @update:model-value="updateFacilityDetails('mdfLocation', $event)"
-              label="MDF盤の場所について教えてください"
-              outlined
-              dense
-              prepend-inner-icon="mdi-network-outline"
-              placeholder="場所"
-            ></v-text-field>
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
+    -->
 
-    <!-- 環境情報 -->
+    <!-- 環境情報（設備詳細タブへ移動済み） -->
+    <!--
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
         <v-icon left size="24" class="mr-2">mdi-nature-people-outline</v-icon>
         環境情報
       </v-card-title>
       <v-card-text class="pt-6">
-        <v-row>
-          <!-- 店舗の瑕疵 -->
-          <v-col cols="12" md="6">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-alert-circle-outline</v-icon>
-              店舗の瑕疵について教えてください
-            </div>
-            <v-radio-group
-              :model-value="customerInput.environment.defect.status"
-              @update:model-value="updateDefect('status', $event)"
-              column
-            >
-              <v-radio label="なし" value="なし"></v-radio>
-              <v-radio label="雨漏り" value="雨漏り"></v-radio>
-              <v-radio label="水漏れ" value="水漏れ"></v-radio>
-              <v-radio label="騒音問題" value="騒音問題"></v-radio>
-              <v-radio label="その他" value="その他"></v-radio>
-            </v-radio-group>
-            <v-text-field
-              v-if="customerInput.environment.defect.status === 'その他'"
-              :model-value="customerInput.environment.defect.detail"
-              @update:model-value="updateDefect('detail', $event)"
-              label="詳細"
-              outlined
-              dense
-              class="mt-2"
-              placeholder="瑕疵の詳細を記入してください"
-            ></v-text-field>
-          </v-col>
-
-          <!-- 届出済の許認可 -->
-          <v-col cols="12" md="6">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-file-certificate-outline</v-icon>
-              届出済の許認可について教えてください
-            </div>
-            <v-select
-              :model-value="customerInput.environment.permits"
-              @update:model-value="updateEnvironment('permits', $event)"
-              :items="['保健所', '消防署', '警察署']"
-              outlined
-              dense
-              multiple
-              chips
-              small-chips
-              placeholder="該当する許認可を選択してください"
-            ></v-select>
-          </v-col>
-        </v-row>
+        ...
       </v-card-text>
     </v-card>
+    -->
   </div>
 </template>
 
@@ -935,11 +988,21 @@ const props = defineProps<{
         detail: string
       }
       seats: string
+      seatingList: Array<{
+        floor: string
+        capacity: string
+        type: string
+        count: number
+      }>
     }
     facilityDetails: {
       ventilation: {
         type: string
         route: string[]
+        hasFan: boolean
+        fanRoute: string[]
+        hasDuct: boolean
+        ductRoute: string[]
       }
       drainage: {
         type: string
@@ -964,6 +1027,11 @@ const props = defineProps<{
       defect: {
         status: string
         detail: string
+        types: string[]
+        rainLeakDetail: string
+        waterLeakDetail: string
+        noiseDetail: string
+        otherDetail: string
       }
       permits: string[]
     }
@@ -1187,6 +1255,57 @@ const updateKitchenware = (key: string, value: any) => {
   })
 }
 
+// 座席関連
+const calculateTotalSeats = computed(() => {
+  const seatingList = props.customerInput.equipment.seatingList || []
+  return seatingList.reduce((total, seat) => {
+    const capacity = parseInt(seat.capacity) || 0
+    const count = parseInt(String(seat.count)) || 0
+    return total + (capacity * count)
+  }, 0)
+})
+
+const addSeatingItem = () => {
+  const currentList = props.customerInput.equipment.seatingList || []
+  const newList = [...currentList, { floor: '1', capacity: '4', type: 'テーブル', count: 1 }]
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      seatingList: newList
+    }
+  })
+}
+
+const removeSeatingItem = (index: number) => {
+  const currentList = props.customerInput.equipment.seatingList || []
+  const newList = currentList.filter((_, i) => i !== index)
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      seatingList: newList
+    }
+  })
+}
+
+const updateSeatingItem = (index: number, key: string, value: any) => {
+  const currentList = props.customerInput.equipment.seatingList || []
+  const newList = currentList.map((item, i) => {
+    if (i === index) {
+      return { ...item, [key]: value }
+    }
+    return item
+  })
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      seatingList: newList
+    }
+  })
+}
+
 // Update methods for facilityDetails
 const updateFacilityDetails = (key: string, value: any) => {
   emit('update:customerInput', {
@@ -1263,6 +1382,31 @@ const updateDefect = (key: string, value: any) => {
   })
 }
 
+const toggleDefectType = (type: string, checked: boolean) => {
+  const currentTypes = props.customerInput.environment.defect.types || []
+  let newTypes: string[]
+
+  if (type === 'なし') {
+    // 「なし」を選択した場合、他の選択を全てクリア
+    newTypes = checked ? ['なし'] : []
+  } else {
+    // 他の項目を選択した場合、「なし」を除外
+    if (checked) {
+      newTypes = [...currentTypes.filter(t => t !== 'なし'), type]
+    } else {
+      newTypes = currentTypes.filter(t => t !== type)
+    }
+  }
+
+  emit('update:customerInput', {
+    ...props.customerInput,
+    environment: {
+      ...props.customerInput.environment,
+      defect: { ...props.customerInput.environment.defect, types: newTypes }
+    }
+  })
+}
+
 // Update method for scheduleDates
 const updateScheduleDates = (key: string, value: any) => {
   emit('update:customerInput', {
@@ -1276,9 +1420,9 @@ const updateScheduleDates = (key: string, value: any) => {
 /* QRコード関連 */
 .qr-card {
   border-radius: 16px !important;
-  border: 2px solid #e1ecff !important;
+  border: 2px solid #c5d5eb !important;
   box-shadow: 0 4px 12px rgba(30, 80, 162, 0.08) !important;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%) !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f8fc 100%) !important;
 }
 
 .qr-code-container {
@@ -1288,7 +1432,7 @@ const updateScheduleDates = (key: string, value: any) => {
   padding: 8px;
   background: white;
   border-radius: 12px;
-  border: 2px solid #e1ecff;
+  border: 2px solid #c5d5eb;
 }
 
 .qr-code-container canvas {
@@ -1299,16 +1443,16 @@ const updateScheduleDates = (key: string, value: any) => {
 .section-title {
   font-weight: 700 !important;
   font-size: 17px !important;
-  background: linear-gradient(135deg, #f2f6ff 0%, #e8efff 100%) !important;
+  background: linear-gradient(135deg, #e3eaf5 0%, #d4e0f0 100%) !important;
   color: #154a8a !important;
-  border-bottom: 2px solid #e1ecff !important;
+  border-bottom: 2px solid #c5d5eb !important;
   padding-top: 16px !important;
   padding-bottom: 16px !important;
   border-radius: 0 !important;
 }
 
 .section-title .v-icon {
-  background: rgba(30, 80, 162, 0.1);
+  background: rgba(30, 80, 162, 0.15);
   border-radius: 50%;
   padding: 6px;
   margin-right: 12px !important;
@@ -1318,14 +1462,28 @@ const updateScheduleDates = (key: string, value: any) => {
 .v-card.section-card,
 .v-card.outlined {
   border-radius: 16px !important;
-  border: 1px solid #e1ecff !important;
+  border: 1px solid #c5d5eb !important;
   box-shadow: 0 4px 12px rgba(30, 80, 162, 0.08) !important;
   margin-bottom: 24px !important;
   overflow: hidden;
+  background-color: #ffffff !important;
 }
 
 .v-card.section-card:hover {
   box-shadow: 0 6px 20px rgba(30, 80, 162, 0.12) !important;
   transition: box-shadow 0.3s ease;
+}
+
+/* inputフィールドの背景色 */
+:deep(.v-field__field) {
+  background-color: #f5f8fc !important;
+}
+
+:deep(.v-field--variant-outlined .v-field__outline) {
+  --v-field-border-opacity: 0.4;
+}
+
+:deep(.v-field--focused .v-field__field) {
+  background-color: #ffffff !important;
 }
 </style>

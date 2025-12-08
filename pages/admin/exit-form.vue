@@ -23,10 +23,12 @@
         >
           <v-tab><v-icon left>mdi-account-details</v-icon>基本情報</v-tab>
           <v-tab><v-icon left>mdi-calculator-variant</v-icon>簡易査定</v-tab>
+          <v-tab><v-icon left>mdi-chart-line</v-icon>売上</v-tab>
           <v-tab><v-icon left>mdi-clipboard-check</v-icon>詳細確認</v-tab>
           <v-tab><v-icon left>mdi-account-check</v-icon>お客様入力確認</v-tab>
-          <v-tab><v-icon left>mdi-draw</v-icon>自由記述</v-tab>
           <v-tab><v-icon left>mdi-tools</v-icon>設備詳細</v-tab>
+          <v-tab><v-icon left>mdi-video</v-icon>動画</v-tab>
+          <v-tab><v-icon left>mdi-draw</v-icon>自由記述</v-tab>
           <v-tab><v-icon left>mdi-strategy</v-icon>販売戦略</v-tab>
         </v-tabs>
       </v-card>
@@ -52,19 +54,28 @@
         />
       </v-window-item>
 
-
-      <!-- タブ3: 詳細確認 -->
+      <!-- タブ3: 売上 -->
       <v-window-item :value="2">
-        <AdminExitFormEquipmentCheckTab
-          :property-features="formData.propertyFeatures"
-          @update:property-features="formData.propertyFeatures = $event"
+        <AdminExitFormSalesInfoTab
           :detail-check="formData.detailCheck"
           @update:detail-check="formData.detailCheck = $event"
         />
       </v-window-item>
 
-      <!-- タブ4: お客様入力確認 -->
+      <!-- タブ4: 詳細確認 -->
       <v-window-item :value="3">
+        <AdminExitFormEquipmentCheckTab
+          :property-features="formData.propertyFeatures"
+          @update:property-features="formData.propertyFeatures = $event"
+          :detail-check="formData.detailCheck"
+          @update:detail-check="formData.detailCheck = $event"
+          :customer-input="formData.customerInput"
+          @update:customer-input="formData.customerInput = $event"
+        />
+      </v-window-item>
+
+      <!-- タブ5: お客様入力確認 -->
+      <v-window-item :value="4">
         <AdminExitFormCustomerInputTab
           :customer-input="formData.customerInput"
           @update:customer-input="formData.customerInput = $event"
@@ -72,22 +83,31 @@
         />
       </v-window-item>
 
-      <!-- タブ5: 自由記述 -->
-      <v-window-item :value="4">
+      <!-- タブ6: 設備詳細 -->
+      <v-window-item :value="5">
+        <AdminExitFormEquipmentDetailTab
+          :detail-check="formData.detailCheck"
+          @update:detail-check="formData.detailCheck = $event"
+        />
+      </v-window-item>
+
+      <!-- タブ7: 動画 -->
+      <v-window-item :value="6">
+        <AdminExitFormVideoTab
+          :videos="formData.videos"
+          @update:videos="formData.videos = $event"
+        />
+      </v-window-item>
+
+      <!-- タブ8: 自由記述 -->
+      <v-window-item :value="7">
         <AdminExitFormFreeDrawingTab
           v-model:canvasPagesData="canvasPages"
         />
       </v-window-item>
 
-      <!-- タブ6: 設備詳細 -->
-      <v-window-item :value="5">
-        <AdminExitFormEquipmentDetailTab
-          :equipmentItems="equipmentItems"
-        />
-      </v-window-item>
-
-      <!-- タブ7: 販売戦略 -->
-      <v-window-item :value="6">
+      <!-- タブ9: 販売戦略 -->
+      <v-window-item :value="8">
         <AdminExitFormSalesStrategyTab
           v-model:salesOverview="formData.salesOverview"
           v-model:strategy="formData.strategy"
@@ -571,6 +591,38 @@ const TEST_DATA = {
     electric_meter_photos: [],
     gas_meter_photos: [],
     water_meter_photos: [],
+    // 設備詳細タブ用
+    duct_model_photo: null,
+    duct_body_photo: null,
+    duct_broken: false,
+    duct_lease: false,
+    duct_landlord_owned: false,
+    duct_detail: 'ダクト式、屋上まで直通',
+    grease_trap_model_photo: null,
+    grease_trap_body_photo: null,
+    grease_trap_broken: false,
+    grease_trap_lease: false,
+    grease_trap_landlord_owned: false,
+    grease_trap_detail: 'グリストラップあり',
+    aircon_indoor_model_photo: null,
+    aircon_indoor_body_photo: null,
+    aircon_broken: false,
+    aircon_lease: false,
+    aircon_landlord_owned: false,
+    aircon_count: '2',
+    aircon_indoor_detail: '天井埋込式',
+    aircon_outdoor_model_photo: null,
+    aircon_outdoor_body_photo: null,
+    aircon_outdoor_detail: '',
+    seat_photo: null,
+    counter_seats: '6',
+    table_seats: '22',
+    electric_meter_model_photo: null,
+    electric_meter_body_photo: null,
+    gas_meter_model_photo: null,
+    gas_meter_body_photo: null,
+    water_meter_model_photo: null,
+    water_meter_body_photo: null,
     highest_sales_month: 280,
     lowest_sales_month: 120,
     lunch_hours: '11:30-14:30',
@@ -589,6 +641,7 @@ const TEST_DATA = {
     surrounding_environment: '周辺にオフィスビルと商業施設が多い',
     section_g_memo: ''
   },
+  videos: [],
   salesOverview: {
     schedule: '',
     propertyOverview: '',
@@ -687,12 +740,21 @@ const TEST_DATA = {
         status: '全て残置する',
         detail: ''
       },
-      seats: '28席（テーブル席20席、カウンター8席）'
+      seats: '',
+      seatingList: [
+        { floor: '1', capacity: '7', type: 'カウンター', count: 1 },
+        { floor: '1', capacity: '4', type: 'テーブル', count: 1 },
+        { floor: '1', capacity: '2', type: 'テーブル', count: 2 }
+      ]
     },
     facilityDetails: {
       ventilation: {
         type: 'ダクト',
-        route: ['屋上']
+        route: ['屋上'],
+        hasFan: false,
+        fanRoute: [],
+        hasDuct: true,
+        ductRoute: ['屋上']
       },
       drainage: {
         type: 'グリストラップ'
@@ -716,7 +778,12 @@ const TEST_DATA = {
     environment: {
       defect: {
         status: 'なし',
-        detail: ''
+        detail: '',
+        types: ['なし'],
+        rainLeakDetail: '',
+        waterLeakDetail: '',
+        noiseDetail: '',
+        otherDetail: ''
       },
       permits: ['保健所', '消防署']
     }
@@ -974,6 +1041,77 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     electric_meter_photos: [],
     gas_meter_photos: [],
     water_meter_photos: [],
+    // 設備詳細タブ用 - 店舗設備詳細
+    ventilation_has_fan: false,
+    ventilation_fan_route: [],
+    ventilation_has_duct: false,
+    ventilation_duct_route: [],
+    drainage_type: '',
+    facility_electricity_location: '',
+    facility_electricity_capacity: '',
+    facility_power_capacity: '',
+    facility_gas_location: '',
+    facility_gas_capacity: '',
+    facility_water_location: '',
+    facility_water_drainage_capacity: '',
+    facility_outdoor_unit_location: '',
+    // 設備詳細タブ用 - ダクト
+    duct_model_photo: null,
+    duct_body_photo: null,
+    duct_broken: false,
+    duct_lease: false,
+    duct_landlord_owned: false,
+    duct_detail: '',
+    grease_trap_model_photo: null,
+    grease_trap_body_photo: null,
+    grease_trap_broken: false,
+    grease_trap_lease: false,
+    grease_trap_landlord_owned: false,
+    grease_trap_detail: '',
+    aircon_indoor_model_photo: null,
+    aircon_indoor_body_photo: null,
+    aircon_broken: false,
+    aircon_lease: false,
+    aircon_landlord_owned: false,
+    aircon_count: '',
+    aircon_indoor_detail: '',
+    aircon_outdoor_model_photo: null,
+    aircon_outdoor_body_photo: null,
+    aircon_outdoor_detail: '',
+    seat_photo: null,
+    counter_seats: '',
+    table_seats: '',
+    electric_meter_model_photo: null,
+    electric_meter_body_photo: null,
+    gas_meter_model_photo: null,
+    gas_meter_body_photo: null,
+    water_meter_model_photo: null,
+    water_meter_body_photo: null,
+
+    // 環境情報 - 瑕疵
+    defect_none: false,
+    defect_rain_leak: false,
+    defect_rain_leak_detail: '',
+    defect_water_leak: false,
+    defect_water_leak_detail: '',
+    defect_noise: false,
+    defect_noise_detail: '',
+    defect_other: false,
+    defect_other_detail: '',
+
+    // 環境情報 - 許認可
+    permit_health_center: false,
+    permit_health_center_photo: null,
+    permit_fire_department: false,
+    permit_fire_department_photo: null,
+    fire_alarm: false,
+    fire_extinguisher: false,
+    sprinkler: false,
+    escape_ladder: false,
+    emergency_light: false,
+    permit_police: false,
+    permit_police_photo: null,
+    permit_police_detail: '',
 
     // F. 売上・営業時間
     highest_sales_month: 0,
@@ -996,6 +1134,8 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     surrounding_environment: '',
     section_g_memo: ''
   },
+  // 動画
+  videos: [] as File[],
   // 販売用情報
   salesOverview: {
     schedule: '',
@@ -1102,12 +1242,17 @@ const formData = ref(isDevelopment ? TEST_DATA : {
         status: '全て残置する',
         detail: ''
       },
-      seats: ''
+      seats: '',
+      seatingList: []
     },
     facilityDetails: {
       ventilation: {
         type: '換気扇',
-        route: []
+        route: [],
+        hasFan: false,
+        fanRoute: [],
+        hasDuct: false,
+        ductRoute: []
       },
       drainage: {
         type: 'グリストラップ'
@@ -1131,7 +1276,12 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     environment: {
       defect: {
         status: 'なし',
-        detail: ''
+        detail: '',
+        types: [],
+        rainLeakDetail: '',
+        waterLeakDetail: '',
+        noiseDetail: '',
+        otherDetail: ''
       },
       permits: []
     }

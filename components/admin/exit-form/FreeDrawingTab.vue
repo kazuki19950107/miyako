@@ -384,16 +384,16 @@ defineExpose({
 .section-title {
   font-weight: 700 !important;
   font-size: 17px !important;
-  background: linear-gradient(135deg, #f2f6ff 0%, #e8efff 100%) !important;
+  background: linear-gradient(135deg, #e3eaf5 0%, #d4e0f0 100%) !important;
   color: #154a8a !important;
-  border-bottom: 2px solid #e1ecff !important;
+  border-bottom: 2px solid #c5d5eb !important;
   padding-top: 16px !important;
   padding-bottom: 16px !important;
   border-radius: 0 !important;
 }
 
 .section-title .v-icon {
-  background: rgba(30, 80, 162, 0.1);
+  background: rgba(30, 80, 162, 0.15);
   border-radius: 50%;
   padding: 6px;
   margin-right: 12px !important;
@@ -403,15 +403,29 @@ defineExpose({
 .v-card.section-card,
 .v-card.outlined {
   border-radius: 16px !important;
-  border: 1px solid #e1ecff !important;
+  border: 1px solid #c5d5eb !important;
   box-shadow: 0 4px 12px rgba(30, 80, 162, 0.08) !important;
   margin-bottom: 24px !important;
   overflow: hidden;
+  background-color: #ffffff !important;
 }
 
 .v-card.section-card:hover {
   box-shadow: 0 6px 20px rgba(30, 80, 162, 0.12) !important;
   transition: box-shadow 0.3s ease;
+}
+
+/* inputフィールドの背景色 */
+:deep(.v-field__field) {
+  background-color: #f5f8fc !important;
+}
+
+:deep(.v-field--variant-outlined .v-field__outline) {
+  --v-field-border-opacity: 0.4;
+}
+
+:deep(.v-field--focused .v-field__field) {
+  background-color: #ffffff !important;
 }
 
 .canvas-container {
