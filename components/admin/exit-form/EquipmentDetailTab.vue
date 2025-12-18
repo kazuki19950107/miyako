@@ -13,7 +13,7 @@
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-air-filter</v-icon>
-              排気設備の種類について教えてください
+              排気設備の種類について
             </div>
             <div class="text-caption mb-2 grey--text">※複数ある場合は両方にチェックしてください</div>
             <v-row>
@@ -68,7 +68,7 @@
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-water-pump</v-icon>
-              排水設備の種類について教えてください
+              排水設備の種類について
             </div>
             <v-radio-group
               :model-value="detailCheck.drainage_type"
@@ -84,7 +84,7 @@
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-flash-outline</v-icon>
-              電気メーターの場所と電気と動力の容量について教えてください
+              電気メーターの場所と電気と動力の容量について
             </div>
             <v-row>
               <v-col cols="12" md="4">
@@ -124,7 +124,7 @@
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-fire-circle</v-icon>
-              ガスメーターの場所とガスの容量について教えてください
+              ガスメーターの場所とガスの容量について
             </div>
             <v-row>
               <v-col cols="12" md="6">
@@ -154,7 +154,7 @@
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-water-outline</v-icon>
-              水道メーターの場所と排水管の容量について教えてください
+              水道メーターの場所と排水管の容量について
             </div>
             <v-row>
               <v-col cols="12" md="6">
@@ -184,7 +184,7 @@
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-air-conditioner</v-icon>
-              室外機の場所について教えてください
+              室外機の場所について
             </div>
             <v-textarea
               :model-value="detailCheck.facility_outdoor_unit_location"
@@ -437,125 +437,148 @@
         エアコン（室内機）
       </v-card-title>
       <v-card-text class="pt-6">
-        <v-row align="start">
-          <!-- 型番写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.aircon_indoor_model_photo"
-              @update:model-value="updateDetailCheck('aircon_indoor_model_photo', $event)"
-              label="型番写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.aircon_indoor_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.aircon_indoor_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
+        <!-- 室内機がない場合 -->
+        <div v-if="!detailCheck.aircon_indoor_units || detailCheck.aircon_indoor_units.length === 0" class="text-center py-4">
+          <v-icon size="48" color="grey-lighten-1">mdi-air-conditioner</v-icon>
+          <div class="text-body-2 grey--text mt-2">室内機を追加してください</div>
+        </div>
 
-          <!-- 本体写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
-            <v-file-input
-              :model-value="detailCheck.aircon_indoor_body_photo"
-              @update:model-value="updateDetailCheck('aircon_indoor_body_photo', $event)"
-              label="本体写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.aircon_indoor_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.aircon_indoor_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
-
-          <!-- 例外チェック -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              例外チェック
-            </div>
-            <div class="d-flex flex-column check-column">
-              <v-checkbox
-                :model-value="detailCheck.aircon_broken"
-                @update:model-value="updateDetailCheck('aircon_broken', $event)"
-                label="故障あり"
-                density="compact"
+        <!-- 室内機リスト -->
+        <div
+          v-for="(unit, index) in detailCheck.aircon_indoor_units"
+          :key="'indoor-' + index"
+          class="unit-item mb-4"
+        >
+          <div class="d-flex align-center mb-3">
+            <v-chip color="primary" size="small" class="mr-2">{{ index + 1 }}台目</v-chip>
+            <v-spacer />
+            <v-btn
+              icon
+              size="small"
+              variant="text"
+              color="error"
+              @click="removeIndoorUnit(index)"
+            >
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </div>
+          <v-row align="start">
+            <!-- 型番写真 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                型番
+              </div>
+              <v-file-input
+                :model-value="unit.model_photo"
+                @update:model-value="updateIndoorUnit(index, 'model_photo', $event)"
+                label="型番写真"
+                outlined
+                dense
+                accept="image/*"
+                prepend-icon="mdi-camera"
                 hide-details
-                color="error"
               />
-              <v-checkbox
-                :model-value="detailCheck.aircon_lease"
-                @update:model-value="updateDetailCheck('aircon_lease', $event)"
-                label="リース"
-                density="compact"
-                hide-details
-                color="warning"
-              />
-              <v-checkbox
-                :model-value="detailCheck.aircon_landlord_owned"
-                @update:model-value="updateDetailCheck('aircon_landlord_owned', $event)"
-                label="家主所有"
-                density="compact"
-                hide-details
-                color="info"
-              />
-            </div>
-          </v-col>
-
-          <!-- 詳細メモ -->
-          <v-col cols="12">
-            <v-row dense>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="detailCheck.aircon_count"
-                  @update:model-value="updateDetailCheck('aircon_count', $event)"
-                  label="台数"
-                  outlined
-                  dense
-                  type="number"
-                  suffix="台"
+              <div v-if="unit.model_photo" class="d-flex justify-center mt-2">
+                <v-img
+                  :src="getPhotoUrl(unit.model_photo)"
+                  width="120"
+                  height="120"
+                  cover
+                  class="rounded border"
                 />
-              </v-col>
-              <v-col cols="12" md="8">
-                <v-text-field
-                  :model-value="detailCheck.aircon_indoor_detail"
-                  @update:model-value="updateDetailCheck('aircon_indoor_detail', $event)"
-                  label="詳細"
-                  outlined
-                  dense
-                  placeholder="例: 天井埋込式、2019年製"
+              </div>
+              <div v-else class="photo-placeholder mx-auto mt-2">
+                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
+              </div>
+            </v-col>
+
+            <!-- 本体写真 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                本体
+              </div>
+              <v-file-input
+                :model-value="unit.body_photo"
+                @update:model-value="updateIndoorUnit(index, 'body_photo', $event)"
+                label="本体写真"
+                outlined
+                dense
+                accept="image/*"
+                prepend-icon="mdi-camera"
+                hide-details
+              />
+              <div v-if="unit.body_photo" class="d-flex justify-center mt-2">
+                <v-img
+                  :src="getPhotoUrl(unit.body_photo)"
+                  width="120"
+                  height="120"
+                  cover
+                  class="rounded border"
                 />
-              </v-col>
-            </v-row>
-          </v-col>
-        </v-row>
+              </div>
+              <div v-else class="photo-placeholder mx-auto mt-2">
+                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
+              </div>
+            </v-col>
+
+            <!-- 例外チェック -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                例外チェック
+              </div>
+              <div class="d-flex flex-column check-column">
+                <v-checkbox
+                  :model-value="unit.broken"
+                  @update:model-value="updateIndoorUnit(index, 'broken', $event)"
+                  label="故障あり"
+                  density="compact"
+                  hide-details
+                  color="error"
+                />
+                <v-checkbox
+                  :model-value="unit.lease"
+                  @update:model-value="updateIndoorUnit(index, 'lease', $event)"
+                  label="リース"
+                  density="compact"
+                  hide-details
+                  color="warning"
+                />
+                <v-checkbox
+                  :model-value="unit.landlord_owned"
+                  @update:model-value="updateIndoorUnit(index, 'landlord_owned', $event)"
+                  label="家主所有"
+                  density="compact"
+                  hide-details
+                  color="info"
+                />
+              </div>
+            </v-col>
+
+            <!-- 詳細メモ -->
+            <v-col cols="12">
+              <v-text-field
+                :model-value="unit.detail"
+                @update:model-value="updateIndoorUnit(index, 'detail', $event)"
+                label="詳細"
+                outlined
+                dense
+                placeholder="例: 天井埋込式、2019年製"
+              />
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- 追加ボタン -->
+        <div class="text-center mt-4">
+          <v-btn
+            color="primary"
+            variant="outlined"
+            @click="addIndoorUnit"
+          >
+            <v-icon left size="18">mdi-plus</v-icon>
+            室内機を追加
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -566,92 +589,130 @@
         エアコン（室外機）
       </v-card-title>
       <v-card-text class="pt-6">
-        <v-row align="start">
-          <!-- 型番写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.aircon_outdoor_model_photo"
-              @update:model-value="updateDetailCheck('aircon_outdoor_model_photo', $event)"
-              label="型番写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.aircon_outdoor_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.aircon_outdoor_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
+        <!-- 室外機がない場合 -->
+        <div v-if="!detailCheck.aircon_outdoor_units || detailCheck.aircon_outdoor_units.length === 0" class="text-center py-4">
+          <v-icon size="48" color="grey-lighten-1">mdi-fan</v-icon>
+          <div class="text-body-2 grey--text mt-2">室外機を追加してください</div>
+        </div>
+
+        <!-- 室外機リスト -->
+        <div
+          v-for="(unit, index) in detailCheck.aircon_outdoor_units"
+          :key="'outdoor-' + index"
+          class="unit-item mb-4"
+        >
+          <div class="d-flex align-center mb-3">
+            <v-chip color="primary" size="small" class="mr-2">{{ index + 1 }}台目</v-chip>
+            <v-spacer />
+            <v-btn
+              icon
+              size="small"
+              variant="text"
+              color="error"
+              @click="removeOutdoorUnit(index)"
+            >
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </div>
+          <v-row align="start">
+            <!-- 型番写真 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                型番
+              </div>
+              <v-file-input
+                :model-value="unit.model_photo"
+                @update:model-value="updateOutdoorUnit(index, 'model_photo', $event)"
+                label="型番写真"
+                outlined
+                dense
+                accept="image/*"
+                prepend-icon="mdi-camera"
+                hide-details
               />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
+              <div v-if="unit.model_photo" class="d-flex justify-center mt-2">
+                <v-img
+                  :src="getPhotoUrl(unit.model_photo)"
+                  width="120"
+                  height="120"
+                  cover
+                  class="rounded border"
+                />
+              </div>
+              <div v-else class="photo-placeholder mx-auto mt-2">
+                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
+              </div>
+            </v-col>
 
-          <!-- 本体写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
-            <v-file-input
-              :model-value="detailCheck.aircon_outdoor_body_photo"
-              @update:model-value="updateDetailCheck('aircon_outdoor_body_photo', $event)"
-              label="本体写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.aircon_outdoor_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.aircon_outdoor_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
+            <!-- 本体写真 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                本体
+              </div>
+              <v-file-input
+                :model-value="unit.body_photo"
+                @update:model-value="updateOutdoorUnit(index, 'body_photo', $event)"
+                label="本体写真"
+                outlined
+                dense
+                accept="image/*"
+                prepend-icon="mdi-camera"
+                hide-details
               />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
+              <div v-if="unit.body_photo" class="d-flex justify-center mt-2">
+                <v-img
+                  :src="getPhotoUrl(unit.body_photo)"
+                  width="120"
+                  height="120"
+                  cover
+                  class="rounded border"
+                />
+              </div>
+              <div v-else class="photo-placeholder mx-auto mt-2">
+                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
+              </div>
+            </v-col>
 
-          <!-- 設置場所 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              設置場所
-            </div>
-            <v-text-field
-              :model-value="detailCheck.outdoor_unit_location"
-              @update:model-value="updateDetailCheck('outdoor_unit_location', $event)"
-              label="室外機設置場所"
-              outlined
-              dense
-              placeholder="例: 屋上、ベランダ"
-            />
-          </v-col>
+            <!-- 設置場所 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                設置場所
+              </div>
+              <v-text-field
+                :model-value="unit.location"
+                @update:model-value="updateOutdoorUnit(index, 'location', $event)"
+                label="室外機設置場所"
+                outlined
+                dense
+                placeholder="例: 屋上、ベランダ"
+              />
+            </v-col>
 
-          <!-- 詳細メモ -->
-          <v-col cols="12">
-            <v-text-field
-              :model-value="detailCheck.aircon_outdoor_detail"
-              @update:model-value="updateDetailCheck('aircon_outdoor_detail', $event)"
-              label="詳細"
-              outlined
-              dense
-              placeholder="例: 屋上設置、アクセス良好"
-            />
-          </v-col>
-        </v-row>
+            <!-- 詳細メモ -->
+            <v-col cols="12">
+              <v-text-field
+                :model-value="unit.detail"
+                @update:model-value="updateOutdoorUnit(index, 'detail', $event)"
+                label="詳細"
+                outlined
+                dense
+                placeholder="例: 屋上設置、アクセス良好"
+              />
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- 追加ボタン -->
+        <div class="text-center mt-4">
+          <v-btn
+            color="primary"
+            variant="outlined"
+            @click="addOutdoorUnit"
+          >
+            <v-icon left size="18">mdi-plus</v-icon>
+            室外機を追加
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -1046,7 +1107,7 @@
           <v-col cols="12" md="6">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-alert-circle-outline</v-icon>
-              店舗の瑕疵について教えてください
+              店舗の瑕疵について
             </div>
             <div class="text-caption mb-2 grey--text">※複数選択可能です</div>
 
@@ -1135,7 +1196,7 @@
           <v-col cols="12" md="6">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-file-certificate-outline</v-icon>
-              届出済の許認可について教えてください
+              届出済の許認可について
             </div>
 
             <!-- 保健所 -->
@@ -1292,20 +1353,23 @@ const props = withDefaults(defineProps<{
     grease_trap_landlord_owned: boolean
     grease_trap_detail: string
 
-    // エアコン室内機
-    aircon_indoor_model_photo: File | null
-    aircon_indoor_body_photo: File | null
-    aircon_broken: boolean
-    aircon_lease: boolean
-    aircon_landlord_owned: boolean
-    aircon_count: string
-    aircon_indoor_detail: string
+    // エアコン室内機（複数対応）
+    aircon_indoor_units: Array<{
+      model_photo: File | null
+      body_photo: File | null
+      broken: boolean
+      lease: boolean
+      landlord_owned: boolean
+      detail: string
+    }>
 
-    // エアコン室外機
-    aircon_outdoor_model_photo: File | null
-    aircon_outdoor_body_photo: File | null
-    outdoor_unit_location: string
-    aircon_outdoor_detail: string
+    // エアコン室外機（複数対応）
+    aircon_outdoor_units: Array<{
+      model_photo: File | null
+      body_photo: File | null
+      location: string
+      detail: string
+    }>
 
     // 席
     seat_photo: File | null
@@ -1390,20 +1454,11 @@ const props = withDefaults(defineProps<{
     grease_trap_landlord_owned: false,
     grease_trap_detail: '',
 
-    // エアコン室内機
-    aircon_indoor_model_photo: null,
-    aircon_indoor_body_photo: null,
-    aircon_broken: false,
-    aircon_lease: false,
-    aircon_landlord_owned: false,
-    aircon_count: '',
-    aircon_indoor_detail: '',
+    // エアコン室内機（複数対応）
+    aircon_indoor_units: [],
 
-    // エアコン室外機
-    aircon_outdoor_model_photo: null,
-    aircon_outdoor_body_photo: null,
-    outdoor_unit_location: '',
-    aircon_outdoor_detail: '',
+    // エアコン室外機（複数対応）
+    aircon_outdoor_units: [],
 
     // 席
     seat_photo: null,
@@ -1497,6 +1552,60 @@ const handleDefectNone = (value: boolean) => {
   }
 }
 
+// エアコン室内機の追加
+const addIndoorUnit = () => {
+  const newUnit = {
+    model_photo: null,
+    body_photo: null,
+    broken: false,
+    lease: false,
+    landlord_owned: false,
+    detail: ''
+  }
+  const units = [...(props.detailCheck.aircon_indoor_units || []), newUnit]
+  updateDetailCheck('aircon_indoor_units', units)
+}
+
+// エアコン室内機の削除
+const removeIndoorUnit = (index: number) => {
+  const units = [...(props.detailCheck.aircon_indoor_units || [])]
+  units.splice(index, 1)
+  updateDetailCheck('aircon_indoor_units', units)
+}
+
+// エアコン室内機の更新
+const updateIndoorUnit = (index: number, key: string, value: any) => {
+  const units = [...(props.detailCheck.aircon_indoor_units || [])]
+  units[index] = { ...units[index], [key]: value }
+  updateDetailCheck('aircon_indoor_units', units)
+}
+
+// エアコン室外機の追加
+const addOutdoorUnit = () => {
+  const newUnit = {
+    model_photo: null,
+    body_photo: null,
+    location: '',
+    detail: ''
+  }
+  const units = [...(props.detailCheck.aircon_outdoor_units || []), newUnit]
+  updateDetailCheck('aircon_outdoor_units', units)
+}
+
+// エアコン室外機の削除
+const removeOutdoorUnit = (index: number) => {
+  const units = [...(props.detailCheck.aircon_outdoor_units || [])]
+  units.splice(index, 1)
+  updateDetailCheck('aircon_outdoor_units', units)
+}
+
+// エアコン室外機の更新
+const updateOutdoorUnit = (index: number, key: string, value: any) => {
+  const units = [...(props.detailCheck.aircon_outdoor_units || [])]
+  units[index] = { ...units[index], [key]: value }
+  updateDetailCheck('aircon_outdoor_units', units)
+}
+
 // Expose form validity for parent
 defineExpose({
   formValid,
@@ -1571,5 +1680,17 @@ defineExpose({
   border-radius: 8px;
   padding: 12px;
   border: 1px solid #e8f0f8;
+}
+
+/* エアコンユニットアイテム */
+.unit-item {
+  background: #f9fbfd;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e8f0f8;
+}
+
+.unit-item:not(:last-child) {
+  margin-bottom: 16px;
 }
 </style>
