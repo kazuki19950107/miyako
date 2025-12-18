@@ -582,7 +582,6 @@ const TEST_DATA = {
     water_meter_location: '厨房内',
     water_pipe_capacity: '20mm',
     outdoor_unit_location: 'ビル裏側',
-    mdf_location: '店舗奥壁面',
     section_e_memo: '',
     // 写真: 設備リスト
     kitchen_equipment_photos: [],
@@ -1030,7 +1029,6 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     water_meter_location: '',
     water_pipe_capacity: '',
     outdoor_unit_location: '',
-    mdf_location: '',
     section_e_memo: '',
     // 写真: 設備リスト
     kitchen_equipment_photos: [],
@@ -1053,6 +1051,10 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     facility_water_location: '',
     facility_water_drainage_capacity: '',
     facility_outdoor_unit_location: '',
+    facility_memo: '',
+    // 厨房設備
+    kitchen_equipment_photos: null,
+    kitchen_equipment_detail: '',
     // 設備詳細タブ用 - ダクト
     duct_model_photo: null,
     duct_body_photo: null,

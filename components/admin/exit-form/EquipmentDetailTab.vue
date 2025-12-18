@@ -80,120 +80,78 @@
             </v-radio-group>
           </v-col>
 
-          <!-- 電気メーターの場所と容量 -->
+          <!-- 店舗設備メモ -->
           <v-col cols="12">
-            <div class="text-subtitle-2 mb-3">
-              <v-icon small class="mr-1">mdi-flash-outline</v-icon>
-              電気メーターの場所と電気と動力の容量について
-            </div>
-            <v-row>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="detailCheck.facility_electricity_location"
-                  @update:model-value="updateDetailCheck('facility_electricity_location', $event)"
-                  label="場所"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-map-marker"
-                />
-              </v-col>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="detailCheck.facility_electricity_capacity"
-                  @update:model-value="updateDetailCheck('facility_electricity_capacity', $event)"
-                  label="電気容量"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-flash"
-                />
-              </v-col>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="detailCheck.facility_power_capacity"
-                  @update:model-value="updateDetailCheck('facility_power_capacity', $event)"
-                  label="動力容量"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-flash-circle"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <!-- ガスメーターの場所と容量 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-3">
-              <v-icon small class="mr-1">mdi-fire-circle</v-icon>
-              ガスメーターの場所とガスの容量について
-            </div>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_gas_location"
-                  @update:model-value="updateDetailCheck('facility_gas_location', $event)"
-                  label="場所"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-map-marker"
-                />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_gas_capacity"
-                  @update:model-value="updateDetailCheck('facility_gas_capacity', $event)"
-                  label="ガス容量"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-fire"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <!-- 水道メーターの場所と排水管の容量 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-3">
-              <v-icon small class="mr-1">mdi-water-outline</v-icon>
-              水道メーターの場所と排水管の容量について
-            </div>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_water_location"
-                  @update:model-value="updateDetailCheck('facility_water_location', $event)"
-                  label="場所"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-map-marker"
-                />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_water_drainage_capacity"
-                  @update:model-value="updateDetailCheck('facility_water_drainage_capacity', $event)"
-                  label="排水容量"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-water-pump"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <!-- 室外機の場所 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-air-conditioner</v-icon>
-              室外機の場所について
-            </div>
             <v-textarea
-              :model-value="detailCheck.facility_outdoor_unit_location"
-              @update:model-value="updateDetailCheck('facility_outdoor_unit_location', $event)"
-              label="場所"
+              :model-value="detailCheck.facility_memo"
+              @update:model-value="updateDetailCheck('facility_memo', $event)"
+              label="店舗設備メモ"
               outlined
               dense
               rows="2"
-              placeholder="例）店舗背面、屋上、ベランダなど"
+              placeholder="設備に関する特記事項があれば記載"
+            />
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- 厨房設備 -->
+    <v-card outlined class="mb-4 section-card">
+      <v-card-title class="section-title">
+        <v-icon left size="24" class="mr-2">mdi-stove</v-icon>
+        厨房設備
+      </v-card-title>
+      <v-card-text class="pt-6">
+        <v-row align="start">
+          <v-col cols="12">
+            <v-file-input
+              :model-value="detailCheck.kitchen_equipment_photos"
+              @update:model-value="updateDetailCheck('kitchen_equipment_photos', $event)"
+              label="厨房設備の写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              counter
+              chips
+              small-chips
+            >
+              <template v-slot:selection="{ fileNames }">
+                <v-chip
+                  v-for="fileName in fileNames"
+                  :key="fileName"
+                  size="small"
+                  color="primary"
+                  class="me-2"
+                >
+                  {{ fileName }}
+                </v-chip>
+              </template>
+            </v-file-input>
+            <div v-if="detailCheck.kitchen_equipment_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <v-img
+                v-for="(photo, index) in getPhotoUrls(detailCheck.kitchen_equipment_photos)"
+                :key="index"
+                :src="photo"
+                width="100"
+                height="100"
+                cover
+                class="rounded border"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12">
+            <v-textarea
+              :model-value="detailCheck.kitchen_equipment_detail"
+              @update:model-value="updateDetailCheck('kitchen_equipment_detail', $event)"
+              label="厨房設備の詳細"
+              outlined
+              dense
+              rows="2"
+              placeholder="例: ガスコンロ3口、業務用冷蔵庫2台、製氷機あり"
             />
           </v-col>
         </v-row>
@@ -589,6 +547,22 @@
         エアコン（室外機）
       </v-card-title>
       <v-card-text class="pt-6">
+        <!-- 室外機の場所 -->
+        <div class="mb-4">
+          <div class="text-subtitle-2 mb-2">
+            <v-icon small class="mr-1">mdi-air-conditioner</v-icon>
+            室外機の場所について
+          </div>
+          <v-text-field
+            :model-value="detailCheck.facility_outdoor_unit_location"
+            @update:model-value="updateDetailCheck('facility_outdoor_unit_location', $event)"
+            label="場所"
+            outlined
+            dense
+            placeholder="例）店舗背面、屋上、ベランダなど"
+          />
+        </div>
+
         <!-- 室外機がない場合 -->
         <div v-if="!detailCheck.aircon_outdoor_units || detailCheck.aircon_outdoor_units.length === 0" class="text-center py-4">
           <v-icon size="48" color="grey-lighten-1">mdi-fan</v-icon>
@@ -806,6 +780,46 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row align="start">
+          <!-- 電気メーターの場所と容量 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-3">
+              <v-icon small class="mr-1">mdi-flash-outline</v-icon>
+              電気メーターの場所と電気と動力の容量について
+            </div>
+            <v-row>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  :model-value="detailCheck.facility_electricity_location"
+                  @update:model-value="updateDetailCheck('facility_electricity_location', $event)"
+                  label="場所"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-map-marker"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  :model-value="detailCheck.facility_electricity_capacity"
+                  @update:model-value="updateDetailCheck('facility_electricity_capacity', $event)"
+                  label="電気容量"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-flash"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field
+                  :model-value="detailCheck.facility_power_capacity"
+                  @update:model-value="updateDetailCheck('facility_power_capacity', $event)"
+                  label="動力容量"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-flash-circle"
+                />
+              </v-col>
+            </v-row>
+          </v-col>
+
           <!-- 型番写真 -->
           <v-col cols="12" md="4">
             <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
@@ -864,32 +878,11 @@
             </div>
           </v-col>
 
-          <!-- 容量入力 -->
+          <!-- メーター位置 -->
           <v-col cols="12" md="4">
             <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              容量情報
+              メーター位置詳細
             </div>
-            <v-text-field
-              :model-value="detailCheck.electric_capacity"
-              @update:model-value="updateDetailCheck('electric_capacity', $event)"
-              label="電気容量"
-              outlined
-              dense
-              placeholder="例: 30A、50A"
-              class="mb-2"
-            />
-            <v-text-field
-              :model-value="detailCheck.power_capacity"
-              @update:model-value="updateDetailCheck('power_capacity', $event)"
-              label="動力容量"
-              outlined
-              dense
-              placeholder="例: 15kW"
-            />
-          </v-col>
-
-          <!-- 詳細 -->
-          <v-col cols="12">
             <v-text-field
               :model-value="detailCheck.electric_meter_location"
               @update:model-value="updateDetailCheck('electric_meter_location', $event)"
@@ -911,6 +904,36 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row align="start">
+          <!-- ガスメーターの場所と容量 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-3">
+              <v-icon small class="mr-1">mdi-fire-circle</v-icon>
+              ガスメーターの場所とガスの容量について
+            </div>
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  :model-value="detailCheck.facility_gas_location"
+                  @update:model-value="updateDetailCheck('facility_gas_location', $event)"
+                  label="場所"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-map-marker"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  :model-value="detailCheck.facility_gas_capacity"
+                  @update:model-value="updateDetailCheck('facility_gas_capacity', $event)"
+                  label="ガス容量"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-fire"
+                />
+              </v-col>
+            </v-row>
+          </v-col>
+
           <!-- 型番写真 -->
           <v-col cols="12" md="4">
             <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
@@ -969,23 +992,11 @@
             </div>
           </v-col>
 
-          <!-- 容量入力 -->
+          <!-- メーター位置詳細 -->
           <v-col cols="12" md="4">
             <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              容量情報
+              メーター位置詳細
             </div>
-            <v-text-field
-              :model-value="detailCheck.gas_capacity"
-              @update:model-value="updateDetailCheck('gas_capacity', $event)"
-              label="ガス容量"
-              outlined
-              dense
-              placeholder="例: 都市ガス13A"
-            />
-          </v-col>
-
-          <!-- 詳細 -->
-          <v-col cols="12">
             <v-text-field
               :model-value="detailCheck.gas_meter_location"
               @update:model-value="updateDetailCheck('gas_meter_location', $event)"
@@ -1007,6 +1018,36 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row align="start">
+          <!-- 水道メーターの場所と排水管の容量 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-3">
+              <v-icon small class="mr-1">mdi-water-outline</v-icon>
+              水道メーターの場所と排水管の容量について
+            </div>
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  :model-value="detailCheck.facility_water_location"
+                  @update:model-value="updateDetailCheck('facility_water_location', $event)"
+                  label="場所"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-map-marker"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  :model-value="detailCheck.facility_water_drainage_capacity"
+                  @update:model-value="updateDetailCheck('facility_water_drainage_capacity', $event)"
+                  label="排水容量"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-water-pump"
+                />
+              </v-col>
+            </v-row>
+          </v-col>
+
           <!-- 型番写真 -->
           <v-col cols="12" md="4">
             <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
@@ -1065,23 +1106,11 @@
             </div>
           </v-col>
 
-          <!-- 容量入力 -->
+          <!-- メーター位置詳細 -->
           <v-col cols="12" md="4">
             <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              容量情報
+              メーター位置詳細
             </div>
-            <v-text-field
-              :model-value="detailCheck.water_pipe_capacity"
-              @update:model-value="updateDetailCheck('water_pipe_capacity', $event)"
-              label="給排水管径"
-              outlined
-              dense
-              placeholder="例: 20mm、25mm"
-            />
-          </v-col>
-
-          <!-- 詳細 -->
-          <v-col cols="12">
             <v-text-field
               :model-value="detailCheck.water_meter_location"
               @update:model-value="updateDetailCheck('water_meter_location', $event)"
@@ -1336,6 +1365,11 @@ const props = withDefaults(defineProps<{
     facility_water_location: string
     facility_water_drainage_capacity: string
     facility_outdoor_unit_location: string
+    facility_memo: string
+
+    // 厨房設備
+    kitchen_equipment_photos: File[] | null
+    kitchen_equipment_detail: string
 
     // ダクト
     duct_model_photo: File | null
@@ -1437,6 +1471,11 @@ const props = withDefaults(defineProps<{
     facility_water_location: '',
     facility_water_drainage_capacity: '',
     facility_outdoor_unit_location: '',
+    facility_memo: '',
+
+    // 厨房設備
+    kitchen_equipment_photos: null,
+    kitchen_equipment_detail: '',
 
     // ダクト
     duct_model_photo: null,
@@ -1525,6 +1564,12 @@ const equipmentForm = ref(null)
 const getPhotoUrl = (file: File | null): string => {
   if (!file || !(file instanceof File)) return ''
   return URL.createObjectURL(file)
+}
+
+// 複数写真のプレビューURL生成
+const getPhotoUrls = (files: File[] | null): string[] => {
+  if (!files || !Array.isArray(files)) return []
+  return files.filter(f => f instanceof File).map(f => URL.createObjectURL(f))
 }
 
 // Methods
