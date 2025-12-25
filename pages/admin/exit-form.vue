@@ -24,8 +24,7 @@
           <v-tab><v-icon left>mdi-account-details</v-icon>基本情報</v-tab>
           <v-tab><v-icon left>mdi-calculator-variant</v-icon>簡易査定</v-tab>
           <v-tab><v-icon left>mdi-chart-line</v-icon>売上</v-tab>
-          <v-tab><v-icon left>mdi-clipboard-check</v-icon>詳細確認</v-tab>
-          <v-tab><v-icon left>mdi-account-check</v-icon>お客様入力確認</v-tab>
+          <v-tab><v-icon left>mdi-file-document-outline</v-icon>契約内容</v-tab>
           <v-tab><v-icon left>mdi-tools</v-icon>設備詳細</v-tab>
           <v-tab><v-icon left>mdi-video</v-icon>動画</v-tab>
           <v-tab><v-icon left>mdi-draw</v-icon>自由記述</v-tab>
@@ -62,9 +61,9 @@
         />
       </v-window-item>
 
-      <!-- タブ4: 詳細確認 -->
+      <!-- タブ4: 契約内容 -->
       <v-window-item :value="3">
-        <AdminExitFormEquipmentCheckTab
+        <AdminExitFormContractInfoTab
           :property-features="formData.propertyFeatures"
           @update:property-features="formData.propertyFeatures = $event"
           :detail-check="formData.detailCheck"
@@ -74,40 +73,33 @@
         />
       </v-window-item>
 
-      <!-- タブ5: お客様入力確認 -->
+      <!-- タブ5: 設備詳細 -->
       <v-window-item :value="4">
-        <AdminExitFormCustomerInputTab
-          :customer-input="formData.customerInput"
-          @update:customer-input="formData.customerInput = $event"
-          @open-customer-input="openCustomerInput"
-        />
-      </v-window-item>
-
-      <!-- タブ6: 設備詳細 -->
-      <v-window-item :value="5">
         <AdminExitFormEquipmentDetailTab
           :detail-check="formData.detailCheck"
           @update:detail-check="formData.detailCheck = $event"
+          :customer-input="formData.customerInput"
+          @update:customer-input="formData.customerInput = $event"
         />
       </v-window-item>
 
-      <!-- タブ7: 動画 -->
-      <v-window-item :value="6">
+      <!-- タブ6: 動画 -->
+      <v-window-item :value="5">
         <AdminExitFormVideoTab
           :videos="formData.videos"
           @update:videos="formData.videos = $event"
         />
       </v-window-item>
 
-      <!-- タブ8: 自由記述 -->
-      <v-window-item :value="7">
+      <!-- タブ7: 自由記述 -->
+      <v-window-item :value="6">
         <AdminExitFormFreeDrawingTab
           v-model:canvasPagesData="canvasPages"
         />
       </v-window-item>
 
-      <!-- タブ9: 販売戦略 -->
-      <v-window-item :value="8">
+      <!-- タブ8: 販売戦略 -->
+      <v-window-item :value="7">
         <AdminExitFormSalesStrategyTab
           v-model:salesOverview="formData.salesOverview"
           v-model:strategy="formData.strategy"
@@ -538,6 +530,7 @@ const TEST_DATA = {
     // 写真: 賃貸借契約書・平面図
     lease_contract_photos: [],
     floor_plan_photos: [],
+    contract_documents: [],
     electricity_company: '関西電力',
     electricity_customer_number: '1234567890',
     gas_company: '大阪ガス',
@@ -977,6 +970,7 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     // 写真: 賃貸借契約書・平面図
     lease_contract_photos: [],
     floor_plan_photos: [],
+    contract_documents: [],
 
     // B. ライフライン契約・支払い
     electricity_company: '',

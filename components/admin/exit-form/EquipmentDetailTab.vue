@@ -697,36 +697,157 @@
         席
       </v-card-title>
       <v-card-text class="pt-6">
-        <v-row align="start">
-          <!-- 席の写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              席の写真
-            </div>
-            <v-file-input
-              :model-value="detailCheck.seat_photo"
-              @update:model-value="updateDetailCheck('seat_photo', $event)"
-              label="席の写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.seat_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.seat_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
+        <!-- 座席数について -->
+        <div class="mb-6">
+          <div class="text-subtitle-2 mb-3">
+            <v-icon small class="mr-1">mdi-chair-rolling</v-icon>
+            座席数について教えてください
+          </div>
 
+          <!-- 座席入力リスト -->
+          <div class="seats-input-container">
+            <div
+              v-for="(seat, index) in customerInput?.equipment?.seatingList || []"
+              :key="index"
+              class="seat-row d-flex align-center ga-2 mb-2 flex-wrap"
+            >
+              <v-select
+                :model-value="seat.floor"
+                @update:model-value="updateSeatingItem(index, 'floor', $event)"
+                :items="['1', '2', '3', 'B1', 'B2']"
+                label="階"
+                outlined
+                dense
+                hide-details
+                style="min-width: 100px; flex: 1;"
+              ></v-select>
+              <span class="text-body-2">階</span>
+
+              <v-select
+                :model-value="seat.capacity"
+                @update:model-value="updateSeatingItem(index, 'capacity', $event)"
+                :items="['1', '2', '3', '4', '5', '6', '7', '8', '10', '12']"
+                label="人数"
+                outlined
+                dense
+                hide-details
+                style="min-width: 100px; flex: 1;"
+              ></v-select>
+              <span class="text-body-2">人掛け</span>
+
+              <v-select
+                :model-value="seat.type"
+                @update:model-value="updateSeatingItem(index, 'type', $event)"
+                :items="['カウンター', 'テーブル']"
+                label="種類"
+                outlined
+                dense
+                hide-details
+                style="min-width: 120px; flex: 1;"
+              ></v-select>
+
+              <v-text-field
+                :model-value="seat.count"
+                @update:model-value="updateSeatingItem(index, 'count', $event)"
+                label="卓数"
+                outlined
+                dense
+                hide-details
+                type="number"
+                min="1"
+                style="min-width: 100px; flex: 1;"
+              ></v-text-field>
+              <span class="text-body-2">卓</span>
+
+              <v-btn
+                icon
+                size="small"
+                color="error"
+                variant="text"
+                @click="removeSeatingItem(index)"
+              >
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </div>
+
+            <v-btn
+              color="primary"
+              variant="outlined"
+              size="small"
+              @click="addSeatingItem"
+              class="mt-2"
+            >
+              <v-icon left size="small">mdi-plus</v-icon>
+              席を追加
+            </v-btn>
+          </div>
+
+          <!-- 合計席数表示 -->
+          <v-divider class="my-3"></v-divider>
+          <div class="d-flex align-center">
+            <span class="text-subtitle-2 mr-2">合計：</span>
+            <span class="text-h6 font-weight-bold primary--text">{{ calculateTotalSeats }}</span>
+            <span class="text-subtitle-2 ml-1">席</span>
+          </div>
+
+          <!-- メモ欄 -->
+          <v-text-field
+            :model-value="customerInput?.equipment?.seats"
+            @update:model-value="updateEquipment('seats', $event)"
+            label="座席に関するメモ"
+            outlined
+            dense
+            class="mt-3"
+            placeholder="その他の座席情報があれば記入"
+          ></v-text-field>
+        </div>
+
+        <!-- 席の写真（複数対応） -->
+        <div class="mb-4">
+          <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
+            <v-icon small class="mr-1">mdi-camera</v-icon>
+            席の写真
+          </div>
+          <v-file-input
+            :model-value="detailCheck.seat_photos"
+            @update:model-value="updateDetailCheck('seat_photos', $event)"
+            label="席の写真を選択"
+            outlined
+            dense
+            multiple
+            accept="image/*"
+            prepend-icon="mdi-camera"
+            show-size
+            counter
+            chips
+            small-chips
+          >
+            <template v-slot:selection="{ fileNames }">
+              <v-chip
+                v-for="fileName in fileNames"
+                :key="fileName"
+                size="small"
+                color="primary"
+                class="me-2"
+              >
+                {{ fileName }}
+              </v-chip>
+            </template>
+          </v-file-input>
+          <div v-if="detailCheck.seat_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+            <v-img
+              v-for="(photo, index) in getPhotoUrls(detailCheck.seat_photos)"
+              :key="index"
+              :src="photo"
+              width="100"
+              height="100"
+              cover
+              class="rounded border"
+            />
+          </div>
+        </div>
+
+        <v-row align="start">
           <!-- 席数入力 -->
           <v-col cols="12" md="8">
             <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
@@ -1342,14 +1463,83 @@
       </v-card-text>
     </v-card>
 
+    <!-- その他の情報 -->
+    <v-card outlined class="mb-4 section-card">
+      <v-card-title class="section-title">
+        <v-icon left size="24" class="mr-2">mdi-information-outline</v-icon>
+        その他の情報
+      </v-card-title>
+      <v-card-text class="pt-6">
+        <v-row>
+          <!-- 調理器具やお皿グラスなど -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-2">
+              <v-icon small class="mr-1">mdi-silverware-fork-knife</v-icon>
+              調理器具やお皿グラスなどについて
+            </div>
+            <v-radio-group
+              :model-value="customerInput?.equipment?.kitchenware?.status"
+              @update:model-value="updateKitchenware('status', $event)"
+              column
+            >
+              <v-radio label="全て残置する" value="全て残置する"></v-radio>
+              <v-radio label="全て持ち去る" value="全て持ち去る"></v-radio>
+              <v-radio label="一部撤去" value="一部撤去"></v-radio>
+            </v-radio-group>
+            <v-text-field
+              v-if="customerInput?.equipment?.kitchenware?.status === '一部撤去'"
+              :model-value="customerInput?.equipment?.kitchenware?.detail"
+              @update:model-value="updateKitchenware('detail', $event)"
+              label="詳細"
+              outlined
+              dense
+              class="mt-2"
+              placeholder="撤去する内容を記入してください"
+            ></v-text-field>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
   </v-form>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 // Props
 const props = withDefaults(defineProps<{
+  customerInput?: {
+    equipment: {
+      notTransfer: {
+        status: string
+        detail: string
+      }
+      broken: {
+        status: string
+        detail: string
+      }
+      lease: {
+        status: string
+        detail: string
+      }
+      landlordEquipment: {
+        status: string
+        detail: string
+      }
+      kitchenware: {
+        status: string
+        detail: string
+      }
+      seats: string
+      seatingList: Array<{
+        floor: string
+        capacity: string
+        type: string
+        count: number
+      }>
+    }
+  }
   detailCheck?: {
     // 店舗設備詳細
     ventilation_has_fan: boolean
@@ -1406,7 +1596,7 @@ const props = withDefaults(defineProps<{
     }>
 
     // 席
-    seat_photo: File | null
+    seat_photos: File[] | null
     seat_count: string
     counter_seats: string
     table_seats: string
@@ -1456,6 +1646,32 @@ const props = withDefaults(defineProps<{
     permit_police_detail: string
   }
 }>(), {
+  customerInput: () => ({
+    equipment: {
+      notTransfer: {
+        status: 'なし',
+        detail: ''
+      },
+      broken: {
+        status: 'なし',
+        detail: ''
+      },
+      lease: {
+        status: 'なし',
+        detail: ''
+      },
+      landlordEquipment: {
+        status: 'なし',
+        detail: ''
+      },
+      kitchenware: {
+        status: '全て残置する',
+        detail: ''
+      },
+      seats: '',
+      seatingList: []
+    }
+  }),
   detailCheck: () => ({
     // 店舗設備詳細
     ventilation_has_fan: false,
@@ -1500,7 +1716,7 @@ const props = withDefaults(defineProps<{
     aircon_outdoor_units: [],
 
     // 席
-    seat_photo: null,
+    seat_photos: [],
     seat_count: '',
     counter_seats: '',
     table_seats: '',
@@ -1554,6 +1770,7 @@ const props = withDefaults(defineProps<{
 // Emits
 const emit = defineEmits<{
   'update:detailCheck': [value: typeof props.detailCheck]
+  'update:customerInput': [value: typeof props.customerInput]
 }>()
 
 // Internal state
@@ -1649,6 +1866,124 @@ const updateOutdoorUnit = (index: number, key: string, value: any) => {
   const units = [...(props.detailCheck.aircon_outdoor_units || [])]
   units[index] = { ...units[index], [key]: value }
   updateDetailCheck('aircon_outdoor_units', units)
+}
+
+// CustomerInput update methods
+const updateEquipment = (key: string, value: any) => {
+  if (!props.customerInput) return
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: { ...props.customerInput.equipment, [key]: value }
+  })
+}
+
+const updateNotTransfer = (key: string, value: any) => {
+  if (!props.customerInput) return
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      notTransfer: { ...props.customerInput.equipment.notTransfer, [key]: value }
+    }
+  })
+}
+
+const updateBroken = (key: string, value: any) => {
+  if (!props.customerInput) return
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      broken: { ...props.customerInput.equipment.broken, [key]: value }
+    }
+  })
+}
+
+const updateLease = (key: string, value: any) => {
+  if (!props.customerInput) return
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      lease: { ...props.customerInput.equipment.lease, [key]: value }
+    }
+  })
+}
+
+const updateLandlordEquipment = (key: string, value: any) => {
+  if (!props.customerInput) return
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      landlordEquipment: { ...props.customerInput.equipment.landlordEquipment, [key]: value }
+    }
+  })
+}
+
+const updateKitchenware = (key: string, value: any) => {
+  if (!props.customerInput) return
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      kitchenware: { ...props.customerInput.equipment.kitchenware, [key]: value }
+    }
+  })
+}
+
+// 座席関連
+const calculateTotalSeats = computed(() => {
+  const seatingList = props.customerInput?.equipment?.seatingList || []
+  return seatingList.reduce((total, seat) => {
+    const capacity = parseInt(seat.capacity) || 0
+    const count = parseInt(String(seat.count)) || 0
+    return total + (capacity * count)
+  }, 0)
+})
+
+const addSeatingItem = () => {
+  if (!props.customerInput) return
+  const currentList = props.customerInput.equipment.seatingList || []
+  const newList = [...currentList, { floor: '1', capacity: '4', type: 'テーブル', count: 1 }]
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      seatingList: newList
+    }
+  })
+}
+
+const removeSeatingItem = (index: number) => {
+  if (!props.customerInput) return
+  const currentList = props.customerInput.equipment.seatingList || []
+  const newList = currentList.filter((_, i) => i !== index)
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      seatingList: newList
+    }
+  })
+}
+
+const updateSeatingItem = (index: number, key: string, value: any) => {
+  if (!props.customerInput) return
+  const currentList = props.customerInput.equipment.seatingList || []
+  const newList = currentList.map((item, i) => {
+    if (i === index) {
+      return { ...item, [key]: value }
+    }
+    return item
+  })
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      seatingList: newList
+    }
+  })
 }
 
 // Expose form validity for parent
