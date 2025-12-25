@@ -1819,54 +1819,142 @@ useHead({
 })
 </script>
 
-<style scoped>
-/* セクション見出しを統一 */
-.section-title {
+<style>
+/* ページ全体の背景（html/bodyレベル） */
+:root,
+html,
+body,
+#__nuxt,
+.v-application,
+.v-main,
+.v-main__wrap {
+  background-color: #e0e0e0 !important;
+}
+
+/* v-mainの内側padding除去 */
+.v-main > .v-main__wrap {
+  padding: 0 !important;
+}
+
+/* コンテナ内の背景 - exit-form専用 */
+.exit-form-container,
+.exit-form-container .v-window,
+.exit-form-container .v-window-item,
+.exit-form-container .v-form,
+.sticky-stack {
+  background-color: #e0e0e0 !important;
+}
+
+/* exit-form-containerのpaddingを背景色で埋める */
+.exit-form-container {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+  background: #e0e0e0 !important;
+}
+
+/* v-containerの背景を確実に上書き */
+.v-container.exit-form-container {
+  background: #e0e0e0 !important;
+  background-color: #e0e0e0 !important;
+}
+
+/* スティッキーカード（ヘッダーとタブ）の背景 */
+.sticky-card {
+  background-color: #ffffff !important;
+}
+
+/* タブの背景を白に */
+.v-tabs {
+  background-color: #ffffff !important;
+}
+
+/* セクション見出しを統一 - 濃い青で視認性向上 */
+.section-title,
+.v-card-title.section-title {
   font-weight: 700 !important;
   font-size: 17px !important;
-  background: linear-gradient(135deg, #f2f6ff 0%, #e8efff 100%) !important;
-  color: #154a8a !important;
-  border-bottom: 2px solid #e1ecff !important;
+  background: #1976d2 !important;
+  color: #ffffff !important;
+  border-bottom: none !important;
   padding-top: 16px !important;
   padding-bottom: 16px !important;
   border-radius: 0 !important;
 }
 
-.section-title .v-icon {
-  background: rgba(30, 80, 162, 0.1);
-  border-radius: 50%;
-  padding: 6px;
+.section-title .v-icon,
+.v-card-title.section-title .v-icon {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-radius: 50% !important;
+  padding: 6px !important;
   margin-right: 12px !important;
+  color: #ffffff !important;
 }
 
-/* カードの間隔と角丸の統一 */
+/* 入力欄の背景を明確に白に */
+.v-field {
+  background-color: #ffffff !important;
+}
+
+.v-input {
+  background-color: transparent !important;
+}
+
+.v-field--variant-outlined > .v-field__overlay {
+  background-color: #ffffff !important;
+}
+
+/* カードの間隔と角丸の統一 - 白背景でコントラスト向上 */
 .v-card.section-card,
-.v-card.outlined {
-  border-radius: 16px !important;
-  border: 1px solid #e1ecff !important;
-  box-shadow: 0 4px 12px rgba(30, 80, 162, 0.08) !important;
+.section-card {
+  border-radius: 12px !important;
+  border: 1px solid #bdbdbd !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
   margin-bottom: 24px !important;
   overflow: hidden;
+  background-color: #ffffff !important;
 }
 
-.v-card.section-card:hover {
-  box-shadow: 0 6px 20px rgba(30, 80, 162, 0.12) !important;
+.v-card.section-card:hover,
+.section-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
   transition: box-shadow 0.3s ease;
 }
 
-/* フォーム要素の美化 */
-.v-text-field--outlined >>> fieldset {
-  border-color: #e1ecff !important;
-  border-width: 1.5px !important;
+/* カード内のコンテンツ背景 */
+.v-card-text {
+  background-color: #ffffff !important;
 }
 
-.v-text-field--outlined:hover >>> fieldset {
-  border-color: #1e50a2 !important;
+/* 入力欄のスタイル - 白背景＋濃いボーダー */
+.v-field--variant-outlined .v-field__outline__start,
+.v-field--variant-outlined .v-field__outline__end,
+.v-field--variant-outlined .v-field__outline__notch::before,
+.v-field--variant-outlined .v-field__outline__notch::after {
+  border-color: #9e9e9e !important;
 }
 
-.v-text-field--outlined.v-input--is-focused >>> fieldset {
-  border-color: #1e50a2 !important;
+.v-field--variant-outlined:hover .v-field__outline__start,
+.v-field--variant-outlined:hover .v-field__outline__end,
+.v-field--variant-outlined:hover .v-field__outline__notch::before,
+.v-field--variant-outlined:hover .v-field__outline__notch::after {
+  border-color: #1565c0 !important;
+}
+
+.v-field--focused .v-field__outline__start,
+.v-field--focused .v-field__outline__end,
+.v-field--focused .v-field__outline__notch::before,
+.v-field--focused .v-field__outline__notch::after {
+  border-color: #1565c0 !important;
   border-width: 2px !important;
+}
+
+/* 入力欄の背景を白に */
+.v-field__field {
+  background-color: #ffffff !important;
+}
+
+.v-field--variant-outlined {
+  background-color: #ffffff !important;
 }
 
 /* セレクトボックスの美化 */
@@ -2059,9 +2147,8 @@ useHead({
   line-height: 1.6 !important;
 }
 
-/* コンテナの美化 */
-.v-container {
-  background: linear-gradient(135deg, #fafbff 0%, #f5f8ff 100%);
+/* コンテナの美化 - exit-form専用 */
+.v-container.exit-form-container {
   min-height: 100vh;
 }
 
