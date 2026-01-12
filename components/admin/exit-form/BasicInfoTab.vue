@@ -195,6 +195,18 @@
                         placeholder="例: 090-1234-5678"
                       ></v-text-field>
                     </v-col>
+                    <v-col cols="12">
+                      <v-textarea
+                        :model-value="status.landlordNote"
+                        @update:model-value="updateStatus('landlordNote', $event)"
+                        label="家主の特徴・メモ"
+                        outlined
+                        dense
+                        rows="1"
+                        auto-grow
+                        placeholder="例: 話しやすい方、居抜きに前向き、連絡は午前中希望など"
+                      ></v-textarea>
+                    </v-col>
                   </v-row>
                 </div>
 
@@ -234,6 +246,18 @@
                         dense
                         placeholder="例: 06-1234-5678"
                       ></v-text-field>
+                    </v-col>
+                    <v-col cols="12">
+                      <v-textarea
+                        :model-value="status.managementNote"
+                        @update:model-value="updateStatus('managementNote', $event)"
+                        label="管理会社の特徴・メモ"
+                        outlined
+                        dense
+                        rows="1"
+                        auto-grow
+                        placeholder="例: 対応が丁寧、居抜き実績あり、○○駅周辺に強いなど"
+                      ></v-textarea>
                     </v-col>
                   </v-row>
                 </div>
@@ -522,10 +546,12 @@ const props = defineProps<{
     landlordName: string
     landlordContact: string
     landlordPhone: string
+    landlordNote: string
     notifiedManagement: boolean
     managementCompany: string
     managementContact: string
     managementPhone: string
+    managementNote: string
     terminationNotice: string
     employeeNotification: string
     businessContinuation: string

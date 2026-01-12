@@ -9,171 +9,6 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row>
-          <!-- 前テナント情報 -->
-          <v-col cols="12">
-            <v-textarea
-              :model-value="customerInput?.property?.previousTenantInfo"
-              @update:model-value="updateProperty('previousTenantInfo', $event)"
-              label="前テナント情報について教えてください"
-              outlined
-              dense
-              rows="3"
-              prepend-inner-icon="mdi-information-outline"
-              placeholder="前テナントに関する情報をご記入ください"
-            ></v-textarea>
-          </v-col>
-
-          <!-- 契約時の条件交渉 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-handshake-outline</v-icon>
-              契約時の条件交渉について教えてください
-            </div>
-            <div class="text-caption mb-2 grey--text">例）賃料減額など</div>
-            <v-radio-group
-              :model-value="customerInput?.property?.negotiation?.status"
-              @update:model-value="updateNegotiation('status', $event)"
-              row
-            >
-              <v-radio label="なし" value="なし"></v-radio>
-              <v-radio label="あり" value="あり"></v-radio>
-            </v-radio-group>
-            <v-text-field
-              v-if="customerInput?.property?.negotiation?.status === 'あり'"
-              :model-value="customerInput?.property?.negotiation?.detail"
-              @update:model-value="updateNegotiation('detail', $event)"
-              label="詳細"
-              outlined
-              dense
-              class="mt-2"
-              placeholder="条件交渉の内容を記入してください"
-            ></v-text-field>
-          </v-col>
-
-          <!-- スケジュール詳細 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-calendar-clock</v-icon>
-              スケジュール詳細について教えてください
-            </div>
-          </v-col>
-
-          <!-- 解約通知 -->
-          <v-col cols="12" md="6">
-            <div class="text-subtitle-2 mb-2">解約通知の提出</div>
-            <v-radio-group
-              :model-value="customerInput?.scheduleDates?.terminationNoticeSubmitted"
-              @update:model-value="updateScheduleDates('terminationNoticeSubmitted', $event)"
-              row
-            >
-              <v-radio label="している" value="している"></v-radio>
-              <v-radio label="していない" value="していない"></v-radio>
-            </v-radio-group>
-            <v-text-field
-              v-if="customerInput?.scheduleDates?.terminationNoticeSubmitted === 'している'"
-              :model-value="customerInput?.scheduleDates?.terminationNoticeDate"
-              @update:model-value="updateScheduleDates('terminationNoticeDate', $event)"
-              label="解約通知提出日"
-              outlined
-              dense
-              type="date"
-              class="mt-2"
-            ></v-text-field>
-          </v-col>
-
-          <!-- 退店日 -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              :model-value="customerInput?.scheduleDates?.vacancyDate"
-              @update:model-value="updateScheduleDates('vacancyDate', $event)"
-              label="退店予定日"
-              outlined
-              dense
-              type="date"
-              prepend-inner-icon="mdi-exit-run"
-            ></v-text-field>
-          </v-col>
-
-          <!-- 契約終了日 -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              :model-value="customerInput?.scheduleDates?.contractEndDate"
-              @update:model-value="updateScheduleDates('contractEndDate', $event)"
-              label="契約終了日"
-              outlined
-              dense
-              type="date"
-              prepend-inner-icon="mdi-calendar-end"
-            ></v-text-field>
-          </v-col>
-
-          <!-- 営業終了日 -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              :model-value="customerInput?.scheduleDates?.businessEndDate"
-              @update:model-value="updateScheduleDates('businessEndDate', $event)"
-              label="営業終了日"
-              outlined
-              dense
-              type="date"
-              prepend-inner-icon="mdi-store-off"
-            ></v-text-field>
-          </v-col>
-
-          <!-- 引き渡し希望日 -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              :model-value="customerInput?.scheduleDates?.handoverDesiredDate"
-              @update:model-value="updateScheduleDates('handoverDesiredDate', $event)"
-              label="引き渡し希望日"
-              outlined
-              dense
-              type="date"
-              prepend-inner-icon="mdi-hand-heart"
-            ></v-text-field>
-          </v-col>
-
-          <!-- 物件の利用制限 -->
-          <v-col cols="12">
-            <v-textarea
-              :model-value="customerInput?.property?.usageRestrictions"
-              @update:model-value="updateProperty('usageRestrictions', $event)"
-              label="物件の利用制限について教えてください"
-              outlined
-              dense
-              rows="3"
-              prepend-inner-icon="mdi-alert-circle-outline"
-              placeholder="例）営業時間・業種制限など"
-            ></v-textarea>
-          </v-col>
-
-          <!-- 面図 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-floor-plan</v-icon>
-              面図について教えてください
-            </div>
-            <div class="text-caption mb-2 grey--text">例）平面図・給排水図面など</div>
-            <v-radio-group
-              :model-value="customerInput?.property?.floorPlan?.status"
-              @update:model-value="updateFloorPlan('status', $event)"
-              row
-            >
-              <v-radio label="なし" value="なし"></v-radio>
-              <v-radio label="あり" value="あり"></v-radio>
-            </v-radio-group>
-            <v-text-field
-              v-if="customerInput?.property?.floorPlan?.status === 'あり'"
-              :model-value="customerInput?.property?.floorPlan?.detail"
-              @update:model-value="updateFloorPlan('detail', $event)"
-              label="詳細"
-              outlined
-              dense
-              class="mt-2"
-              placeholder="面図の種類を記入してください"
-            ></v-text-field>
-          </v-col>
-
           <!-- 契約書アップロード -->
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
@@ -212,32 +47,90 @@
             </div>
           </v-col>
 
-          <!-- 貸主のインボイス登録状況 -->
+          <!-- 前テナント情報 -->
+          <v-col cols="12">
+            <v-textarea
+              :model-value="customerInput?.property?.previousTenantInfo"
+              @update:model-value="updateProperty('previousTenantInfo', $event)"
+              label="前テナント情報について教えてください"
+              outlined
+              dense
+              rows="3"
+              prepend-inner-icon="mdi-information-outline"
+              placeholder="前テナントに関する情報をご記入ください"
+            ></v-textarea>
+          </v-col>
+
+          <!-- 契約時の条件交渉 -->
           <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-file-document-outline</v-icon>
-              貸主のインボイス登録状況について教えてください
+              <v-icon small class="mr-1">mdi-handshake-outline</v-icon>
+              契約時の条件交渉について教えてください
             </div>
+            <div class="text-caption mb-2 grey--text">例）賃料減額など</div>
             <v-radio-group
-              :model-value="customerInput?.property?.invoiceRegistration?.status"
-              @update:model-value="updateInvoiceRegistration('status', $event)"
-              row
+              :model-value="customerInput?.property?.negotiation?.status"
+              @update:model-value="updateNegotiation('status', $event)"
+              inline
+              hide-details
             >
-              <v-radio label="登録済み" value="登録済み"></v-radio>
-              <v-radio label="未登録" value="未登録"></v-radio>
+              <v-radio label="なし" value="なし"></v-radio>
+              <v-radio label="あり" value="あり"></v-radio>
             </v-radio-group>
             <v-text-field
-              v-if="customerInput?.property?.invoiceRegistration?.status === '登録済み'"
-              :model-value="customerInput?.property?.invoiceRegistration?.detail"
-              @update:model-value="updateInvoiceRegistration('detail', $event)"
-              label="インボイス番号"
+              v-if="customerInput?.property?.negotiation?.status === 'あり'"
+              :model-value="customerInput?.property?.negotiation?.detail"
+              @update:model-value="updateNegotiation('detail', $event)"
+              label="詳細"
               outlined
               dense
               class="mt-2"
-              placeholder="T1234567890123"
-              prepend-inner-icon="mdi-identifier"
+              placeholder="条件交渉の内容を記入してください"
             ></v-text-field>
           </v-col>
+
+          <!-- 物件の利用制限 -->
+          <v-col cols="12">
+            <v-textarea
+              :model-value="customerInput?.property?.usageRestrictions"
+              @update:model-value="updateProperty('usageRestrictions', $event)"
+              label="物件の利用制限について教えてください"
+              outlined
+              dense
+              rows="3"
+              prepend-inner-icon="mdi-alert-circle-outline"
+              placeholder="例）営業時間・業種制限など"
+            ></v-textarea>
+          </v-col>
+
+          <!-- 面図 -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-2">
+              <v-icon small class="mr-1">mdi-floor-plan</v-icon>
+              面図について教えてください
+            </div>
+            <div class="text-caption mb-2 grey--text">例）平面図・給排水図面など</div>
+            <v-radio-group
+              :model-value="customerInput?.property?.floorPlan?.status"
+              @update:model-value="updateFloorPlan('status', $event)"
+              inline
+              hide-details
+            >
+              <v-radio label="なし" value="なし"></v-radio>
+              <v-radio label="あり" value="あり"></v-radio>
+            </v-radio-group>
+            <v-text-field
+              v-if="customerInput?.property?.floorPlan?.status === 'あり'"
+              :model-value="customerInput?.property?.floorPlan?.detail"
+              @update:model-value="updateFloorPlan('detail', $event)"
+              label="詳細"
+              outlined
+              dense
+              class="mt-2"
+              placeholder="面図の種類を記入してください"
+            ></v-text-field>
+          </v-col>
+
         </v-row>
       </v-card-text>
     </v-card>
@@ -262,8 +155,9 @@
               :model-value="customerInput?.utilities?.electricity?.contractType"
               @update:model-value="updateElectricity('contractType', $event)"
               label="契約状況"
-              row
+              inline
               density="compact"
+              hide-details
             >
               <v-radio label="家主検針" value="家主検針"></v-radio>
               <v-radio label="直接契約" value="直接契約"></v-radio>
@@ -288,6 +182,21 @@
               dense
             />
           </v-col>
+          <v-col cols="12" md="4">
+            <v-file-input
+              :model-value="detailCheck.electricity_bill_photos"
+              @update:model-value="updateDetailCheck('electricity_bill_photos', $event)"
+              label="請求書写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              chips
+              small-chips
+            />
+          </v-col>
 
           <v-col cols="12"><v-divider /></v-col>
 
@@ -303,8 +212,9 @@
               :model-value="customerInput?.utilities?.gas?.contractType"
               @update:model-value="updateGas('contractType', $event)"
               label="契約状況"
-              row
+              inline
               density="compact"
+              hide-details
             >
               <v-radio label="家主検針" value="家主検針"></v-radio>
               <v-radio label="直接契約" value="直接契約"></v-radio>
@@ -329,6 +239,21 @@
               dense
             />
           </v-col>
+          <v-col cols="12" md="4">
+            <v-file-input
+              :model-value="detailCheck.gas_bill_photos"
+              @update:model-value="updateDetailCheck('gas_bill_photos', $event)"
+              label="請求書写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              chips
+              small-chips
+            />
+          </v-col>
 
           <v-col cols="12"><v-divider /></v-col>
 
@@ -344,8 +269,9 @@
               :model-value="customerInput?.utilities?.water?.contractType"
               @update:model-value="updateWater('contractType', $event)"
               label="契約状況"
-              row
+              inline
               density="compact"
+              hide-details
             >
               <v-radio label="家主検針" value="家主検針"></v-radio>
               <v-radio label="直接契約" value="直接契約"></v-radio>
@@ -368,6 +294,21 @@
               label="お客様番号"
               outlined
               dense
+            />
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-file-input
+              :model-value="detailCheck.water_bill_photos"
+              @update:model-value="updateDetailCheck('water_bill_photos', $event)"
+              label="請求書写真"
+              outlined
+              dense
+              multiple
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              show-size
+              chips
+              small-chips
             />
           </v-col>
 
@@ -404,8 +345,9 @@
             <v-radio-group
               :model-value="detailCheck.landlord_payment"
               @update:model-value="updateDetailCheck('landlord_payment', $event)"
-              row
+              inline
               density="compact"
+              hide-details
             >
               <v-radio label="なし" value="なし"></v-radio>
               <v-radio label="あり" value="あり"></v-radio>
@@ -431,8 +373,9 @@
             <v-radio-group
               :model-value="customerInput?.utilities?.otherCosts?.status"
               @update:model-value="updateOtherCosts('status', $event)"
-              row
+              inline
               density="compact"
+              hide-details
             >
               <v-radio label="なし" value="なし"></v-radio>
               <v-radio label="あり" value="あり"></v-radio>
@@ -447,136 +390,6 @@
               class="mt-2"
               placeholder="費用の種類と金額を記入してください"
             ></v-text-field>
-          </v-col>
-
-          <v-col cols="12"><v-divider class="my-2" /></v-col>
-
-          <!-- 請求書写真 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-3 font-weight-bold" style="color: #1e50a2;">
-              <v-icon small class="mr-1" color="primary">mdi-receipt-text</v-icon>
-              請求書写真
-            </div>
-          </v-col>
-
-          <v-col cols="12" md="4">
-            <v-file-input
-              :model-value="detailCheck.electricity_bill_photos"
-              @update:model-value="updateDetailCheck('electricity_bill_photos', $event)"
-              label="電気請求書"
-              outlined
-              dense
-              multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              counter
-              chips
-              small-chips
-            >
-              <template v-slot:selection="{ fileNames }">
-                <v-chip
-                  v-for="fileName in fileNames"
-                  :key="fileName"
-                  size="small"
-                  color="primary"
-                  class="me-2"
-                >
-                  {{ fileName }}
-                </v-chip>
-              </template>
-            </v-file-input>
-            <div v-if="detailCheck.electricity_bill_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
-              <v-img
-                v-for="(photo, index) in getPhotoUrls(detailCheck.electricity_bill_photos)"
-                :key="index"
-                :src="photo"
-                width="80"
-                height="80"
-                cover
-                class="rounded border"
-              />
-            </div>
-          </v-col>
-
-          <v-col cols="12" md="4">
-            <v-file-input
-              :model-value="detailCheck.gas_bill_photos"
-              @update:model-value="updateDetailCheck('gas_bill_photos', $event)"
-              label="ガス請求書"
-              outlined
-              dense
-              multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              counter
-              chips
-              small-chips
-            >
-              <template v-slot:selection="{ fileNames }">
-                <v-chip
-                  v-for="fileName in fileNames"
-                  :key="fileName"
-                  size="small"
-                  color="primary"
-                  class="me-2"
-                >
-                  {{ fileName }}
-                </v-chip>
-              </template>
-            </v-file-input>
-            <div v-if="detailCheck.gas_bill_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
-              <v-img
-                v-for="(photo, index) in getPhotoUrls(detailCheck.gas_bill_photos)"
-                :key="index"
-                :src="photo"
-                width="80"
-                height="80"
-                cover
-                class="rounded border"
-              />
-            </div>
-          </v-col>
-
-          <v-col cols="12" md="4">
-            <v-file-input
-              :model-value="detailCheck.water_bill_photos"
-              @update:model-value="updateDetailCheck('water_bill_photos', $event)"
-              label="水道請求書"
-              outlined
-              dense
-              multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              counter
-              chips
-              small-chips
-            >
-              <template v-slot:selection="{ fileNames }">
-                <v-chip
-                  v-for="fileName in fileNames"
-                  :key="fileName"
-                  size="small"
-                  color="primary"
-                  class="me-2"
-                >
-                  {{ fileName }}
-                </v-chip>
-              </template>
-            </v-file-input>
-            <div v-if="detailCheck.water_bill_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
-              <v-img
-                v-for="(photo, index) in getPhotoUrls(detailCheck.water_bill_photos)"
-                :key="index"
-                :src="photo"
-                width="80"
-                height="80"
-                cover
-                class="rounded border"
-              />
-            </div>
           </v-col>
 
           <v-col cols="12">
@@ -630,26 +443,14 @@
             ></v-textarea>
           </v-col>
 
-          <!-- ゴミ回収費用 -->
-          <v-col cols="12" md="6">
-            <v-text-field
-              :model-value="detailCheck.garbage_disposal_cost"
-              @update:model-value="updateDetailCheck('garbage_disposal_cost', $event)"
-              label="ゴミ回収費用（月額）"
-              outlined
-              dense
-              type="number"
-              suffix="円"
-            />
-          </v-col>
-
           <!-- その他月額費用 -->
           <v-col cols="12" md="6">
             <v-radio-group
               :model-value="detailCheck.other_monthly_costs"
               @update:model-value="updateDetailCheck('other_monthly_costs', $event)"
               label="その他月額費用"
-              row
+              inline
+              hide-details
             >
               <v-radio label="あり" value="あり"></v-radio>
               <v-radio label="なし" value="なし"></v-radio>

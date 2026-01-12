@@ -17,7 +17,7 @@
             </div>
             <div class="text-caption mb-2 grey--text">※複数ある場合は両方にチェックしてください</div>
             <v-row>
-              <v-col cols="12" md="6">
+              <v-col cols="6">
                 <v-checkbox
                   :model-value="detailCheck.ventilation_has_fan"
                   @update:model-value="updateDetailCheck('ventilation_has_fan', $event)"
@@ -39,7 +39,7 @@
                   class="mt-2"
                 />
               </v-col>
-              <v-col cols="12" md="6">
+              <v-col cols="6">
                 <v-checkbox
                   :model-value="detailCheck.ventilation_has_duct"
                   @update:model-value="updateDetailCheck('ventilation_has_duct', $event)"
@@ -73,7 +73,8 @@
             <v-radio-group
               :model-value="detailCheck.drainage_type"
               @update:model-value="updateDetailCheck('drainage_type', $event)"
-              row
+              inline
+              hide-details
             >
               <v-radio label="グリストラップ（床下埋め込み・露出型）" value="グリストラップ" />
               <v-radio label="ドライキッチン" value="ドライキッチン" />
@@ -92,6 +93,64 @@
               placeholder="設備に関する特記事項があれば記載"
             />
           </v-col>
+
+          <!-- 調理器具やお皿グラスなど -->
+          <v-col cols="12">
+            <div class="text-subtitle-2 mb-2">
+              <v-icon small class="mr-1">mdi-silverware-fork-knife</v-icon>
+              調理器具やお皿グラスなどについて
+            </div>
+            <v-radio-group
+              :model-value="customerInput?.equipment?.kitchenware?.status"
+              @update:model-value="updateKitchenware('status', $event)"
+              inline
+              hide-details
+            >
+              <v-radio label="全て残置" value="全て残置"></v-radio>
+              <v-radio label="全て持ち去る" value="全て持ち去る"></v-radio>
+              <v-radio label="一部撤去" value="一部撤去"></v-radio>
+            </v-radio-group>
+            <v-row v-if="customerInput?.equipment?.kitchenware?.status === '一部撤去'" class="mt-2">
+              <v-col cols="12" md="6">
+                <v-text-field
+                  :model-value="customerInput?.equipment?.kitchenware?.detail"
+                  @update:model-value="updateKitchenware('detail', $event)"
+                  label="詳細"
+                  outlined
+                  dense
+                  placeholder="撤去する内容を記入してください"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-file-input
+                  :model-value="null"
+                  @update:model-value="addKitchenwarePhoto($event)"
+                  label="写真を追加"
+                  outlined
+                  dense
+                  multiple
+                  accept="image/*"
+                  prepend-icon="mdi-camera"
+                  hide-details
+                />
+                <div v-if="customerInput?.equipment?.kitchenware?.photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+                  <v-chip
+                    v-for="(photo, index) in customerInput.equipment.kitchenware.photos"
+                    :key="index"
+                    size="small"
+                    color="primary"
+                    closable
+                    @click:close="removeKitchenwarePhoto(index)"
+                    @click="openPreview(photo)"
+                    class="cursor-pointer"
+                  >
+                    <v-icon start size="16">mdi-eye</v-icon>
+                    写真{{ index + 1 }}
+                  </v-chip>
+                </div>
+              </v-col>
+            </v-row>
+          </v-col>
         </v-row>
       </v-card-text>
     </v-card>
@@ -103,284 +162,284 @@
         厨房設備
       </v-card-title>
       <v-card-text class="pt-6">
-        <v-row align="start">
-          <v-col cols="12">
-            <v-file-input
-              :model-value="detailCheck.kitchen_equipment_photos"
-              @update:model-value="updateDetailCheck('kitchen_equipment_photos', $event)"
-              label="厨房設備の写真"
-              outlined
-              dense
-              multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              counter
-              chips
-              small-chips
+        <!-- 厨房設備がない場合 -->
+        <div v-if="!detailCheck.kitchen_equipment_units || detailCheck.kitchen_equipment_units.length === 0" class="text-center py-4">
+          <v-icon size="48" color="grey-lighten-1">mdi-stove</v-icon>
+          <div class="text-body-2 grey--text mt-2">厨房設備を追加してください</div>
+        </div>
+
+        <!-- 厨房設備リスト -->
+        <div
+          v-for="(unit, index) in detailCheck.kitchen_equipment_units"
+          :key="'kitchen-' + index"
+          class="unit-item mb-4"
+        >
+          <div class="d-flex align-center mb-3">
+            <v-chip color="primary" size="small" class="mr-2">{{ index + 1 }}台目</v-chip>
+            <v-spacer />
+            <v-btn
+              icon
+              size="small"
+              variant="text"
+              color="error"
+              @click="removeKitchenEquipmentUnit(index)"
             >
-              <template v-slot:selection="{ fileNames }">
-                <v-chip
-                  v-for="fileName in fileNames"
-                  :key="fileName"
-                  size="small"
-                  color="primary"
-                  class="me-2"
-                >
-                  {{ fileName }}
-                </v-chip>
-              </template>
-            </v-file-input>
-            <div v-if="detailCheck.kitchen_equipment_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
-              <v-img
-                v-for="(photo, index) in getPhotoUrls(detailCheck.kitchen_equipment_photos)"
-                :key="index"
-                :src="photo"
-                width="100"
-                height="100"
-                cover
-                class="rounded border"
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </div>
+          <v-row align="start">
+            <!-- 型番写真 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                型番
+              </div>
+              <v-file-input
+                :model-value="unit.model_photo"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'model_photo', $event)"
+                label="型番写真"
+                outlined
+                dense
+                accept="image/*"
+                prepend-icon="mdi-camera"
+                hide-details
+              >
+                <template v-slot:prepend-inner v-if="unit.model_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(unit.model_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+              </v-file-input>
+            </v-col>
+
+            <!-- 本体写真 -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                本体
+              </div>
+              <v-file-input
+                :model-value="unit.body_photo"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'body_photo', $event)"
+                label="本体写真"
+                outlined
+                dense
+                accept="image/*"
+                prepend-icon="mdi-camera"
+                hide-details
+              >
+                <template v-slot:prepend-inner v-if="unit.body_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(unit.body_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+              </v-file-input>
+            </v-col>
+
+            <!-- 例外チェック -->
+            <v-col cols="12" md="4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
+                例外チェック
+              </div>
+              <div class="d-flex flex-wrap justify-space-around check-column">
+                <v-checkbox
+                  :model-value="unit.broken"
+                  @update:model-value="updateKitchenEquipmentUnit(index, 'broken', $event)"
+                  label="故障あり"
+                  density="compact"
+                  hide-details
+                  color="error"
+                />
+                <v-checkbox
+                  :model-value="unit.lease"
+                  @update:model-value="updateKitchenEquipmentUnit(index, 'lease', $event)"
+                  label="リース"
+                  density="compact"
+                  hide-details
+                  color="warning"
+                />
+                <v-checkbox
+                  :model-value="unit.landlord_owned"
+                  @update:model-value="updateKitchenEquipmentUnit(index, 'landlord_owned', $event)"
+                  label="家主所有"
+                  density="compact"
+                  hide-details
+                  color="info"
+                />
+              </div>
+            </v-col>
+
+            <!-- リース詳細（リースチェック時のみ表示） -->
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_remaining_years"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'lease_remaining_years', $event)"
+                label="残債年数"
+                outlined
+                dense
+                type="number"
+                suffix="年"
               />
-            </div>
-          </v-col>
-          <v-col cols="12">
-            <v-textarea
-              :model-value="detailCheck.kitchen_equipment_detail"
-              @update:model-value="updateDetailCheck('kitchen_equipment_detail', $event)"
-              label="厨房設備の詳細"
-              outlined
-              dense
-              rows="2"
-              placeholder="例: ガスコンロ3口、業務用冷蔵庫2台、製氷機あり"
-            />
-          </v-col>
-        </v-row>
+            </v-col>
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_total_amount"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'lease_total_amount', $event)"
+                label="総額"
+                outlined
+                dense
+                type="number"
+                suffix="円"
+              />
+            </v-col>
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_company"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'lease_company', $event)"
+                label="信販会社"
+                outlined
+                dense
+                placeholder="例: オリコ"
+              />
+            </v-col>
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_monthly_amount"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'lease_monthly_amount', $event)"
+                label="月額"
+                outlined
+                dense
+                type="number"
+                suffix="円"
+              />
+            </v-col>
+
+            <!-- 設備名 -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                :model-value="unit.name"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'name', $event)"
+                label="設備名"
+                outlined
+                dense
+                placeholder="例: ガスコンロ、業務用冷蔵庫、製氷機"
+              />
+            </v-col>
+
+            <!-- 詳細メモ -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                :model-value="unit.detail"
+                @update:model-value="updateKitchenEquipmentUnit(index, 'detail', $event)"
+                label="詳細"
+                outlined
+                dense
+                placeholder="例: 3口、2019年製、動作確認済み"
+              />
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- 追加ボタン -->
+        <div class="text-center mt-4">
+          <v-btn
+            color="primary"
+            variant="outlined"
+            @click="addKitchenEquipmentUnit"
+          >
+            <v-icon left size="18">mdi-plus</v-icon>
+            厨房設備を追加
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
 
-    <!-- ダクト -->
+    <!-- ダクト・グリストラップ -->
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
         <v-icon left size="24" class="mr-2">mdi-air-filter</v-icon>
-        ダクト
+        ダクト・グリストラップ
       </v-card-title>
       <v-card-text class="pt-6">
-        <v-row align="start">
-          <!-- 型番写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.duct_model_photo"
-              @update:model-value="updateDetailCheck('duct_model_photo', $event)"
-              label="型番写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.duct_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.duct_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
-
-          <!-- 本体写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
+        <!-- ダクト -->
+        <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
+          <v-icon small class="mr-1" color="primary">mdi-air-filter</v-icon>
+          ダクト
+        </div>
+        <v-row align="start" class="mb-4">
+          <v-col cols="12" md="6">
             <v-file-input
               :model-value="detailCheck.duct_body_photo"
               @update:model-value="updateDetailCheck('duct_body_photo', $event)"
-              label="本体写真"
+              label="写真"
               outlined
               dense
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.duct_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.duct_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.duct_body_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.duct_body_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
-
-          <!-- 例外チェック -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              例外チェック
-            </div>
-            <div class="d-flex flex-column check-column">
-              <v-checkbox
-                :model-value="detailCheck.duct_broken"
-                @update:model-value="updateDetailCheck('duct_broken', $event)"
-                label="故障あり"
-                density="compact"
-                hide-details
-                color="error"
-              />
-              <v-checkbox
-                :model-value="detailCheck.duct_lease"
-                @update:model-value="updateDetailCheck('duct_lease', $event)"
-                label="リース"
-                density="compact"
-                hide-details
-                color="warning"
-              />
-              <v-checkbox
-                :model-value="detailCheck.duct_landlord_owned"
-                @update:model-value="updateDetailCheck('duct_landlord_owned', $event)"
-                label="家主所有"
-                density="compact"
-                hide-details
-                color="info"
-              />
-            </div>
-          </v-col>
-
-          <!-- 詳細メモ -->
-          <v-col cols="12">
+          <v-col cols="12" md="6">
             <v-textarea
               :model-value="detailCheck.duct_detail"
               @update:model-value="updateDetailCheck('duct_detail', $event)"
               label="詳細（排気設備種類、排気ルートなど）"
               outlined
               dense
-              rows="2"
+              rows="1"
+              auto-grow
               placeholder="例: ダクト式、屋上まで直通"
             />
           </v-col>
         </v-row>
-      </v-card-text>
-    </v-card>
 
-    <!-- グリストラップ -->
-    <v-card outlined class="mb-4 section-card">
-      <v-card-title class="section-title">
-        <v-icon left size="24" class="mr-2">mdi-water-pump</v-icon>
-        グリストラップ
-      </v-card-title>
-      <v-card-text class="pt-6">
+        <v-divider class="mb-4" />
+
+        <!-- グリストラップ -->
+        <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
+          <v-icon small class="mr-1" color="primary">mdi-water-pump</v-icon>
+          グリストラップ
+        </div>
         <v-row align="start">
-          <!-- 型番写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.grease_trap_model_photo"
-              @update:model-value="updateDetailCheck('grease_trap_model_photo', $event)"
-              label="型番写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            />
-            <div v-if="detailCheck.grease_trap_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.grease_trap_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
-          </v-col>
-
-          <!-- 本体写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
+          <v-col cols="12" md="6">
             <v-file-input
               :model-value="detailCheck.grease_trap_body_photo"
               @update:model-value="updateDetailCheck('grease_trap_body_photo', $event)"
-              label="本体写真"
+              label="写真"
               outlined
               dense
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.grease_trap_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.grease_trap_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.grease_trap_body_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.grease_trap_body_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
-
-          <!-- 例外チェック -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              例外チェック
-            </div>
-            <div class="d-flex flex-column check-column">
-              <v-checkbox
-                :model-value="detailCheck.grease_trap_broken"
-                @update:model-value="updateDetailCheck('grease_trap_broken', $event)"
-                label="故障あり"
-                density="compact"
-                hide-details
-                color="error"
-              />
-              <v-checkbox
-                :model-value="detailCheck.grease_trap_lease"
-                @update:model-value="updateDetailCheck('grease_trap_lease', $event)"
-                label="リース"
-                density="compact"
-                hide-details
-                color="warning"
-              />
-              <v-checkbox
-                :model-value="detailCheck.grease_trap_landlord_owned"
-                @update:model-value="updateDetailCheck('grease_trap_landlord_owned', $event)"
-                label="家主所有"
-                density="compact"
-                hide-details
-                color="info"
-              />
-            </div>
-          </v-col>
-
-          <!-- 詳細メモ -->
-          <v-col cols="12">
+          <v-col cols="12" md="6">
             <v-textarea
               :model-value="detailCheck.grease_trap_detail"
               @update:model-value="updateDetailCheck('grease_trap_detail', $event)"
               label="詳細（排水設備種類など）"
               outlined
               dense
-              rows="2"
+              rows="1"
+              auto-grow
               placeholder="例: 厨房専用排水、グリストラップ"
             />
           </v-col>
@@ -388,11 +447,11 @@
       </v-card-text>
     </v-card>
 
-    <!-- エアコン（室内機） -->
+    <!-- エアコン -->
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
         <v-icon left size="24" class="mr-2">mdi-air-conditioner</v-icon>
-        エアコン（室内機）
+        エアコン
       </v-card-title>
       <v-card-text class="pt-6">
         <!-- 室内機がない場合 -->
@@ -435,19 +494,15 @@
                 accept="image/*"
                 prepend-icon="mdi-camera"
                 hide-details
-              />
-              <div v-if="unit.model_photo" class="d-flex justify-center mt-2">
-                <v-img
-                  :src="getPhotoUrl(unit.model_photo)"
-                  width="120"
-                  height="120"
-                  cover
-                  class="rounded border"
-                />
-              </div>
-              <div v-else class="photo-placeholder mx-auto mt-2">
-                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-              </div>
+              >
+                <template v-slot:prepend-inner v-if="unit.model_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(unit.model_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+              </v-file-input>
             </v-col>
 
             <!-- 本体写真 -->
@@ -464,19 +519,15 @@
                 accept="image/*"
                 prepend-icon="mdi-camera"
                 hide-details
-              />
-              <div v-if="unit.body_photo" class="d-flex justify-center mt-2">
-                <v-img
-                  :src="getPhotoUrl(unit.body_photo)"
-                  width="120"
-                  height="120"
-                  cover
-                  class="rounded border"
-                />
-              </div>
-              <div v-else class="photo-placeholder mx-auto mt-2">
-                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-              </div>
+              >
+                <template v-slot:prepend-inner v-if="unit.body_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(unit.body_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+              </v-file-input>
             </v-col>
 
             <!-- 例外チェック -->
@@ -484,7 +535,7 @@
               <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
                 例外チェック
               </div>
-              <div class="d-flex flex-column check-column">
+              <div class="d-flex flex-wrap justify-space-around check-column">
                 <v-checkbox
                   :model-value="unit.broken"
                   @update:model-value="updateIndoorUnit(index, 'broken', $event)"
@@ -512,15 +563,86 @@
               </div>
             </v-col>
 
+            <!-- リース詳細（リースチェック時のみ表示） -->
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_remaining_years"
+                @update:model-value="updateIndoorUnit(index, 'lease_remaining_years', $event)"
+                label="残債年数"
+                outlined
+                dense
+                type="number"
+                suffix="年"
+              />
+            </v-col>
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_total_amount"
+                @update:model-value="updateIndoorUnit(index, 'lease_total_amount', $event)"
+                label="総額"
+                outlined
+                dense
+                type="number"
+                suffix="円"
+              />
+            </v-col>
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_company"
+                @update:model-value="updateIndoorUnit(index, 'lease_company', $event)"
+                label="信販会社"
+                outlined
+                dense
+                placeholder="例: オリコ"
+              />
+            </v-col>
+            <v-col cols="6" md="3" v-if="unit.lease">
+              <v-text-field
+                :model-value="unit.lease_monthly_amount"
+                @update:model-value="updateIndoorUnit(index, 'lease_monthly_amount', $event)"
+                label="月額"
+                outlined
+                dense
+                type="number"
+                suffix="円"
+              />
+            </v-col>
+
+            <!-- 室外機の場所 -->
+            <v-col cols="12" md="4">
+              <v-text-field
+                :model-value="unit.outdoor_location"
+                @update:model-value="updateIndoorUnit(index, 'outdoor_location', $event)"
+                label="室外機の場所"
+                outlined
+                dense
+                placeholder="例: 屋上、ベランダ"
+              />
+            </v-col>
+
+            <!-- 使用年数 -->
+            <v-col cols="12" md="4">
+              <v-text-field
+                :model-value="unit.years_used"
+                @update:model-value="updateIndoorUnit(index, 'years_used', $event)"
+                label="使用年数"
+                outlined
+                dense
+                type="number"
+                suffix="年"
+                placeholder="例: 5"
+              />
+            </v-col>
+
             <!-- 詳細メモ -->
-            <v-col cols="12">
+            <v-col cols="12" md="4">
               <v-text-field
                 :model-value="unit.detail"
                 @update:model-value="updateIndoorUnit(index, 'detail', $event)"
                 label="詳細"
                 outlined
                 dense
-                placeholder="例: 天井埋込式、2019年製"
+                placeholder="例: 天井埋込式"
               />
             </v-col>
           </v-row>
@@ -540,138 +662,117 @@
       </v-card-text>
     </v-card>
 
-    <!-- エアコン（室外機） -->
+    <!-- 席 -->
     <v-card outlined class="mb-4 section-card">
       <v-card-title class="section-title">
-        <v-icon left size="24" class="mr-2">mdi-fan</v-icon>
-        エアコン（室外機）
+        <v-icon left size="24" class="mr-2">mdi-seat</v-icon>
+        席
       </v-card-title>
       <v-card-text class="pt-6">
-        <!-- 室外機の場所 -->
-        <div class="mb-4">
-          <div class="text-subtitle-2 mb-2">
-            <v-icon small class="mr-1">mdi-air-conditioner</v-icon>
-            室外機の場所について
-          </div>
-          <v-text-field
-            :model-value="detailCheck.facility_outdoor_unit_location"
-            @update:model-value="updateDetailCheck('facility_outdoor_unit_location', $event)"
-            label="場所"
-            outlined
-            dense
-            placeholder="例）店舗背面、屋上、ベランダなど"
-          />
+        <!-- フロアがない場合 -->
+        <div v-if="!detailCheck.floor_seats || detailCheck.floor_seats.length === 0" class="text-center py-4">
+          <v-icon size="48" color="grey-lighten-1">mdi-seat</v-icon>
+          <div class="text-body-2 grey--text mt-2">フロアを追加してください</div>
         </div>
 
-        <!-- 室外機がない場合 -->
-        <div v-if="!detailCheck.aircon_outdoor_units || detailCheck.aircon_outdoor_units.length === 0" class="text-center py-4">
-          <v-icon size="48" color="grey-lighten-1">mdi-fan</v-icon>
-          <div class="text-body-2 grey--text mt-2">室外機を追加してください</div>
-        </div>
-
-        <!-- 室外機リスト -->
+        <!-- フロアリスト -->
         <div
-          v-for="(unit, index) in detailCheck.aircon_outdoor_units"
-          :key="'outdoor-' + index"
+          v-for="(floor, index) in detailCheck.floor_seats"
+          :key="'floor-' + index"
           class="unit-item mb-4"
         >
-          <div class="d-flex align-center mb-3">
-            <v-chip color="primary" size="small" class="mr-2">{{ index + 1 }}台目</v-chip>
-            <v-spacer />
+          <div class="d-flex justify-end mb-2">
             <v-btn
               icon
               size="small"
               variant="text"
               color="error"
-              @click="removeOutdoorUnit(index)"
+              @click="removeFloorSeat(index)"
             >
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </div>
           <v-row align="start">
-            <!-- 型番写真 -->
-            <v-col cols="12" md="4">
-              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-                型番
-              </div>
-              <v-file-input
-                :model-value="unit.model_photo"
-                @update:model-value="updateOutdoorUnit(index, 'model_photo', $event)"
-                label="型番写真"
-                outlined
-                dense
-                accept="image/*"
-                prepend-icon="mdi-camera"
-                hide-details
-              />
-              <div v-if="unit.model_photo" class="d-flex justify-center mt-2">
-                <v-img
-                  :src="getPhotoUrl(unit.model_photo)"
-                  width="120"
-                  height="120"
-                  cover
-                  class="rounded border"
-                />
-              </div>
-              <div v-else class="photo-placeholder mx-auto mt-2">
-                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-              </div>
-            </v-col>
-
-            <!-- 本体写真 -->
-            <v-col cols="12" md="4">
-              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-                本体
-              </div>
-              <v-file-input
-                :model-value="unit.body_photo"
-                @update:model-value="updateOutdoorUnit(index, 'body_photo', $event)"
-                label="本体写真"
-                outlined
-                dense
-                accept="image/*"
-                prepend-icon="mdi-camera"
-                hide-details
-              />
-              <div v-if="unit.body_photo" class="d-flex justify-center mt-2">
-                <v-img
-                  :src="getPhotoUrl(unit.body_photo)"
-                  width="120"
-                  height="120"
-                  cover
-                  class="rounded border"
-                />
-              </div>
-              <div v-else class="photo-placeholder mx-auto mt-2">
-                <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-              </div>
-            </v-col>
-
-            <!-- 設置場所 -->
-            <v-col cols="12" md="4">
-              <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-                設置場所
-              </div>
+            <!-- フロア名 -->
+            <v-col cols="6" md="3">
               <v-text-field
-                :model-value="unit.location"
-                @update:model-value="updateOutdoorUnit(index, 'location', $event)"
-                label="室外機設置場所"
+                :model-value="floor.floor_name"
+                @update:model-value="updateFloorSeat(index, 'floor_name', $event)"
+                label="フロア名"
                 outlined
                 dense
-                placeholder="例: 屋上、ベランダ"
+                placeholder="例: 1階、2階、B1"
               />
             </v-col>
 
-            <!-- 詳細メモ -->
+            <!-- 総席数 -->
+            <v-col cols="6" md="3">
+              <v-text-field
+                :model-value="floor.total_seats"
+                @update:model-value="updateFloorSeat(index, 'total_seats', $event)"
+                label="総席数"
+                outlined
+                dense
+                type="number"
+                suffix="席"
+              />
+            </v-col>
+
+            <!-- カウンター -->
+            <v-col cols="6" md="3">
+              <v-text-field
+                :model-value="floor.counter_seats"
+                @update:model-value="updateFloorSeat(index, 'counter_seats', $event)"
+                label="カウンター"
+                outlined
+                dense
+                type="number"
+                suffix="席"
+              />
+            </v-col>
+
+            <!-- テーブル -->
+            <v-col cols="6" md="3">
+              <v-text-field
+                :model-value="floor.table_seats"
+                @update:model-value="updateFloorSeat(index, 'table_seats', $event)"
+                label="テーブル"
+                outlined
+                dense
+                type="number"
+                suffix="席"
+              />
+            </v-col>
+
+            <!-- 席の写真 -->
             <v-col cols="12">
-              <v-text-field
-                :model-value="unit.detail"
-                @update:model-value="updateOutdoorUnit(index, 'detail', $event)"
-                label="詳細"
+              <v-file-input
+                :model-value="null"
+                @update:model-value="addFloorPhoto(index, $event)"
+                label="席の写真を追加"
                 outlined
                 dense
-                placeholder="例: 屋上設置、アクセス良好"
+                multiple
+                accept="image/*"
+                prepend-icon="mdi-camera"
+                hide-details
               />
+              <!-- 写真プレビュー -->
+              <div v-if="floor.photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+                <v-chip
+                  v-for="(photo, photoIndex) in floor.photos"
+                  :key="photoIndex"
+                  size="small"
+                  color="primary"
+                  closable
+                  @click:close="removeFloorPhoto(index, photoIndex)"
+                  @click="openPreview(photo)"
+                  class="cursor-pointer"
+                >
+                  <v-icon start size="16">mdi-eye</v-icon>
+                  写真{{ photoIndex + 1 }}
+                </v-chip>
+              </div>
             </v-col>
           </v-row>
         </div>
@@ -681,215 +782,12 @@
           <v-btn
             color="primary"
             variant="outlined"
-            @click="addOutdoorUnit"
+            @click="addFloorSeat"
           >
             <v-icon left size="18">mdi-plus</v-icon>
-            室外機を追加
+            フロアを追加
           </v-btn>
         </div>
-      </v-card-text>
-    </v-card>
-
-    <!-- 席 -->
-    <v-card outlined class="mb-4 section-card">
-      <v-card-title class="section-title">
-        <v-icon left size="24" class="mr-2">mdi-seat</v-icon>
-        席
-      </v-card-title>
-      <v-card-text class="pt-6">
-        <!-- 座席数について -->
-        <div class="mb-6">
-          <div class="text-subtitle-2 mb-3">
-            <v-icon small class="mr-1">mdi-chair-rolling</v-icon>
-            座席数について教えてください
-          </div>
-
-          <!-- 座席入力リスト -->
-          <div class="seats-input-container">
-            <div
-              v-for="(seat, index) in customerInput?.equipment?.seatingList || []"
-              :key="index"
-              class="seat-row d-flex align-center ga-2 mb-2 flex-wrap"
-            >
-              <v-select
-                :model-value="seat.floor"
-                @update:model-value="updateSeatingItem(index, 'floor', $event)"
-                :items="['1', '2', '3', 'B1', 'B2']"
-                label="階"
-                outlined
-                dense
-                hide-details
-                style="min-width: 100px; flex: 1;"
-              ></v-select>
-              <span class="text-body-2">階</span>
-
-              <v-select
-                :model-value="seat.capacity"
-                @update:model-value="updateSeatingItem(index, 'capacity', $event)"
-                :items="['1', '2', '3', '4', '5', '6', '7', '8', '10', '12']"
-                label="人数"
-                outlined
-                dense
-                hide-details
-                style="min-width: 100px; flex: 1;"
-              ></v-select>
-              <span class="text-body-2">人掛け</span>
-
-              <v-select
-                :model-value="seat.type"
-                @update:model-value="updateSeatingItem(index, 'type', $event)"
-                :items="['カウンター', 'テーブル']"
-                label="種類"
-                outlined
-                dense
-                hide-details
-                style="min-width: 120px; flex: 1;"
-              ></v-select>
-
-              <v-text-field
-                :model-value="seat.count"
-                @update:model-value="updateSeatingItem(index, 'count', $event)"
-                label="卓数"
-                outlined
-                dense
-                hide-details
-                type="number"
-                min="1"
-                style="min-width: 100px; flex: 1;"
-              ></v-text-field>
-              <span class="text-body-2">卓</span>
-
-              <v-btn
-                icon
-                size="small"
-                color="error"
-                variant="text"
-                @click="removeSeatingItem(index)"
-              >
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </div>
-
-            <v-btn
-              color="primary"
-              variant="outlined"
-              size="small"
-              @click="addSeatingItem"
-              class="mt-2"
-            >
-              <v-icon left size="small">mdi-plus</v-icon>
-              席を追加
-            </v-btn>
-          </div>
-
-          <!-- 合計席数表示 -->
-          <v-divider class="my-3"></v-divider>
-          <div class="d-flex align-center">
-            <span class="text-subtitle-2 mr-2">合計：</span>
-            <span class="text-h6 font-weight-bold primary--text">{{ calculateTotalSeats }}</span>
-            <span class="text-subtitle-2 ml-1">席</span>
-          </div>
-
-          <!-- メモ欄 -->
-          <v-text-field
-            :model-value="customerInput?.equipment?.seats"
-            @update:model-value="updateEquipment('seats', $event)"
-            label="座席に関するメモ"
-            outlined
-            dense
-            class="mt-3"
-            placeholder="その他の座席情報があれば記入"
-          ></v-text-field>
-        </div>
-
-        <!-- 席の写真（複数対応） -->
-        <div class="mb-4">
-          <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
-            <v-icon small class="mr-1">mdi-camera</v-icon>
-            席の写真
-          </div>
-          <v-file-input
-            :model-value="detailCheck.seat_photos"
-            @update:model-value="updateDetailCheck('seat_photos', $event)"
-            label="席の写真を選択"
-            outlined
-            dense
-            multiple
-            accept="image/*"
-            prepend-icon="mdi-camera"
-            show-size
-            counter
-            chips
-            small-chips
-          >
-            <template v-slot:selection="{ fileNames }">
-              <v-chip
-                v-for="fileName in fileNames"
-                :key="fileName"
-                size="small"
-                color="primary"
-                class="me-2"
-              >
-                {{ fileName }}
-              </v-chip>
-            </template>
-          </v-file-input>
-          <div v-if="detailCheck.seat_photos?.length" class="d-flex flex-wrap gap-2 mt-2">
-            <v-img
-              v-for="(photo, index) in getPhotoUrls(detailCheck.seat_photos)"
-              :key="index"
-              :src="photo"
-              width="100"
-              height="100"
-              cover
-              class="rounded border"
-            />
-          </div>
-        </div>
-
-        <v-row align="start">
-          <!-- 席数入力 -->
-          <v-col cols="12" md="8">
-            <div class="text-subtitle-2 mb-2 font-weight-bold" style="color: #1e50a2;">
-              席数
-            </div>
-            <v-row dense>
-              <v-col cols="4">
-                <v-text-field
-                  :model-value="detailCheck.seat_count"
-                  @update:model-value="updateDetailCheck('seat_count', $event)"
-                  label="総席数"
-                  outlined
-                  dense
-                  type="number"
-                  suffix="席"
-                />
-              </v-col>
-              <v-col cols="4">
-                <v-text-field
-                  :model-value="detailCheck.counter_seats"
-                  @update:model-value="updateDetailCheck('counter_seats', $event)"
-                  label="カウンター"
-                  outlined
-                  dense
-                  type="number"
-                  suffix="席"
-                />
-              </v-col>
-              <v-col cols="4">
-                <v-text-field
-                  :model-value="detailCheck.table_seats"
-                  @update:model-value="updateDetailCheck('table_seats', $event)"
-                  label="テーブル"
-                  outlined
-                  dense
-                  type="number"
-                  suffix="席"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-        </v-row>
       </v-card-text>
     </v-card>
 
@@ -955,19 +853,15 @@
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.electric_meter_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.electric_meter_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.electric_meter_model_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.electric_meter_model_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
 
           <!-- 本体写真 -->
@@ -984,19 +878,15 @@
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.electric_meter_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.electric_meter_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.electric_meter_body_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.electric_meter_body_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
 
           <!-- メーター位置 -->
@@ -1069,19 +959,15 @@
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.gas_meter_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.gas_meter_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.gas_meter_model_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.gas_meter_model_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
 
           <!-- 本体写真 -->
@@ -1098,19 +984,15 @@
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.gas_meter_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.gas_meter_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.gas_meter_body_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.gas_meter_body_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
 
           <!-- メーター位置詳細 -->
@@ -1183,19 +1065,15 @@
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.water_meter_model_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.water_meter_model_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.water_meter_model_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.water_meter_model_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
 
           <!-- 本体写真 -->
@@ -1212,19 +1090,15 @@
               accept="image/*"
               prepend-icon="mdi-camera"
               hide-details
-            />
-            <div v-if="detailCheck.water_meter_body_photo" class="d-flex justify-center mt-2">
-              <v-img
-                :src="getPhotoUrl(detailCheck.water_meter_body_photo)"
-                width="120"
-                height="120"
-                cover
-                class="rounded border"
-              />
-            </div>
-            <div v-else class="photo-placeholder mx-auto mt-2">
-              <v-icon size="40" color="grey-lighten-1">mdi-image-outline</v-icon>
-            </div>
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.water_meter_body_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.water_meter_body_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
           </v-col>
 
           <!-- メーター位置詳細 -->
@@ -1254,28 +1128,76 @@
       <v-card-text class="pt-6">
         <v-row>
           <!-- 店舗の瑕疵 -->
-          <v-col cols="12" md="6">
+          <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-alert-circle-outline</v-icon>
               店舗の瑕疵について
             </div>
             <div class="text-caption mb-2 grey--text">※複数選択可能です</div>
 
-            <v-checkbox
-              :model-value="detailCheck.defect_none"
-              @update:model-value="handleDefectNone($event)"
-              label="なし"
-              hide-details
-              color="primary"
-            />
-            <v-checkbox
-              :model-value="detailCheck.defect_rain_leak"
-              @update:model-value="updateDetailCheck('defect_rain_leak', $event)"
-              label="雨漏り"
-              hide-details
-              color="warning"
-              :disabled="detailCheck.defect_none"
-            />
+            <v-row dense>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.defect_none"
+                  @update:model-value="handleDefectNone($event)"
+                  label="なし"
+                  hide-details
+                  color="primary"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.defect_rain_leak"
+                  @update:model-value="updateDetailCheck('defect_rain_leak', $event)"
+                  label="雨漏り"
+                  hide-details
+                  color="warning"
+                  :disabled="detailCheck.defect_none"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.defect_water_leak"
+                  @update:model-value="updateDetailCheck('defect_water_leak', $event)"
+                  label="水漏れ"
+                  hide-details
+                  color="warning"
+                  :disabled="detailCheck.defect_none"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.defect_noise"
+                  @update:model-value="updateDetailCheck('defect_noise', $event)"
+                  label="騒音問題"
+                  hide-details
+                  color="warning"
+                  :disabled="detailCheck.defect_none"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.defect_odor"
+                  @update:model-value="updateDetailCheck('defect_odor', $event)"
+                  label="臭気問題"
+                  hide-details
+                  color="warning"
+                  :disabled="detailCheck.defect_none"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.defect_other"
+                  @update:model-value="updateDetailCheck('defect_other', $event)"
+                  label="その他"
+                  hide-details
+                  color="warning"
+                  :disabled="detailCheck.defect_none"
+                />
+              </v-col>
+            </v-row>
+
+            <!-- 詳細入力欄 -->
             <v-text-field
               v-if="detailCheck.defect_rain_leak"
               :model-value="detailCheck.defect_rain_leak_detail"
@@ -1283,16 +1205,8 @@
               label="雨漏りの場所・状況"
               outlined
               dense
-              class="mt-1 ml-8"
+              class="mt-2"
               placeholder="例）厨房天井から雨天時に発生"
-            />
-            <v-checkbox
-              :model-value="detailCheck.defect_water_leak"
-              @update:model-value="updateDetailCheck('defect_water_leak', $event)"
-              label="水漏れ"
-              hide-details
-              color="warning"
-              :disabled="detailCheck.defect_none"
             />
             <v-text-field
               v-if="detailCheck.defect_water_leak"
@@ -1301,16 +1215,8 @@
               label="水漏れの場所・状況"
               outlined
               dense
-              class="mt-1 ml-8"
+              class="mt-2"
               placeholder="例）シンク下の配管から"
-            />
-            <v-checkbox
-              :model-value="detailCheck.defect_noise"
-              @update:model-value="updateDetailCheck('defect_noise', $event)"
-              label="騒音問題"
-              hide-details
-              color="warning"
-              :disabled="detailCheck.defect_none"
             />
             <v-text-field
               v-if="detailCheck.defect_noise"
@@ -1319,16 +1225,18 @@
               label="騒音問題の詳細"
               outlined
               dense
-              class="mt-1 ml-8"
+              class="mt-2"
               placeholder="例）近隣からの苦情あり"
             />
-            <v-checkbox
-              :model-value="detailCheck.defect_other"
-              @update:model-value="updateDetailCheck('defect_other', $event)"
-              label="その他"
-              hide-details
-              color="warning"
-              :disabled="detailCheck.defect_none"
+            <v-text-field
+              v-if="detailCheck.defect_odor"
+              :model-value="detailCheck.defect_odor_detail"
+              @update:model-value="updateDetailCheck('defect_odor_detail', $event)"
+              label="臭気問題の詳細"
+              outlined
+              dense
+              class="mt-2"
+              placeholder="例）排水溝からの臭い、換気不良"
             />
             <v-text-field
               v-if="detailCheck.defect_other"
@@ -1337,27 +1245,51 @@
               label="その他の瑕疵詳細"
               outlined
               dense
-              class="mt-1 ml-8"
+              class="mt-2"
               placeholder="瑕疵の内容を記入してください"
             />
           </v-col>
 
           <!-- 届出済の許認可 -->
-          <v-col cols="12" md="6">
+          <v-col cols="12">
             <div class="text-subtitle-2 mb-2">
               <v-icon small class="mr-1">mdi-file-certificate-outline</v-icon>
               届出済の許認可について
             </div>
 
-            <!-- 保健所 -->
-            <v-checkbox
-              :model-value="detailCheck.permit_health_center"
-              @update:model-value="updateDetailCheck('permit_health_center', $event)"
-              label="保健所"
-              hide-details
-              color="primary"
-            />
-            <div v-if="detailCheck.permit_health_center" class="ml-8 mb-3">
+            <v-row dense>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.permit_health_center"
+                  @update:model-value="updateDetailCheck('permit_health_center', $event)"
+                  label="保健所"
+                  hide-details
+                  color="primary"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.permit_fire_department"
+                  @update:model-value="updateDetailCheck('permit_fire_department', $event)"
+                  label="消防署"
+                  hide-details
+                  color="primary"
+                />
+              </v-col>
+              <v-col cols="4">
+                <v-checkbox
+                  :model-value="detailCheck.permit_police"
+                  @update:model-value="updateDetailCheck('permit_police', $event)"
+                  label="警察署"
+                  hide-details
+                  color="primary"
+                />
+              </v-col>
+            </v-row>
+
+            <!-- 保健所詳細 -->
+            <div v-if="detailCheck.permit_health_center" class="mt-2 mb-3">
+              <div class="text-caption mb-1 font-weight-bold">保健所</div>
               <v-file-input
                 :model-value="detailCheck.permit_health_center_photo"
                 @update:model-value="updateDetailCheck('permit_health_center_photo', $event)"
@@ -1367,19 +1299,12 @@
                 accept="image/*"
                 prepend-icon="mdi-camera"
                 hide-details
-                class="mb-2"
               />
             </div>
 
-            <!-- 消防署 -->
-            <v-checkbox
-              :model-value="detailCheck.permit_fire_department"
-              @update:model-value="updateDetailCheck('permit_fire_department', $event)"
-              label="消防署"
-              hide-details
-              color="primary"
-            />
-            <div v-if="detailCheck.permit_fire_department" class="ml-8 mb-3">
+            <!-- 消防署詳細 -->
+            <div v-if="detailCheck.permit_fire_department" class="mt-2 mb-3">
+              <div class="text-caption mb-1 font-weight-bold">消防署</div>
               <v-file-input
                 :model-value="detailCheck.permit_fire_department_photo"
                 @update:model-value="updateDetailCheck('permit_fire_department_photo', $event)"
@@ -1392,52 +1317,58 @@
                 class="mb-2"
               />
               <div class="text-caption mb-1">設備の設置有無</div>
-              <v-checkbox
-                :model-value="detailCheck.fire_alarm"
-                @update:model-value="updateDetailCheck('fire_alarm', $event)"
-                label="火災報知器"
-                hide-details
-                density="compact"
-              />
-              <v-checkbox
-                :model-value="detailCheck.fire_extinguisher"
-                @update:model-value="updateDetailCheck('fire_extinguisher', $event)"
-                label="消火器"
-                hide-details
-                density="compact"
-              />
-              <v-checkbox
-                :model-value="detailCheck.sprinkler"
-                @update:model-value="updateDetailCheck('sprinkler', $event)"
-                label="スプリンクラー"
-                hide-details
-                density="compact"
-              />
-              <v-checkbox
-                :model-value="detailCheck.escape_ladder"
-                @update:model-value="updateDetailCheck('escape_ladder', $event)"
-                label="避難はしご"
-                hide-details
-                density="compact"
-              />
-              <v-checkbox
-                :model-value="detailCheck.emergency_light"
-                @update:model-value="updateDetailCheck('emergency_light', $event)"
-                label="誘導灯"
-                hide-details
-                density="compact"
-              />
+              <v-row dense>
+                <v-col cols="4">
+                  <v-checkbox
+                    :model-value="detailCheck.fire_alarm"
+                    @update:model-value="updateDetailCheck('fire_alarm', $event)"
+                    label="火災報知器"
+                    hide-details
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="4">
+                  <v-checkbox
+                    :model-value="detailCheck.fire_extinguisher"
+                    @update:model-value="updateDetailCheck('fire_extinguisher', $event)"
+                    label="消火器"
+                    hide-details
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="4">
+                  <v-checkbox
+                    :model-value="detailCheck.sprinkler"
+                    @update:model-value="updateDetailCheck('sprinkler', $event)"
+                    label="スプリンクラー"
+                    hide-details
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="4">
+                  <v-checkbox
+                    :model-value="detailCheck.escape_ladder"
+                    @update:model-value="updateDetailCheck('escape_ladder', $event)"
+                    label="避難はしご"
+                    hide-details
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="4">
+                  <v-checkbox
+                    :model-value="detailCheck.emergency_light"
+                    @update:model-value="updateDetailCheck('emergency_light', $event)"
+                    label="誘導灯"
+                    hide-details
+                    density="compact"
+                  />
+                </v-col>
+              </v-row>
             </div>
 
-            <!-- 警察署 -->
-            <v-checkbox
-              :model-value="detailCheck.permit_police"
-              @update:model-value="updateDetailCheck('permit_police', $event)"
-              label="警察署"
-              hide-details
-              color="primary"
-            />
-            <div v-if="detailCheck.permit_police" class="ml-8 mb-3">
+            <!-- 警察署詳細 -->
+            <div v-if="detailCheck.permit_police" class="mt-2 mb-3">
+              <div class="text-caption mb-1 font-weight-bold">警察署</div>
               <v-file-input
                 :model-value="detailCheck.permit_police_photo"
                 @update:model-value="updateDetailCheck('permit_police_photo', $event)"
@@ -1463,43 +1394,21 @@
       </v-card-text>
     </v-card>
 
-    <!-- その他の情報 -->
-    <v-card outlined class="mb-4 section-card">
-      <v-card-title class="section-title">
-        <v-icon left size="24" class="mr-2">mdi-information-outline</v-icon>
-        その他の情報
-      </v-card-title>
-      <v-card-text class="pt-6">
-        <v-row>
-          <!-- 調理器具やお皿グラスなど -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-2">
-              <v-icon small class="mr-1">mdi-silverware-fork-knife</v-icon>
-              調理器具やお皿グラスなどについて
-            </div>
-            <v-radio-group
-              :model-value="customerInput?.equipment?.kitchenware?.status"
-              @update:model-value="updateKitchenware('status', $event)"
-              column
-            >
-              <v-radio label="全て残置する" value="全て残置する"></v-radio>
-              <v-radio label="全て持ち去る" value="全て持ち去る"></v-radio>
-              <v-radio label="一部撤去" value="一部撤去"></v-radio>
-            </v-radio-group>
-            <v-text-field
-              v-if="customerInput?.equipment?.kitchenware?.status === '一部撤去'"
-              :model-value="customerInput?.equipment?.kitchenware?.detail"
-              @update:model-value="updateKitchenware('detail', $event)"
-              label="詳細"
-              outlined
-              dense
-              class="mt-2"
-              placeholder="撤去する内容を記入してください"
-            ></v-text-field>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
+    <!-- 写真プレビューモーダル -->
+    <v-dialog v-model="previewDialog" max-width="600">
+      <v-card>
+        <v-card-title class="d-flex justify-space-between align-center py-2">
+          <span>写真プレビュー</span>
+          <v-btn icon variant="text" size="small" @click="closePreview">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-2">
+          <v-img :src="previewImageUrl" max-height="500" contain />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
 
   </v-form>
 </template>
@@ -1530,6 +1439,7 @@ const props = withDefaults(defineProps<{
       kitchenware: {
         status: string
         detail: string
+        photos: File[] | null
       }
       seats: string
       seatingList: Array<{
@@ -1557,9 +1467,20 @@ const props = withDefaults(defineProps<{
     facility_outdoor_unit_location: string
     facility_memo: string
 
-    // 厨房設備
-    kitchen_equipment_photos: File[] | null
-    kitchen_equipment_detail: string
+    // 厨房設備（複数対応）
+    kitchen_equipment_units: Array<{
+      model_photo: File | null
+      body_photo: File | null
+      broken: boolean
+      lease: boolean
+      landlord_owned: boolean
+      name: string
+      detail: string
+      lease_remaining_years: string
+      lease_total_amount: string
+      lease_company: string
+      lease_monthly_amount: string
+    }>
 
     // ダクト
     duct_model_photo: File | null
@@ -1584,7 +1505,13 @@ const props = withDefaults(defineProps<{
       broken: boolean
       lease: boolean
       landlord_owned: boolean
+      outdoor_location: string
+      years_used: string
       detail: string
+      lease_remaining_years: string
+      lease_total_amount: string
+      lease_company: string
+      lease_monthly_amount: string
     }>
 
     // エアコン室外機（複数対応）
@@ -1595,11 +1522,14 @@ const props = withDefaults(defineProps<{
       detail: string
     }>
 
-    // 席
-    seat_photos: File[] | null
-    seat_count: string
-    counter_seats: string
-    table_seats: string
+    // 席（フロアごと）
+    floor_seats: Array<{
+      floor_name: string
+      total_seats: string
+      counter_seats: string
+      table_seats: string
+      photos: File[] | null
+    }>
 
     // 電気メーター
     electric_meter_model_photo: File | null
@@ -1628,6 +1558,8 @@ const props = withDefaults(defineProps<{
     defect_water_leak_detail: string
     defect_noise: boolean
     defect_noise_detail: string
+    defect_odor: boolean
+    defect_odor_detail: string
     defect_other: boolean
     defect_other_detail: string
 
@@ -1665,8 +1597,9 @@ const props = withDefaults(defineProps<{
         detail: ''
       },
       kitchenware: {
-        status: '全て残置する',
-        detail: ''
+        status: '全て残置',
+        detail: '',
+        photos: null
       },
       seats: '',
       seatingList: []
@@ -1689,9 +1622,20 @@ const props = withDefaults(defineProps<{
     facility_outdoor_unit_location: '',
     facility_memo: '',
 
-    // 厨房設備
-    kitchen_equipment_photos: null,
-    kitchen_equipment_detail: '',
+    // 厨房設備（複数対応）
+    kitchen_equipment_units: [{
+      model_photo: null,
+      body_photo: null,
+      broken: false,
+      lease: false,
+      landlord_owned: false,
+      name: '',
+      detail: '',
+      lease_remaining_years: '',
+      lease_total_amount: '',
+      lease_company: '',
+      lease_monthly_amount: ''
+    }],
 
     // ダクト
     duct_model_photo: null,
@@ -1715,11 +1659,14 @@ const props = withDefaults(defineProps<{
     // エアコン室外機（複数対応）
     aircon_outdoor_units: [],
 
-    // 席
-    seat_photos: [],
-    seat_count: '',
-    counter_seats: '',
-    table_seats: '',
+    // 席（フロアごと）
+    floor_seats: [{
+      floor_name: '1階',
+      total_seats: '',
+      counter_seats: '',
+      table_seats: '',
+      photos: null
+    }],
 
     // 電気メーター
     electric_meter_model_photo: null,
@@ -1748,6 +1695,8 @@ const props = withDefaults(defineProps<{
     defect_water_leak_detail: '',
     defect_noise: false,
     defect_noise_detail: '',
+    defect_odor: false,
+    defect_odor_detail: '',
     defect_other: false,
     defect_other_detail: '',
 
@@ -1776,6 +1725,22 @@ const emit = defineEmits<{
 // Internal state
 const formValid = ref(false)
 const equipmentForm = ref(null)
+
+// 写真プレビュー用
+const previewDialog = ref(false)
+const previewImageUrl = ref('')
+
+const openPreview = (file: File | null) => {
+  if (file && file instanceof File) {
+    previewImageUrl.value = URL.createObjectURL(file)
+    previewDialog.value = true
+  }
+}
+
+const closePreview = () => {
+  previewDialog.value = false
+  previewImageUrl.value = ''
+}
 
 // 写真のプレビューURL生成
 const getPhotoUrl = (file: File | null): string => {
@@ -1806,12 +1771,47 @@ const handleDefectNone = (value: boolean) => {
       defect_water_leak_detail: '',
       defect_noise: false,
       defect_noise_detail: '',
+      defect_odor: false,
+      defect_odor_detail: '',
       defect_other: false,
       defect_other_detail: ''
     })
   } else {
     updateDetailCheck('defect_none', false)
   }
+}
+
+// 厨房設備の追加
+const addKitchenEquipmentUnit = () => {
+  const newUnit = {
+    model_photo: null,
+    body_photo: null,
+    broken: false,
+    lease: false,
+    landlord_owned: false,
+    name: '',
+    detail: '',
+    lease_remaining_years: '',
+    lease_total_amount: '',
+    lease_company: '',
+    lease_monthly_amount: ''
+  }
+  const units = [...(props.detailCheck.kitchen_equipment_units || []), newUnit]
+  updateDetailCheck('kitchen_equipment_units', units)
+}
+
+// 厨房設備の削除
+const removeKitchenEquipmentUnit = (index: number) => {
+  const units = [...(props.detailCheck.kitchen_equipment_units || [])]
+  units.splice(index, 1)
+  updateDetailCheck('kitchen_equipment_units', units)
+}
+
+// 厨房設備の更新
+const updateKitchenEquipmentUnit = (index: number, key: string, value: any) => {
+  const units = [...(props.detailCheck.kitchen_equipment_units || [])]
+  units[index] = { ...units[index], [key]: value }
+  updateDetailCheck('kitchen_equipment_units', units)
 }
 
 // エアコン室内機の追加
@@ -1822,7 +1822,13 @@ const addIndoorUnit = () => {
     broken: false,
     lease: false,
     landlord_owned: false,
-    detail: ''
+    outdoor_location: '',
+    years_used: '',
+    detail: '',
+    lease_remaining_years: '',
+    lease_total_amount: '',
+    lease_company: '',
+    lease_monthly_amount: ''
   }
   const units = [...(props.detailCheck.aircon_indoor_units || []), newUnit]
   updateDetailCheck('aircon_indoor_units', units)
@@ -1866,6 +1872,52 @@ const updateOutdoorUnit = (index: number, key: string, value: any) => {
   const units = [...(props.detailCheck.aircon_outdoor_units || [])]
   units[index] = { ...units[index], [key]: value }
   updateDetailCheck('aircon_outdoor_units', units)
+}
+
+// フロア席の追加
+const addFloorSeat = () => {
+  const newFloor = {
+    floor_name: '',
+    total_seats: '',
+    counter_seats: '',
+    table_seats: '',
+    photos: null
+  }
+  const floors = [...(props.detailCheck.floor_seats || []), newFloor]
+  updateDetailCheck('floor_seats', floors)
+}
+
+// フロア席の削除
+const removeFloorSeat = (index: number) => {
+  const floors = [...(props.detailCheck.floor_seats || [])]
+  floors.splice(index, 1)
+  updateDetailCheck('floor_seats', floors)
+}
+
+// フロア席の更新
+const updateFloorSeat = (index: number, key: string, value: any) => {
+  const floors = [...(props.detailCheck.floor_seats || [])]
+  floors[index] = { ...floors[index], [key]: value }
+  updateDetailCheck('floor_seats', floors)
+}
+
+// フロア写真の追加
+const addFloorPhoto = (floorIndex: number, files: File[] | File | null) => {
+  if (!files) return
+  const newFiles = Array.isArray(files) ? files : [files]
+  const floors = [...(props.detailCheck.floor_seats || [])]
+  const currentPhotos = floors[floorIndex].photos || []
+  floors[floorIndex] = { ...floors[floorIndex], photos: [...currentPhotos, ...newFiles] }
+  updateDetailCheck('floor_seats', floors)
+}
+
+// フロア写真の削除
+const removeFloorPhoto = (floorIndex: number, photoIndex: number) => {
+  const floors = [...(props.detailCheck.floor_seats || [])]
+  const currentPhotos = [...(floors[floorIndex].photos || [])]
+  currentPhotos.splice(photoIndex, 1)
+  floors[floorIndex] = { ...floors[floorIndex], photos: currentPhotos }
+  updateDetailCheck('floor_seats', floors)
 }
 
 // CustomerInput update methods
@@ -1928,6 +1980,40 @@ const updateKitchenware = (key: string, value: any) => {
     equipment: {
       ...props.customerInput.equipment,
       kitchenware: { ...props.customerInput.equipment.kitchenware, [key]: value }
+    }
+  })
+}
+
+// 調理器具写真の追加
+const addKitchenwarePhoto = (files: File[] | File | null) => {
+  if (!files || !props.customerInput) return
+  const newFiles = Array.isArray(files) ? files : [files]
+  const currentPhotos = props.customerInput.equipment.kitchenware.photos || []
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      kitchenware: {
+        ...props.customerInput.equipment.kitchenware,
+        photos: [...currentPhotos, ...newFiles]
+      }
+    }
+  })
+}
+
+// 調理器具写真の削除
+const removeKitchenwarePhoto = (index: number) => {
+  if (!props.customerInput) return
+  const currentPhotos = [...(props.customerInput.equipment.kitchenware.photos || [])]
+  currentPhotos.splice(index, 1)
+  emit('update:customerInput', {
+    ...props.customerInput,
+    equipment: {
+      ...props.customerInput.equipment,
+      kitchenware: {
+        ...props.customerInput.equipment.kitchenware,
+        photos: currentPhotos
+      }
     }
   })
 }
@@ -2072,5 +2158,10 @@ defineExpose({
 
 .unit-item:not(:last-child) {
   margin-bottom: 16px;
+}
+
+/* カーソルポインター */
+.cursor-pointer {
+  cursor: pointer;
 }
 </style>

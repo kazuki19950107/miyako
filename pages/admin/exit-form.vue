@@ -23,9 +23,9 @@
         >
           <v-tab><v-icon left>mdi-account-details</v-icon>基本情報</v-tab>
           <v-tab><v-icon left>mdi-calculator-variant</v-icon>簡易査定</v-tab>
-          <v-tab><v-icon left>mdi-chart-line</v-icon>売上</v-tab>
           <v-tab><v-icon left>mdi-file-document-outline</v-icon>契約内容</v-tab>
           <v-tab><v-icon left>mdi-tools</v-icon>設備詳細</v-tab>
+          <v-tab><v-icon left>mdi-chart-line</v-icon>売上</v-tab>
           <v-tab><v-icon left>mdi-video</v-icon>動画</v-tab>
           <v-tab><v-icon left>mdi-draw</v-icon>自由記述</v-tab>
           <v-tab><v-icon left>mdi-strategy</v-icon>販売戦略</v-tab>
@@ -53,16 +53,8 @@
         />
       </v-window-item>
 
-      <!-- タブ3: 売上 -->
+      <!-- タブ3: 契約内容 -->
       <v-window-item :value="2">
-        <AdminExitFormSalesInfoTab
-          :detail-check="formData.detailCheck"
-          @update:detail-check="formData.detailCheck = $event"
-        />
-      </v-window-item>
-
-      <!-- タブ4: 契約内容 -->
-      <v-window-item :value="3">
         <AdminExitFormContractInfoTab
           :property-features="formData.propertyFeatures"
           @update:property-features="formData.propertyFeatures = $event"
@@ -73,13 +65,21 @@
         />
       </v-window-item>
 
-      <!-- タブ5: 設備詳細 -->
-      <v-window-item :value="4">
+      <!-- タブ4: 設備詳細 -->
+      <v-window-item :value="3">
         <AdminExitFormEquipmentDetailTab
           :detail-check="formData.detailCheck"
           @update:detail-check="formData.detailCheck = $event"
           :customer-input="formData.customerInput"
           @update:customer-input="formData.customerInput = $event"
+        />
+      </v-window-item>
+
+      <!-- タブ5: 売上 -->
+      <v-window-item :value="4">
+        <AdminExitFormSalesInfoTab
+          :detail-check="formData.detailCheck"
+          @update:detail-check="formData.detailCheck = $event"
         />
       </v-window-item>
 
@@ -362,10 +362,12 @@ const TEST_DATA = {
     landlordName: '田中 一郎',
     landlordContact: '本人',
     landlordPhone: '090-1111-2222',
+    landlordNote: '話しやすい方、居抜きに前向き',
     notifiedManagement: true,
     managementCompany: '梅田不動産管理',
     managementContact: '佐藤 花子',
     managementPhone: '06-9999-8888',
+    managementNote: '対応が丁寧、居抜き実績あり',
     terminationNotice: '有り',
     employeeNotification: 'している',
     otherConsultation: 'していない',
@@ -583,6 +585,16 @@ const TEST_DATA = {
     electric_meter_photos: [],
     gas_meter_photos: [],
     water_meter_photos: [],
+    // 厨房設備（複数対応）
+    kitchen_equipment_units: [{
+      model_photo: null,
+      body_photo: null,
+      broken: false,
+      lease: false,
+      landlord_owned: false,
+      name: 'ガスコンロ',
+      detail: '5口ガスコンロ'
+    }],
     // 設備詳細タブ用
     duct_model_photo: null,
     duct_body_photo: null,
@@ -597,16 +609,16 @@ const TEST_DATA = {
     grease_trap_landlord_owned: false,
     grease_trap_detail: 'グリストラップあり',
     aircon_indoor_units: [
-      { model_photo: null, body_photo: null, broken: false, lease: false, landlord_owned: false, detail: '天井埋込式' },
-      { model_photo: null, body_photo: null, broken: false, lease: false, landlord_owned: false, detail: '壁掛け式' }
+      { model_photo: null, body_photo: null, broken: false, lease: false, landlord_owned: false, outdoor_location: '屋上', years_used: '5', detail: '天井埋込式', lease_remaining_years: '', lease_total_amount: '', lease_company: '', lease_monthly_amount: '' },
+      { model_photo: null, body_photo: null, broken: false, lease: true, landlord_owned: false, outdoor_location: 'ベランダ', years_used: '3', detail: '壁掛け式', lease_remaining_years: '2', lease_total_amount: '360000', lease_company: 'オリコ', lease_monthly_amount: '15000' }
     ],
     aircon_outdoor_units: [
       { model_photo: null, body_photo: null, location: '屋上', detail: '' },
       { model_photo: null, body_photo: null, location: 'ベランダ', detail: '' }
     ],
-    seat_photo: null,
-    counter_seats: '6',
-    table_seats: '22',
+    floor_seats: [
+      { floor_name: '1階', total_seats: '28', counter_seats: '6', table_seats: '22', photos: null }
+    ],
     electric_meter_model_photo: null,
     electric_meter_body_photo: null,
     gas_meter_model_photo: null,
@@ -798,10 +810,12 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     landlordName: '',
     landlordContact: '',
     landlordPhone: '',
+    landlordNote: '',
     notifiedManagement: false,
     managementCompany: '',
     managementContact: '',
     managementPhone: '',
+    managementNote: '',
     terminationNotice: '',
     employeeNotification: '',
     otherConsultation: '',
@@ -1046,9 +1060,16 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     facility_water_drainage_capacity: '',
     facility_outdoor_unit_location: '',
     facility_memo: '',
-    // 厨房設備
-    kitchen_equipment_photos: null,
-    kitchen_equipment_detail: '',
+    // 厨房設備（複数対応）
+    kitchen_equipment_units: [{
+      model_photo: null,
+      body_photo: null,
+      broken: false,
+      lease: false,
+      landlord_owned: false,
+      name: '',
+      detail: ''
+    }],
     // 設備詳細タブ用 - ダクト
     duct_model_photo: null,
     duct_body_photo: null,
@@ -1064,9 +1085,9 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     grease_trap_detail: '',
     aircon_indoor_units: [],
     aircon_outdoor_units: [],
-    seat_photo: null,
-    counter_seats: '',
-    table_seats: '',
+    floor_seats: [
+      { floor_name: '1階', total_seats: '', counter_seats: '', table_seats: '', photos: null }
+    ],
     electric_meter_model_photo: null,
     electric_meter_body_photo: null,
     gas_meter_model_photo: null,
