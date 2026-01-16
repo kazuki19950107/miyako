@@ -2,7 +2,7 @@
   <v-container class="px-4 pt-4 pb-4 exit-form-container" style="max-width: 1400px;">
     <!-- ★ 固定したい"ヘッダー＋タブ"をひとまとめにする -->
     <div class="sticky-stack">
-      <!-- ヘッダー -->
+      <!-- ヘッダー + 物件選択 -->
       <v-card class="mb-2 elevation-2 sticky-card">
         <v-card-title
           class="text-h6 font-weight-bold text-white d-flex align-center"
@@ -11,6 +11,49 @@
           <v-icon size="24" class="mr-2" style="color: white !important;">mdi-clipboard-list-outline</v-icon>
           店舗売却ヒアリングシート
         </v-card-title>
+        <!-- 物件選択バー -->
+        <v-card-text class="pa-2" style="background: #f5f5f5;">
+          <v-row align="center" dense>
+            <v-col cols="auto">
+              <v-chip
+                :color="selectedPropertyId ? 'success' : 'warning'"
+                variant="flat"
+                size="small"
+              >
+                {{ selectedPropertyId ? '編集' : '新規' }}
+              </v-chip>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model="propertySearchQuery"
+                placeholder="検索..."
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="compact"
+                hide-details
+                clearable
+                bg-color="white"
+              />
+            </v-col>
+            <v-col cols="12" sm="5">
+              <v-select
+                v-model="selectedPropertyId"
+                :items="filteredPropertyItems"
+                :loading="propertiesLoading"
+                item-title="title"
+                item-value="value"
+                placeholder="物件を選択"
+                variant="outlined"
+                density="compact"
+                hide-details
+                clearable
+                no-data-text="物件が見つかりません"
+                bg-color="white"
+                @update:model-value="onPropertySelect"
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
       </v-card>
 
       <!-- タブ切り替え -->
@@ -108,29 +151,19 @@
       </v-window-item>
     </v-window>
 
-    <!-- 固定アクションバー -->
-    <v-sheet class="action-bar elevation-4">
-      <div class="d-flex align-center" style="gap: 12px; width: 100%; max-width: 1400px; margin: 0 auto;">
-        <v-btn outlined :disabled="submitting" @click="resetForm" class="flex-shrink-0">
-          <v-icon left size="20">mdi-refresh</v-icon>
-          <span class="d-none d-sm-inline">クリア</span>
-        </v-btn>
-        <v-spacer />
-        <v-btn text :disabled="submitting" @click="saveDraft" class="flex-shrink-0">
-          <v-icon left size="20">mdi-content-save-outline</v-icon>
-          <span class="d-none d-sm-inline">下書き保存</span>
-        </v-btn>
-        <v-btn
-          color="primary"
-          :loading="submitting"
-          :disabled="!formValid"
-          @click="submitForm"
-          large
-          class="flex-shrink-0"
+    <!-- 自動保存ステータスバー -->
+    <v-sheet class="action-bar elevation-2">
+      <div class="d-flex align-center justify-center" style="width: 100%; max-width: 1400px; margin: 0 auto;">
+        <v-icon
+          :color="isSaving ? 'warning' : (lastSavedAt ? 'success' : 'grey')"
+          size="18"
+          class="mr-2"
         >
-          <v-icon left size="20" style="color: white !important;">mdi-send</v-icon>
-          送信する
-        </v-btn>
+          {{ isSaving ? 'mdi-loading mdi-spin' : (lastSavedAt ? 'mdi-check-circle' : 'mdi-cloud-outline') }}
+        </v-icon>
+        <span class="text-body-2" :class="isSaving ? 'text-warning' : 'text-grey-darken-1'">
+          {{ isSaving ? '保存中...' : (lastSavedAt ? `自動保存済み (${formatTime(lastSavedAt)})` : '自動保存待機中') }}
+        </span>
       </div>
     </v-sheet>
 
@@ -179,8 +212,10 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useGpt } from '@/composables/useGpt'
+import { useMiyakoProperties, type MiyakoPropertyListItem } from '~/composables/useMiyakoProperties'
 
 // テスト段階のため認証チェックをスキップ
 // 本番環境では以下のコメントを外して認証を有効化
@@ -193,6 +228,145 @@ if (!authStore.isAuthenticated) {
 
 // GPT composable
 const { isProcessing, processWithGpt } = useGpt()
+
+// ルーター
+const route = useRoute()
+const router = useRouter()
+
+// 物件管理
+const {
+  properties,
+  loading: propertiesLoading,
+  error: propertiesError,
+  fetchProperties,
+  fetchPropertyById,
+  updateFromExitForm,
+  propertyToFormData,
+  lastCreatedId
+} = useMiyakoProperties()
+
+// 物件選択状態
+const selectedPropertyId = ref<string | null>(null)
+const propertySearchQuery = ref('')
+
+// 物件リストの表示用
+const propertyItems = computed(() => {
+  return properties.value.map(p => ({
+    title: `${p.shop_name || '(屋号なし)'} - ${[p.prefecture, p.city].filter(Boolean).join(' ')}`,
+    subtitle: `${p.requester_name || ''} | ${p.master_status}`,
+    value: p.id,
+    searchText: `${p.shop_name || ''} ${p.prefecture || ''} ${p.city || ''} ${p.address || ''} ${p.requester_name || ''}`.toLowerCase()
+  }))
+})
+
+// 検索でフィルタリングされた物件リスト
+const filteredPropertyItems = computed(() => {
+  if (!propertySearchQuery.value) return propertyItems.value
+  const query = propertySearchQuery.value.toLowerCase()
+  return propertyItems.value.filter(p => p.searchText.includes(query))
+})
+
+// 物件選択時の処理
+const onPropertySelect = async (propertyId: string | null) => {
+  // 自動保存を一時停止（データ読み込み中の保存を防ぐ）
+  isLoadingProperty.value = true
+
+  if (!propertyId) {
+    // 新規モード：選択解除 → フォームをリセット
+    selectedPropertyId.value = null
+    router.replace({ query: {} })
+    // ページリロードでフォームをリセット
+    window.location.href = '/admin/exit-form'
+    return
+  }
+
+  selectedPropertyId.value = propertyId
+
+  // 物件データを取得してフォームにロード
+  const propertyData = await fetchPropertyById(propertyId)
+  if (propertyData) {
+    const converted = propertyToFormData(propertyData)
+    // フォームデータに反映
+    Object.assign(formData.value.contact, converted.contact)
+    Object.assign(formData.value.status, converted.status)
+    Object.assign(formData.value.locationInfo, converted.locationInfo)
+    Object.assign(formData.value.propertyFeatures, converted.propertyFeatures)
+    Object.assign(formData.value.detailCheck, converted.detailCheck)
+    Object.assign(formData.value.salesOverview, converted.salesOverview)
+    Object.assign(formData.value.strategy, converted.strategy)
+    // 自由記述（キャンバス）
+    canvasPages.value = converted.canvasPages || ['']
+
+    showSuccessMessage('物件データを読み込みました')
+  }
+
+  // URLを更新
+  router.replace({ query: { id: propertyId } })
+
+  // 自動保存を再開
+  await nextTick()
+  isLoadingProperty.value = false
+}
+
+// 自動保存用の状態
+const isLoadingProperty = ref(false)
+const isSaving = ref(false)
+const lastSavedAt = ref<Date | null>(null)
+
+// 時刻フォーマット
+const formatTime = (date: Date) => {
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
+
+// 自動保存処理
+const autoSave = async () => {
+  // 読み込み中や保存中はスキップ
+  if (isLoadingProperty.value || isSaving.value) return
+  // 新規モードで必須項目がない場合はスキップ
+  if (!selectedPropertyId.value && !formData.value.contact.storeName) return
+
+  console.log('自動保存開始:', { selectedPropertyId: selectedPropertyId.value, storeName: formData.value.contact.storeName })
+
+  isSaving.value = true
+  try {
+    const success = await updateFromExitForm(selectedPropertyId.value, {
+      ...formData.value,
+      canvasPages: canvasPages.value
+    })
+    console.log('自動保存結果:', { success, lastCreatedId: lastCreatedId.value })
+
+    if (success) {
+      lastSavedAt.value = new Date()
+
+      // 新規作成の場合、作成されたIDを設定してURLを更新
+      if (!selectedPropertyId.value && lastCreatedId.value) {
+        selectedPropertyId.value = lastCreatedId.value
+        router.replace({ query: { id: lastCreatedId.value } })
+        // 物件リストを更新
+        await fetchProperties({ lifecycleStage: 'all' })
+        showSuccessMessage('新規物件として保存しました')
+      }
+    } else {
+      showErrorMessage('保存に失敗しました')
+    }
+  } catch (e: any) {
+    console.error('自動保存エラー:', e)
+    showErrorMessage('保存中にエラーが発生しました: ' + e.message)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// デバウンス付き自動保存（2秒後に保存）
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+const debouncedAutoSave = () => {
+  console.log('debouncedAutoSave呼び出し - 2秒後に保存')
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(() => {
+    console.log('タイマー発火 - autoSave実行')
+    autoSave()
+  }, 2000)
+}
 
 /* [ADD] 詳細入力の表示/非表示 */
 const showDetailPrice = ref(false)
@@ -277,9 +451,20 @@ const activeTab = ref(0)
 // キャンバスページ管理（FreeDrawingTabコンポーネントで使用）
 const canvasPages = ref<string[]>([''])
 
+// canvasPagesの変更も監視して自動保存
+watch(
+  () => canvasPages.value,
+  () => {
+    if (!isLoadingProperty.value) {
+      console.log('canvasPages変更検知 - 自動保存トリガー')
+      debouncedAutoSave()
+    }
+  },
+  { deep: true }
+)
+
 // フォーム全体の状態
 const formValid = ref(false)
-const submitting = ref(false)
 const showSuccess = ref(false)
 const showError = ref(false)
 const successMessage = ref('')
@@ -1295,6 +1480,17 @@ const formData = ref(isDevelopment ? TEST_DATA : {
   }
 })
 
+// formDataの変更を監視して自動保存
+watch(
+  () => formData.value,
+  () => {
+    if (!isLoadingProperty.value) {
+      debouncedAutoSave()
+    }
+  },
+  { deep: true }
+)
+
 // 連絡先の追加・削除
 const addContact = () => {
   formData.value.externalContacts.push({
@@ -1450,78 +1646,23 @@ const resetValuationWeights = () => {
 }
 
 // 初期値設定
-onMounted(() => {
+onMounted(async () => {
   if (!formData.value.valuation.locationWeight) {
     formData.value.valuation.locationWeight = 0.6
   }
   if (!formData.value.valuation.equipmentWeight) {
     formData.value.valuation.equipmentWeight = 0.4
   }
+
+  // 物件リストを取得
+  await fetchProperties({ lifecycleStage: 'all' })
+
+  // クエリパラメータから物件IDを取得
+  const queryId = route.query.id as string | undefined
+  if (queryId) {
+    await onPropertySelect(queryId)
+  }
 })
-
-
-// 下書き保存
-const saveDraft = async () => {
-  try {
-    // ローカルストレージに保存
-    localStorage.setItem('exitFormDraft', JSON.stringify(formData.value))
-    showSuccessMessage('下書きを保存しました')
-  } catch (error) {
-    console.error('下書き保存エラー:', error)
-    showErrorMessage('下書きの保存に失敗しました')
-  }
-}
-
-// フォーム送信
-const submitForm = async () => {
-  if (!formValid.value || progressPercentage.value < 100) {
-    showErrorMessage('必須項目を全て入力してください')
-    return
-  }
-
-  submitting.value = true
-  
-  try {
-    // Supabaseに保存
-    /*
-    const supabase = useSupabase()
-    const { data, error } = await supabase
-      .from('hearing_sheets')
-      .insert([{
-        ...formData.value,
-        created_at: new Date().toISOString(),
-        created_by: authStore.userId
-      }])
-    
-    if (error) throw error
-    */
-    
-    // 成功処理
-    showSuccessMessage('ヒアリングシートを登録しました')
-    
-    // フォームリセット
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    resetForm()
-    
-  } catch (error) {
-    console.error('登録エラー:', error)
-    showErrorMessage('登録中にエラーが発生しました')
-  } finally {
-    submitting.value = false
-  }
-}
-
-// フォームリセット
-const resetForm = () => {
-  if (confirm('入力内容をすべてクリアしますか？')) {
-    window.location.reload()
-  }
-}
-
-// お客様入力画面を開く
-const openCustomerInput = () => {
-  window.open('/customer-input', '_blank')
-}
 
 // AIで整形処理
 // ========================================
@@ -1841,6 +1982,18 @@ useHead({
 </script>
 
 <style>
+/* 物件選択カード */
+.property-selector-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #e8f0fe 100%) !important;
+  border: 1px solid #c5d5eb !important;
+  border-radius: 12px !important;
+}
+
+.property-selector-card .v-autocomplete,
+.property-selector-card .v-text-field {
+  background-color: white !important;
+}
+
 /* ページ全体の背景（html/bodyレベル） */
 :root,
 html,
@@ -1954,20 +2107,7 @@ body,
   border-color: #9e9e9e !important;
 }
 
-.v-field--variant-outlined:hover .v-field__outline__start,
-.v-field--variant-outlined:hover .v-field__outline__end,
-.v-field--variant-outlined:hover .v-field__outline__notch::before,
-.v-field--variant-outlined:hover .v-field__outline__notch::after {
-  border-color: #1565c0 !important;
-}
-
-.v-field--focused .v-field__outline__start,
-.v-field--focused .v-field__outline__end,
-.v-field--focused .v-field__outline__notch::before,
-.v-field--focused .v-field__outline__notch::after {
-  border-color: #1565c0 !important;
-  border-width: 2px !important;
-}
+/* ホバー・フォーカス時のボーダー色変更は削除（青い縦線の原因） */
 
 /* 入力欄の背景を白に */
 .v-field__field {
@@ -2152,10 +2292,9 @@ body,
   transition: transform 0.2s ease;
 }
 
-/* フォーカス状態の美化 */
+/* フォーカス状態の美化 - transformはドロップダウン位置をずらすので削除 */
 .v-input--is-focused {
-  transform: scale(1.01);
-  transition: transform 0.2s ease;
+  /* transform: scale(1.01); ← これが原因でドロップダウンがずれる */
 }
 
 /* 美しいアニメーション */
@@ -2225,9 +2364,7 @@ body,
 }
 
 /* スムーズなトランジション */
-* {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
+/* グローバルtransitionはドロップダウン等に悪影響を与えるので削除 */
 
 /* プレースホルダーの美化 */
 ::placeholder {
@@ -2257,5 +2394,6 @@ body,
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #154a8a, #1976d2);
 }
+
 </style>
 
