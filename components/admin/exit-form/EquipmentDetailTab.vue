@@ -799,24 +799,14 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row align="start">
-          <!-- 電気メーターの場所と容量 -->
+          <!-- 電気と動力の容量 -->
           <v-col cols="12">
             <div class="text-subtitle-2 mb-3">
               <v-icon small class="mr-1">mdi-flash-outline</v-icon>
-              電気メーターの場所と電気と動力の容量について
+              電気と動力の容量について
             </div>
             <v-row>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  :model-value="detailCheck.facility_electricity_location"
-                  @update:model-value="updateDetailCheck('facility_electricity_location', $event)"
-                  label="場所"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-map-marker"
-                />
-              </v-col>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="6">
                 <v-text-field
                   :model-value="detailCheck.facility_electricity_capacity"
                   @update:model-value="updateDetailCheck('facility_electricity_capacity', $event)"
@@ -826,7 +816,7 @@
                   prepend-inner-icon="mdi-flash"
                 />
               </v-col>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="6">
                 <v-text-field
                   :model-value="detailCheck.facility_power_capacity"
                   @update:model-value="updateDetailCheck('facility_power_capacity', $event)"
@@ -837,71 +827,6 @@
                 />
               </v-col>
             </v-row>
-          </v-col>
-
-          <!-- 型番写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.electric_meter_model_photo"
-              @update:model-value="updateDetailCheck('electric_meter_model_photo', $event)"
-              label="型番写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            >
-              <template v-slot:prepend-inner v-if="detailCheck.electric_meter_model_photo">
-                <v-icon
-                  color="primary"
-                  class="cursor-pointer"
-                  @click.stop="openPreview(detailCheck.electric_meter_model_photo)"
-                >mdi-eye</v-icon>
-              </template>
-            </v-file-input>
-          </v-col>
-
-          <!-- 本体写真 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
-            <v-file-input
-              :model-value="detailCheck.electric_meter_body_photo"
-              @update:model-value="updateDetailCheck('electric_meter_body_photo', $event)"
-              label="本体写真"
-              outlined
-              dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            >
-              <template v-slot:prepend-inner v-if="detailCheck.electric_meter_body_photo">
-                <v-icon
-                  color="primary"
-                  class="cursor-pointer"
-                  @click.stop="openPreview(detailCheck.electric_meter_body_photo)"
-                >mdi-eye</v-icon>
-              </template>
-            </v-file-input>
-          </v-col>
-
-          <!-- メーター位置 -->
-          <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              メーター位置詳細
-            </div>
-            <v-text-field
-              :model-value="detailCheck.electric_meter_location"
-              @update:model-value="updateDetailCheck('electric_meter_location', $event)"
-              label="メーター位置"
-              outlined
-              dense
-              placeholder="例: 1階入口、地下"
-            />
           </v-col>
         </v-row>
       </v-card-text>
