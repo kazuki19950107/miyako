@@ -114,6 +114,39 @@
               ></v-text-field>
             </div>
 
+            <!-- 次居抜きの許可 -->
+            <div class="mb-6">
+              <v-select
+                :model-value="status.nextTenantPermission"
+                @update:model-value="updateStatus('nextTenantPermission', $event)"
+                label="次居抜きで探していいかの許可を取っているか"
+                :items="['している', 'していない']"
+                :rules="[rules.required]"
+                outlined
+                dense
+                prepend-inner-icon="mdi-check-circle"
+                required
+              >
+                <template v-slot:label>
+                  次居抜きで探していいかの許可を取っているか <span class="red--text">*</span>
+                </template>
+              </v-select>
+
+              <!-- 次の募集条件メモ（許可を取っている場合） -->
+              <v-textarea
+                v-if="status.nextTenantPermission === 'している'"
+                :model-value="status.nextConditionsMemo"
+                @update:model-value="updateStatus('nextConditionsMemo', $event)"
+                label="次の募集条件メモ"
+                outlined
+                dense
+                rows="1"
+                auto-grow
+                class="mt-4"
+                placeholder="例: 家賃30万、保証金6ヶ月、業種制限あり（飲食可）など"
+              ></v-textarea>
+            </div>
+
             <!-- 家主・管理会社への告知 -->
             <div class="mb-6">
               <v-select
@@ -261,18 +294,6 @@
                     </v-col>
                   </v-row>
                 </div>
-
-                <!-- 次居抜きの許可 -->
-                <v-select
-                  :model-value="status.nextTenantPermission"
-                  @update:model-value="updateStatus('nextTenantPermission', $event)"
-                  label="次居抜きで探していいかの許可を取っているか"
-                  :items="['している', 'していない']"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-check-circle"
-                  class="mt-4"
-                ></v-select>
               </div>
             </div>
 
@@ -542,6 +563,7 @@ const props = defineProps<{
     reasonOtherText: string
     landlordNotification: string
     nextTenantPermission: string
+    nextConditionsMemo: string
     notifiedLandlord: boolean
     landlordName: string
     landlordContact: string
@@ -586,7 +608,7 @@ const rules = {
 }
 
 // Options
-const closingReasons = ['売上不振', '体調不良', '後継者不在', '他事業に注力', '家族の事情', '賃料が高い', '人材不足', 'その他']
+const closingReasons = ['売上不振', '体調不良', '引退・後継者不在', '他事業に注力', '家族の事情', '賃料が高い', '人材不足', '移転', 'その他']
 const salePeriods = ['1ヶ月以内', '3ヶ月以内', '6ヶ月以内', '1年以内', '急いでいない', '日付を指定する']
 
 const quickPresets = [

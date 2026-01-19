@@ -183,6 +183,17 @@
             />
           </v-col>
           <v-col cols="12" md="4">
+            <v-text-field
+              :model-value="detailCheck.electricity_monthly_cost"
+              @update:model-value="updateDetailCheck('electricity_monthly_cost', $event)"
+              label="月額費用"
+              outlined
+              dense
+              placeholder="例: 15,000"
+              suffix="円"
+            />
+          </v-col>
+          <v-col cols="12" md="4">
             <v-file-input
               :model-value="detailCheck.electricity_bill_photos"
               @update:model-value="updateDetailCheck('electricity_bill_photos', $event)"
@@ -240,6 +251,17 @@
             />
           </v-col>
           <v-col cols="12" md="4">
+            <v-text-field
+              :model-value="detailCheck.gas_monthly_cost"
+              @update:model-value="updateDetailCheck('gas_monthly_cost', $event)"
+              label="月額費用"
+              outlined
+              dense
+              placeholder="例: 8,000"
+              suffix="円"
+            />
+          </v-col>
+          <v-col cols="12" md="4">
             <v-file-input
               :model-value="detailCheck.gas_bill_photos"
               @update:model-value="updateDetailCheck('gas_bill_photos', $event)"
@@ -294,6 +316,17 @@
               label="お客様番号"
               outlined
               dense
+            />
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-text-field
+              :model-value="detailCheck.water_monthly_cost"
+              @update:model-value="updateDetailCheck('water_monthly_cost', $event)"
+              label="月額費用"
+              outlined
+              dense
+              placeholder="例: 5,000"
+              suffix="円"
             />
           </v-col>
           <v-col cols="12" md="4">
@@ -601,10 +634,13 @@ const props = defineProps<{
     // B. ライフライン契約・支払い
     electricity_company: string
     electricity_customer_number: string
+    electricity_monthly_cost: string
     gas_company: string
     gas_customer_number: string
+    gas_monthly_cost: string
     water_company: string
     water_customer_number: string
+    water_monthly_cost: string
     landlord_payment: string
     landlord_payment_detail: string
     section_b_memo: string
