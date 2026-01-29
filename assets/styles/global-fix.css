@@ -82,5 +82,5 @@ html, body {
 
 /* v-windowだけに余白を追加（固定ヘッダー分） */
 .exit-form-container .v-window {
-  margin-top: 120px !important;
+  margin-top: 180px !important;
 }

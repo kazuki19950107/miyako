@@ -2014,7 +2014,11 @@ body,
 .exit-form-container,
 .exit-form-container .v-window,
 .exit-form-container .v-window-item,
-.exit-form-container .v-form,
+.exit-form-container .v-form {
+  background-color: #e0e0e0 !important;
+}
+
+/* ヘッダー部分 */
 .sticky-stack {
   background-color: #e0e0e0 !important;
 }
@@ -2159,9 +2163,10 @@ body,
   background: linear-gradient(90deg, #1e50a2 0%, #2196f3 100%) !important;
 }
 
-/* メインコンテンツエリア：フッター分の余白を確保 */
+/* メインコンテンツエリア：フッター分の余白を確保 + 固定ヘッダー分の上部余白 */
 .v-window {
   padding-bottom: 100px;
+  margin-top: 16px;
 }
 
 /* 画面下部：固定アクションバー */
