@@ -7,7 +7,7 @@
         販売用情報
         <v-spacer></v-spacer>
         <v-btn
-          color="primary"
+          color="blue-grey-lighten-2"
           small
           @click="formatWithAI"
           :loading="isFormatting"
