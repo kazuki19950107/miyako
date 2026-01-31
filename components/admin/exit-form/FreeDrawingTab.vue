@@ -13,7 +13,7 @@
               @click="setDrawingMode('pen')"
               :class="['tool-btn', 'd-flex', 'align-center', drawingMode === 'pen' ? 'tool-btn-active' : 'tool-btn-inactive']"
             >
-              <v-icon left>mdi-pen</v-icon>
+              <v-icon left color="white">mdi-pen</v-icon>
               <span class="btn-text">ペン</span>
             </v-btn>
             <v-btn
@@ -21,13 +21,13 @@
               @click="setDrawingMode('eraser')"
               :class="['tool-btn', 'd-flex', 'align-center', drawingMode === 'eraser' ? 'tool-btn-active' : 'tool-btn-inactive']"
             >
-              <v-icon left>mdi-eraser</v-icon>
+              <v-icon left color="white">mdi-eraser</v-icon>
               <span class="btn-text">消しゴム</span>
             </v-btn>
           </div>
           <v-spacer></v-spacer>
           <v-btn size="small" class="clear-btn d-flex align-center" @click="clearCanvas">
-            <v-icon left>mdi-delete</v-icon>
+            <v-icon left color="white">mdi-delete</v-icon>
             <span class="btn-text">全消去</span>
           </v-btn>
         </div>
@@ -447,12 +447,20 @@ defineExpose({
   color: white !important;
 }
 
+.tool-btn-active .v-icon {
+  color: white !important;
+}
+
 .tool-btn-inactive {
   background-color: #f5f5f5 !important;
 }
 
 .clear-btn {
   background-color: #f44336 !important;
+  color: white !important;
+}
+
+.clear-btn .v-icon {
   color: white !important;
 }
 

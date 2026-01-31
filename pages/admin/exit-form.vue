@@ -559,7 +559,7 @@ const TEST_DATA = {
     consultationCompany: '',
     consultationStartDate: '',
     businessContinuation: 'すでに決めている',
-    closingDate: '2024年12月31日',
+    closingDate: '2024-12-31',
     desiredSalePeriod: '3ヶ月以内',
     desiredSaleDate: '',
     desiredPrice: 5000000,
@@ -574,7 +574,7 @@ const TEST_DATA = {
     contractMonth: '4月',
     expectedRentPerTsubo: 0,
     locationConditions: ['駅近', '人通りが多い'],
-    openingDate: '2020年4月1日',
+    openingDate: '2020-04-01',
     initialInvestment: 1200,
     investmentRecovery: '50%程度',
     currentRevenue: 0
@@ -978,7 +978,7 @@ const TEST_DATA = {
 }
 
 // フォームデータ構造
-const formData = ref(isDevelopment ? TEST_DATA : {
+const formData = ref(false ? TEST_DATA : { // TEST_DATA無効化（仮データ読み込み実装済み）
   // セクション1: 連絡先・現状の把握
   contact: {
     storeName: '',
@@ -1268,8 +1268,12 @@ const formData = ref(isDevelopment ? TEST_DATA : {
     grease_trap_lease: false,
     grease_trap_landlord_owned: false,
     grease_trap_detail: '',
-    aircon_indoor_units: [],
-    aircon_outdoor_units: [],
+    aircon_indoor_units: [
+      { model_photo: null, body_photo: null, broken: false, lease: false, landlord_owned: false, outdoor_location: '', years_used: '', detail: '', lease_remaining_years: '', lease_total_amount: '', lease_company: '', lease_monthly_amount: '' }
+    ],
+    aircon_outdoor_units: [
+      { model_photo: null, body_photo: null, location: '', detail: '' }
+    ],
     floor_seats: [
       { floor_name: '1階', total_seats: '', counter_seats: '', table_seats: '', photos: null }
     ],

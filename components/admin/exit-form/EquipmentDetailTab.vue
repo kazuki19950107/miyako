@@ -828,6 +828,41 @@
               </v-col>
             </v-row>
           </v-col>
+
+          <!-- 本体写真 -->
+          <v-col cols="12" md="6">
+            <v-file-input
+              :model-value="detailCheck.electric_meter_body_photo"
+              @update:model-value="updateDetailCheck('electric_meter_body_photo', $event)"
+              label="本体写真"
+              outlined
+              dense
+              accept="image/*"
+              prepend-icon="mdi-camera"
+              hide-details
+            >
+              <template v-slot:prepend-inner v-if="detailCheck.electric_meter_body_photo">
+                <v-icon
+                  color="primary"
+                  class="cursor-pointer"
+                  @click.stop="openPreview(detailCheck.electric_meter_body_photo)"
+                >mdi-eye</v-icon>
+              </template>
+            </v-file-input>
+          </v-col>
+
+          <!-- 場所 -->
+          <v-col cols="12" md="6">
+            <v-text-field
+              :model-value="detailCheck.electric_meter_location"
+              @update:model-value="updateDetailCheck('electric_meter_location', $event)"
+              label="場所"
+              outlined
+              dense
+              prepend-inner-icon="mdi-map-marker"
+              placeholder="例: 店舗奥、地下"
+            />
+          </v-col>
         </v-row>
       </v-card-text>
     </v-card>
@@ -840,66 +875,20 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row align="start">
-          <!-- ガスメーターの場所と容量 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-3">
-              <v-icon small class="mr-1">mdi-fire-circle</v-icon>
-              ガスメーターの場所とガスの容量について
-            </div>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_gas_location"
-                  @update:model-value="updateDetailCheck('facility_gas_location', $event)"
-                  label="場所"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-map-marker"
-                />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_gas_capacity"
-                  @update:model-value="updateDetailCheck('facility_gas_capacity', $event)"
-                  label="ガス容量"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-fire"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <!-- 型番写真 -->
+          <!-- ガス容量 -->
           <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.gas_meter_model_photo"
-              @update:model-value="updateDetailCheck('gas_meter_model_photo', $event)"
-              label="型番写真"
+            <v-text-field
+              :model-value="detailCheck.facility_gas_capacity"
+              @update:model-value="updateDetailCheck('facility_gas_capacity', $event)"
+              label="ガス容量"
               outlined
               dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            >
-              <template v-slot:prepend-inner v-if="detailCheck.gas_meter_model_photo">
-                <v-icon
-                  color="primary"
-                  class="cursor-pointer"
-                  @click.stop="openPreview(detailCheck.gas_meter_model_photo)"
-                >mdi-eye</v-icon>
-              </template>
-            </v-file-input>
+              prepend-inner-icon="mdi-fire"
+            />
           </v-col>
 
           <!-- 本体写真 -->
           <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
             <v-file-input
               :model-value="detailCheck.gas_meter_body_photo"
               @update:model-value="updateDetailCheck('gas_meter_body_photo', $event)"
@@ -920,17 +909,15 @@
             </v-file-input>
           </v-col>
 
-          <!-- メーター位置詳細 -->
+          <!-- 場所 -->
           <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              メーター位置詳細
-            </div>
             <v-text-field
-              :model-value="detailCheck.gas_meter_location"
-              @update:model-value="updateDetailCheck('gas_meter_location', $event)"
-              label="メーター位置"
+              :model-value="detailCheck.facility_gas_location"
+              @update:model-value="updateDetailCheck('facility_gas_location', $event)"
+              label="場所"
               outlined
               dense
+              prepend-inner-icon="mdi-map-marker"
               placeholder="例: 1階入口、地下"
             />
           </v-col>
@@ -946,66 +933,20 @@
       </v-card-title>
       <v-card-text class="pt-6">
         <v-row align="start">
-          <!-- 水道メーターの場所と排水管の容量 -->
-          <v-col cols="12">
-            <div class="text-subtitle-2 mb-3">
-              <v-icon small class="mr-1">mdi-water-outline</v-icon>
-              水道メーターの場所と排水管の容量について
-            </div>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_water_location"
-                  @update:model-value="updateDetailCheck('facility_water_location', $event)"
-                  label="場所"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-map-marker"
-                />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  :model-value="detailCheck.facility_water_drainage_capacity"
-                  @update:model-value="updateDetailCheck('facility_water_drainage_capacity', $event)"
-                  label="排水容量"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-water-pump"
-                />
-              </v-col>
-            </v-row>
-          </v-col>
-
-          <!-- 型番写真 -->
+          <!-- 排水容量 -->
           <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              型番
-            </div>
-            <v-file-input
-              :model-value="detailCheck.water_meter_model_photo"
-              @update:model-value="updateDetailCheck('water_meter_model_photo', $event)"
-              label="型番写真"
+            <v-text-field
+              :model-value="detailCheck.facility_water_drainage_capacity"
+              @update:model-value="updateDetailCheck('facility_water_drainage_capacity', $event)"
+              label="排水容量"
               outlined
               dense
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              hide-details
-            >
-              <template v-slot:prepend-inner v-if="detailCheck.water_meter_model_photo">
-                <v-icon
-                  color="primary"
-                  class="cursor-pointer"
-                  @click.stop="openPreview(detailCheck.water_meter_model_photo)"
-                >mdi-eye</v-icon>
-              </template>
-            </v-file-input>
+              prepend-inner-icon="mdi-water-pump"
+            />
           </v-col>
 
           <!-- 本体写真 -->
           <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              本体
-            </div>
             <v-file-input
               :model-value="detailCheck.water_meter_body_photo"
               @update:model-value="updateDetailCheck('water_meter_body_photo', $event)"
@@ -1026,17 +967,15 @@
             </v-file-input>
           </v-col>
 
-          <!-- メーター位置詳細 -->
+          <!-- 場所 -->
           <v-col cols="12" md="4">
-            <div class="text-subtitle-2 mb-2 font-weight-bold text-center" style="color: #1e50a2;">
-              メーター位置詳細
-            </div>
             <v-text-field
-              :model-value="detailCheck.water_meter_location"
-              @update:model-value="updateDetailCheck('water_meter_location', $event)"
-              label="メーター位置"
+              :model-value="detailCheck.facility_water_location"
+              @update:model-value="updateDetailCheck('facility_water_location', $event)"
+              label="場所"
               outlined
               dense
+              prepend-inner-icon="mdi-map-marker"
               placeholder="例: 1階入口、地下"
             />
           </v-col>
