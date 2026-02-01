@@ -147,6 +147,25 @@ let lastY = 0
 const currentPage = ref(0)
 const canvasPages = ref<string[]>([...props.canvasPagesData])
 const skipSave = ref(false)
+const isInternalUpdate = ref(false)
+
+// propsが変わったら（物件切り替え時）キャンバスを更新
+// ※自分のemitによる更新はスキップ
+watch(() => props.canvasPagesData, (newData) => {
+  // 自分のemitによる更新はスキップ
+  if (isInternalUpdate.value) {
+    isInternalUpdate.value = false
+    return
+  }
+
+  skipSave.value = true
+  canvasPages.value = [...newData]
+  currentPage.value = 0
+  nextTick(() => {
+    loadPage(0)
+    skipSave.value = false
+  })
+}, { deep: true })
 
 // ページ切り替え時の処理
 watch(currentPage, (newPage, oldPage) => {
@@ -217,6 +236,8 @@ const saveCurrentPage = (pageIndex?: number) => {
   try {
     const dataUrl = canvas.toDataURL()
     canvasPages.value[targetIndex] = dataUrl
+    // 自分のemitによる更新であることをマーク
+    isInternalUpdate.value = true
     emit('update:canvasPagesData', [...canvasPages.value])
   } catch (e) {
     console.warn('キャンバスの保存に失敗:', e)
@@ -247,6 +268,7 @@ const addPage = () => {
   // 新しいページを追加
   canvasPages.value.push('')
   currentPage.value = canvasPages.value.length - 1
+  isInternalUpdate.value = true
   emit('update:canvasPagesData', [...canvasPages.value])
 }
 
@@ -274,6 +296,7 @@ const removePage = (index: number) => {
     })
   }
 
+  isInternalUpdate.value = true
   emit('update:canvasPagesData', [...canvasPages.value])
 }
 
@@ -353,13 +376,21 @@ const draw = (e: MouseEvent | TouchEvent) => {
 }
 
 const stopDrawing = () => {
-  isDrawing.value = false
+  if (isDrawing.value) {
+    isDrawing.value = false
+    // 描画終了時に自動保存
+    saveCurrentPage()
+  }
 }
 
 // コンポーネント初期化時
 onMounted(() => {
   nextTick(() => {
     initCanvas()
+    // 保存済みデータがあれば読み込む
+    if (canvasPages.value[0]) {
+      loadPage(0)
+    }
   })
 
   // ウィンドウリサイズ時にキャンバスを再初期化
@@ -554,6 +585,11 @@ defineExpose({
 
 .close-icon:hover {
   transform: scale(1.2);
+}
+
+/* アクティブなチップ内の×アイコンを白に */
+.page-chip.v-chip--variant-flat .close-icon {
+  color: white !important;
 }
 
 .add-page-chip {
