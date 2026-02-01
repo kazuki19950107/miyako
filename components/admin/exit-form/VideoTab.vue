@@ -17,71 +17,42 @@
               ※複数の動画ファイルをアップロードできます（MP4, MOV, AVI形式推奨）
             </div>
 
-            <v-file-input
-              v-model="newFiles"
-              @update:model-value="addVideos"
-              label="動画ファイルを選択（クリックで追加）"
-              outlined
-              dense
+            <input
+              ref="videoFileInput"
+              type="file"
               multiple
               accept="video/*"
-              prepend-icon="mdi-video-plus"
-              show-size
-              clearable
-              :rules="[v => !v || v.every(f => f.size < 500000000) || '1ファイル500MB以下にしてください']"
+              style="display: none;"
+              @change="onVideoFileChange"
             />
+            <v-btn
+              color="primary"
+              variant="outlined"
+              size="small"
+              :loading="isUploading"
+              @click="videoFileInput?.click()"
+            >
+              <v-icon start>mdi-paperclip</v-icon>
+              動画を追加
+            </v-btn>
+            <span class="text-caption text-grey ml-2">MP4, MOV, AVI対応（500MB以下）</span>
           </v-col>
 
           <!-- アップロード済み動画一覧 -->
           <v-col cols="12" v-if="videos && videos.length > 0">
-            <div class="text-subtitle-2 mb-3">
-              <v-icon small class="mr-1">mdi-playlist-play</v-icon>
-              アップロード済み動画（{{ videos.length }}件）
-            </div>
-
-            <v-row>
-              <v-col
-                v-for="(video, index) in videos"
-                :key="index"
-                cols="12"
-                md="6"
-                lg="4"
+            <div class="mt-2">
+              <v-chip
+                v-for="(url, index) in videos"
+                :key="`video-${index}`"
+                size="small"
+                color="primary"
+                class="mr-2 mb-1"
               >
-                <v-card outlined class="video-card">
-                  <div class="video-preview">
-                    <video
-                      v-if="getVideoUrl(video)"
-                      :src="getVideoUrl(video)"
-                      controls
-                      class="preview-video"
-                    />
-                    <div v-else class="video-placeholder">
-                      <v-icon size="48" color="grey-lighten-1">mdi-video-outline</v-icon>
-                    </div>
-                  </div>
-                  <v-card-text class="pa-3">
-                    <div class="d-flex align-center justify-space-between">
-                      <div class="text-truncate" style="max-width: 200px;">
-                        <v-icon size="small" class="mr-1">mdi-file-video</v-icon>
-                        {{ video.name }}
-                      </div>
-                      <v-btn
-                        icon
-                        size="small"
-                        color="error"
-                        variant="text"
-                        @click="removeVideo(index)"
-                      >
-                        <v-icon>mdi-delete</v-icon>
-                      </v-btn>
-                    </div>
-                    <div class="text-caption grey--text mt-1">
-                      {{ formatFileSize(video.size) }}
-                    </div>
-                  </v-card-text>
-                </v-card>
-              </v-col>
-            </v-row>
+                <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
+                <span class="text-truncate" style="max-width: 150px;">{{ getFileName(url) }}</span>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm(index, url)">mdi-close-circle</v-icon>
+              </v-chip>
+            </div>
           </v-col>
 
           <!-- 撮影ガイド -->
@@ -105,61 +76,148 @@
         </v-row>
       </v-card-text>
     </v-card>
+
+    <!-- 動画プレビューモーダル -->
+    <v-dialog v-model="showPreviewModal" max-width="800">
+      <v-card>
+        <v-card-title class="d-flex justify-space-between align-center">
+          <span>動画プレビュー</span>
+          <v-btn icon variant="text" @click="showPreviewModal = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="pa-4">
+          <video
+            v-if="previewUrl"
+            :src="previewUrl"
+            controls
+            style="width: 100%; max-height: 500px;"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <!-- 削除確認ダイアログ -->
+    <v-dialog v-model="showDeleteConfirm" width="380">
+      <v-card>
+        <v-card-title>
+          <v-icon class="mr-2" color="warning">mdi-alert</v-icon>
+          削除確認
+        </v-card-title>
+        <v-card-text>
+          この動画を削除してもよろしいですか？
+          <div v-if="deleteTarget" class="mt-2 text-caption text-grey">
+            {{ getFileName(deleteTarget.url) }}
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showDeleteConfirm = false">キャンセル</v-btn>
+          <v-btn color="error" variant="flat" @click="confirmDelete">削除</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-form>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
+import { uploadFiles } from '~/composables/useFileUpload'
 
 // Props
 const props = withDefaults(defineProps<{
-  videos?: File[]
+  propertyId?: string | null
+  videos?: string[]
 }>(), {
   videos: () => []
 })
 
 // Emits
 const emit = defineEmits<{
-  'update:videos': [value: File[]]
+  'update:videos': [value: string[]]
 }>()
 
 // Internal state
 const formValid = ref(false)
 const videoForm = ref(null)
-const newFiles = ref<File[]>([])
+const videoFileInput = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
 
-// 動画を追加
-const addVideos = (files: File[] | null) => {
-  if (files && files.length > 0) {
-    const updatedVideos = [...props.videos, ...files]
-    emit('update:videos', updatedVideos)
-    // 入力をクリア
-    nextTick(() => {
-      newFiles.value = []
-    })
+// プレビューモーダル用
+const showPreviewModal = ref(false)
+const previewUrl = ref('')
+
+// 削除確認用
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<{ index: number; url: string } | null>(null)
+
+// ファイル名を取得
+const getFileName = (url: string): string => {
+  try {
+    const urlObj = new URL(url)
+    const pathParts = urlObj.pathname.split('/')
+    const fileName = pathParts[pathParts.length - 1]
+    // タイムスタンプ部分を除去
+    const match = fileName.match(/^\d+_(.+)$/)
+    return match ? match[1] : fileName
+  } catch {
+    return url
   }
 }
 
-// 動画のプレビューURL生成
-const getVideoUrl = (file: File | null): string => {
-  if (!file || !(file instanceof File)) return ''
-  return URL.createObjectURL(file)
+// ファイル選択ハンドラー
+const onVideoFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+
+  const files = Array.from(input.files)
+
+  // サイズチェック（500MB以下）
+  const oversizedFiles = files.filter(f => f.size > 500000000)
+  if (oversizedFiles.length > 0) {
+    alert('500MB以下のファイルを選択してください')
+    input.value = ''
+    return
+  }
+
+  const id = props.propertyId || `temp_${Date.now()}`
+
+  isUploading.value = true
+  try {
+    const urls = await uploadFiles(files, id, 'videos')
+    if (urls.length > 0) {
+      const allUrls = [...props.videos, ...urls]
+      emit('update:videos', allUrls)
+    }
+  } catch (e) {
+    console.error('動画アップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+    input.value = ''
+  }
 }
 
-// ファイルサイズのフォーマット
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+// プレビューモーダルを開く
+const openPreviewModal = (url: string) => {
+  previewUrl.value = url
+  showPreviewModal.value = true
+}
+
+// 削除確認ダイアログを開く
+const openDeleteConfirm = (index: number, url: string) => {
+  deleteTarget.value = { index, url }
+  showDeleteConfirm.value = true
 }
 
 // 動画削除
-const removeVideo = (index: number) => {
-  const newVideos = [...props.videos]
-  newVideos.splice(index, 1)
+const confirmDelete = () => {
+  if (!deleteTarget.value) return
+
+  const newVideos = props.videos.filter((_, i) => i !== deleteTarget.value!.index)
   emit('update:videos', newVideos)
+
+  showDeleteConfirm.value = false
+  deleteTarget.value = null
 }
 
 // Expose form validity for parent
@@ -205,44 +263,12 @@ defineExpose({
   transition: box-shadow 0.3s ease;
 }
 
-/* inputフィールドの背景色 */
-:deep(.v-field__field) {
-  background-color: #f5f8fc !important;
+/* クリック可能なアイコン */
+.cursor-pointer {
+  cursor: pointer;
 }
 
-:deep(.v-field--variant-outlined .v-field__outline) {
-  --v-field-border-opacity: 0.4;
-}
-
-:deep(.v-field--focused .v-field__field) {
-  background-color: #ffffff !important;
-}
-
-/* 動画カード */
-.video-card {
-  border-radius: 12px !important;
-  overflow: hidden;
-}
-
-.video-preview {
-  background: #f5f8fc;
-  aspect-ratio: 16 / 9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.preview-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.video-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+.cursor-pointer:hover {
+  opacity: 0.7;
 }
 </style>

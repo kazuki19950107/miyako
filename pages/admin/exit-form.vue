@@ -130,6 +130,7 @@
       <!-- タブ6: 動画 -->
       <v-window-item :value="5">
         <AdminExitFormVideoTab
+          :property-id="selectedPropertyId"
           :videos="formData.videos"
           @update:videos="formData.videos = $event"
         />
@@ -1341,7 +1342,7 @@ const formData = ref(false ? TEST_DATA : { // TEST_DATA無効化（仮データ�
     section_g_memo: ''
   },
   // 動画
-  videos: [] as File[],
+  videos: [] as string[],
   // 販売用情報
   salesOverview: {
     schedule: '',

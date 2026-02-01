@@ -3,6 +3,24 @@ import { useSupabase } from './useSupabase'
 const BUCKET_NAME = 'miyako-property-files'
 
 /**
+ * ファイル名をサニタイズ（日本語などの非ASCII文字を除去）
+ */
+const sanitizeFileName = (fileName: string): string => {
+  // 拡張子を取得
+  const lastDot = fileName.lastIndexOf('.')
+  const ext = lastDot > 0 ? fileName.slice(lastDot) : ''
+  const baseName = lastDot > 0 ? fileName.slice(0, lastDot) : fileName
+
+  // ASCII文字のみ残す（日本語などは除去）
+  const safeName = baseName.replace(/[^\x00-\x7F]/g, '').replace(/[^a-zA-Z0-9_-]/g, '_')
+
+  // 空になった場合はfile_に
+  const finalName = safeName || 'file'
+
+  return finalName + ext.toLowerCase()
+}
+
+/**
  * ファイルをSupabase Storageにアップロードしてpublic URLを返す
  * @param file アップロードするファイル
  * @param propertyId 物件ID（フォルダ分け用）
@@ -16,9 +34,10 @@ export const uploadFile = async (
 ): Promise<string | null> => {
   const supabase = useSupabase()
 
-  // ファイル名をユニークにする（タイムスタンプ + 元のファイル名）
+  // ファイル名をサニタイズしてユニークにする（タイムスタンプ + サニタイズ済みファイル名）
   const timestamp = Date.now()
-  const fileName = `${timestamp}_${file.name}`
+  const safeFileName = sanitizeFileName(file.name)
+  const fileName = `${timestamp}_${safeFileName}`
   const filePath = `${propertyId}/${category}/${fileName}`
 
   try {
