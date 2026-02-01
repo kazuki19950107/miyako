@@ -195,8 +195,7 @@
           </v-col>
           <v-col cols="12" md="4">
             <v-file-input
-              :model-value="detailCheck.electricity_bill_photos"
-              @update:model-value="updateDetailCheck('electricity_bill_photos', $event)"
+              @update:model-value="handleFileUpload($event, 'electricity_bill', 'electricity_bill_photos')"
               label="請求書写真"
               outlined
               dense
@@ -206,7 +205,21 @@
               show-size
               chips
               small-chips
+              :loading="isUploading"
             />
+            <!-- アップロード済みファイル一覧 -->
+            <div v-if="detailCheck.electricity_bill_photos?.length" class="mt-2">
+              <v-chip
+                v-for="(url, index) in detailCheck.electricity_bill_photos"
+                :key="index"
+                class="mr-2 mb-1"
+                size="small"
+              >
+                <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
+                <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('electricity_bill_photos', index, url)">mdi-close</v-icon>
+              </v-chip>
+            </div>
           </v-col>
 
           <v-col cols="12"><v-divider /></v-col>
@@ -263,8 +276,7 @@
           </v-col>
           <v-col cols="12" md="4">
             <v-file-input
-              :model-value="detailCheck.gas_bill_photos"
-              @update:model-value="updateDetailCheck('gas_bill_photos', $event)"
+              @update:model-value="handleFileUpload($event, 'gas_bill', 'gas_bill_photos')"
               label="請求書写真"
               outlined
               dense
@@ -274,7 +286,21 @@
               show-size
               chips
               small-chips
+              :loading="isUploading"
             />
+            <!-- アップロード済みファイル一覧 -->
+            <div v-if="detailCheck.gas_bill_photos?.length" class="mt-2">
+              <v-chip
+                v-for="(url, index) in detailCheck.gas_bill_photos"
+                :key="index"
+                class="mr-2 mb-1"
+                size="small"
+              >
+                <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
+                <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('gas_bill_photos', index, url)">mdi-close</v-icon>
+              </v-chip>
+            </div>
           </v-col>
 
           <v-col cols="12"><v-divider /></v-col>
@@ -331,8 +357,7 @@
           </v-col>
           <v-col cols="12" md="4">
             <v-file-input
-              :model-value="detailCheck.water_bill_photos"
-              @update:model-value="updateDetailCheck('water_bill_photos', $event)"
+              @update:model-value="handleFileUpload($event, 'water_bill', 'water_bill_photos')"
               label="請求書写真"
               outlined
               dense
@@ -342,7 +367,21 @@
               show-size
               chips
               small-chips
+              :loading="isUploading"
             />
+            <!-- アップロード済みファイル一覧 -->
+            <div v-if="detailCheck.water_bill_photos?.length" class="mt-2">
+              <v-chip
+                v-for="(url, index) in detailCheck.water_bill_photos"
+                :key="index"
+                class="mr-2 mb-1"
+                size="small"
+              >
+                <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
+                <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('water_bill_photos', index, url)">mdi-close</v-icon>
+              </v-chip>
+            </div>
           </v-col>
 
           <v-col cols="12"><v-divider /></v-col>
@@ -553,14 +592,56 @@
       </v-card-text>
     </v-card>
 
+    <!-- 画像プレビューモーダル -->
+    <v-dialog v-model="showPreviewModal" max-width="800">
+      <v-card>
+        <v-card-title class="d-flex justify-space-between align-center">
+          <span>画像プレビュー</span>
+          <v-btn icon variant="text" @click="showPreviewModal = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="text-center pa-4">
+          <v-img
+            :src="previewUrl"
+            max-height="600"
+            contain
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <!-- 削除確認ダイアログ -->
+    <v-dialog v-model="showDeleteConfirm" width="380">
+      <v-card>
+        <v-card-title>
+          <v-icon class="mr-2" color="warning">mdi-alert</v-icon>
+          削除確認
+        </v-card-title>
+        <v-card-text>
+          このファイルを削除してもよろしいですか？
+          <div v-if="deleteTarget" class="mt-2 text-caption text-grey">
+            {{ getFileName(deleteTarget.url) }}
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showDeleteConfirm = false">キャンセル</v-btn>
+          <v-btn color="error" variant="flat" @click="confirmDelete">削除</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-form>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { uploadFiles } from '~/composables/useFileUpload'
 
 // Props
 const props = defineProps<{
+  propertyId?: string | null
   propertyFeatures: {
     strengths: string[]
     limitations: string[]
@@ -725,6 +806,53 @@ const emit = defineEmits<{
 const formValid = ref(false)
 const detailForm = ref(null)
 
+// プレビューモーダル用
+const showPreviewModal = ref(false)
+const previewUrl = ref('')
+
+// 削除確認用
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<{ fieldName: string; index: number; url: string } | null>(null)
+
+// ファイル名を取得
+const getFileName = (url: string): string => {
+  try {
+    const urlObj = new URL(url)
+    const pathParts = urlObj.pathname.split('/')
+    const fileName = pathParts[pathParts.length - 1]
+    // タイムスタンプ部分を除去（例: 1234567890_filename.jpg → filename.jpg）
+    const match = fileName.match(/^\d+_(.+)$/)
+    return match ? match[1] : fileName
+  } catch {
+    return url
+  }
+}
+
+// プレビューモーダルを開く
+const openPreviewModal = (url: string) => {
+  previewUrl.value = url
+  showPreviewModal.value = true
+}
+
+// 削除確認ダイアログを開く
+const openDeleteConfirm = (fieldName: string, index: number, url: string) => {
+  deleteTarget.value = { fieldName, index, url }
+  showDeleteConfirm.value = true
+}
+
+// ファイルを削除
+const confirmDelete = () => {
+  if (!deleteTarget.value) return
+
+  const { fieldName, index } = deleteTarget.value
+  const currentUrls = props.detailCheck?.[fieldName] || []
+  const newUrls = currentUrls.filter((_: string, i: number) => i !== index)
+  updateDetailCheck(fieldName, newUrls)
+
+  showDeleteConfirm.value = false
+  deleteTarget.value = null
+}
+
 // 写真のプレビューURL生成
 const getPhotoUrls = (files: File[] | null): string[] => {
   if (!files || !Array.isArray(files)) return []
@@ -743,6 +871,33 @@ const updatePropertyFeatures = (key: string, value: any) => {
 
 const updateDetailCheck = (key: string, value: any) => {
   emit('update:detailCheck', { ...props.detailCheck, [key]: value })
+}
+
+// ファイルアップロード処理
+const isUploading = ref(false)
+const handleFileUpload = async (files: File[] | File | null, category: string, fieldName: string) => {
+  if (!files) return
+
+  const fileArray = Array.isArray(files) ? files : [files]
+  if (fileArray.length === 0) return
+
+  // propertyIdがない場合は一時的なIDを使用
+  const id = props.propertyId || `temp_${Date.now()}`
+
+  isUploading.value = true
+  try {
+    const urls = await uploadFiles(fileArray, id, category)
+    if (urls.length > 0) {
+      // 既存のURLと結合
+      const existingUrls = props.detailCheck?.[fieldName] || []
+      const allUrls = Array.isArray(existingUrls) ? [...existingUrls, ...urls] : urls
+      updateDetailCheck(fieldName, allUrls)
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
 }
 
 // 契約書ファイルの追加
@@ -935,4 +1090,14 @@ defineExpose({
 :deep(.v-field--focused .v-field__field) {
   background-color: #ffffff !important;
 }
+
+/* クリック可能なアイコン */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  opacity: 0.7;
+}
+
 </style>

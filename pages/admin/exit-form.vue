@@ -99,6 +99,7 @@
       <!-- タブ3: 契約内容 -->
       <v-window-item :value="2">
         <AdminExitFormContractInfoTab
+          :property-id="selectedPropertyId"
           :property-features="formData.propertyFeatures"
           @update:property-features="formData.propertyFeatures = $event"
           :detail-check="formData.detailCheck"
@@ -290,10 +291,19 @@ const onPropertySelect = async (propertyId: string | null) => {
     Object.assign(formData.value.contact, converted.contact)
     Object.assign(formData.value.status, converted.status)
     Object.assign(formData.value.locationInfo, converted.locationInfo)
+    Object.assign(formData.value.equipment, converted.equipment)
     Object.assign(formData.value.propertyFeatures, converted.propertyFeatures)
     Object.assign(formData.value.detailCheck, converted.detailCheck)
     Object.assign(formData.value.salesOverview, converted.salesOverview)
     Object.assign(formData.value.strategy, converted.strategy)
+    if (converted.valuation) Object.assign(formData.value.valuation, converted.valuation)
+    if (converted.salesInfo) Object.assign(formData.value.salesInfo, converted.salesInfo)
+    if (converted.basicInfo) Object.assign(formData.value.basicInfo, converted.basicInfo)
+    if (converted.recruitment) Object.assign(formData.value.recruitment, converted.recruitment)
+    if (converted.utilities) Object.assign(formData.value.utilities, converted.utilities)
+    if (converted.business) Object.assign(formData.value.business, converted.business)
+    if (converted.externalContacts) formData.value.externalContacts = converted.externalContacts
+    if (converted.customerInput) Object.assign(formData.value.customerInput, converted.customerInput)
     // 自由記述（キャンバス）
     canvasPages.value = converted.canvasPages || ['']
 
