@@ -15,34 +15,37 @@
               <v-icon small class="mr-1">mdi-file-document-edit-outline</v-icon>
               契約書をアップロードしてください
             </div>
-            <v-file-input
-              :model-value="null"
-              @update:model-value="addContractDocuments($event)"
-              label="契約書ファイルを追加"
-              outlined
-              dense
+            <input
+              ref="contractFileInput"
+              type="file"
               multiple
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              prepend-icon="mdi-paperclip"
-              show-size
-              hide-details
+              style="display: none;"
+              @change="onContractFileChange"
             />
-            <div class="text-caption grey--text mb-2">
-              ※PDF、画像ファイル（JPG, PNG）、Wordファイルに対応しています
-            </div>
+            <v-btn
+              color="primary"
+              variant="outlined"
+              size="small"
+              :loading="isUploading"
+              @click="contractFileInput?.click()"
+            >
+              <v-icon start>mdi-paperclip</v-icon>
+              ファイルを追加
+            </v-btn>
+            <span class="text-caption text-grey ml-2">PDF, 画像, Word対応</span>
             <!-- アップロード済みファイル一覧 -->
             <div v-if="detailCheck.contract_documents?.length" class="mt-2">
-              <div class="text-caption mb-1">アップロード済み（{{ detailCheck.contract_documents.length }}件）</div>
               <v-chip
-                v-for="(file, index) in detailCheck.contract_documents"
-                :key="index"
+                v-for="(url, index) in detailCheck.contract_documents"
+                :key="`contract-${index}`"
                 size="small"
                 color="primary"
-                closable
                 class="me-2 mb-1"
-                @click:close="removeContractDocument(index)"
               >
-                {{ file.name }}
+                <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
+                <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('contract_documents', index, url)">mdi-close-circle</v-icon>
               </v-chip>
             </div>
           </v-col>
@@ -194,30 +197,37 @@
             />
           </v-col>
           <v-col cols="12" md="4">
-            <v-file-input
-              @update:model-value="handleFileUpload($event, 'electricity_bill', 'electricity_bill_photos')"
-              label="請求書写真"
-              outlined
-              dense
+            <input
+              ref="electricityFileInput"
+              type="file"
               multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              chips
-              small-chips
-              :loading="isUploading"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+              style="display: none;"
+              @change="onElectricityFileChange"
             />
+            <span class="text-body-2 font-weight-bold mr-4" style="color: #1e50a2;">請求書</span>
+            <v-btn
+              color="primary"
+              variant="outlined"
+              size="small"
+              :loading="isUploading"
+              @click="electricityFileInput?.click()"
+            >
+              <v-icon start>mdi-paperclip</v-icon>
+              追加
+            </v-btn>
             <!-- アップロード済みファイル一覧 -->
             <div v-if="detailCheck.electricity_bill_photos?.length" class="mt-2">
               <v-chip
                 v-for="(url, index) in detailCheck.electricity_bill_photos"
-                :key="index"
+                :key="`electricity-${index}`"
                 class="mr-2 mb-1"
                 size="small"
+                color="primary"
               >
                 <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
                 <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
-                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('electricity_bill_photos', index, url)">mdi-close</v-icon>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('electricity_bill_photos', index, url)">mdi-close-circle</v-icon>
               </v-chip>
             </div>
           </v-col>
@@ -275,30 +285,37 @@
             />
           </v-col>
           <v-col cols="12" md="4">
-            <v-file-input
-              @update:model-value="handleFileUpload($event, 'gas_bill', 'gas_bill_photos')"
-              label="請求書写真"
-              outlined
-              dense
+            <input
+              ref="gasFileInput"
+              type="file"
               multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              chips
-              small-chips
-              :loading="isUploading"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+              style="display: none;"
+              @change="onGasFileChange"
             />
+            <span class="text-body-2 font-weight-bold mr-4" style="color: #1e50a2;">請求書</span>
+            <v-btn
+              color="primary"
+              variant="outlined"
+              size="small"
+              :loading="isUploading"
+              @click="gasFileInput?.click()"
+            >
+              <v-icon start>mdi-paperclip</v-icon>
+              追加
+            </v-btn>
             <!-- アップロード済みファイル一覧 -->
             <div v-if="detailCheck.gas_bill_photos?.length" class="mt-2">
               <v-chip
                 v-for="(url, index) in detailCheck.gas_bill_photos"
-                :key="index"
+                :key="`gas-${index}`"
                 class="mr-2 mb-1"
                 size="small"
+                color="primary"
               >
                 <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
                 <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
-                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('gas_bill_photos', index, url)">mdi-close</v-icon>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('gas_bill_photos', index, url)">mdi-close-circle</v-icon>
               </v-chip>
             </div>
           </v-col>
@@ -356,30 +373,37 @@
             />
           </v-col>
           <v-col cols="12" md="4">
-            <v-file-input
-              @update:model-value="handleFileUpload($event, 'water_bill', 'water_bill_photos')"
-              label="請求書写真"
-              outlined
-              dense
+            <input
+              ref="waterFileInput"
+              type="file"
               multiple
-              accept="image/*"
-              prepend-icon="mdi-camera"
-              show-size
-              chips
-              small-chips
-              :loading="isUploading"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+              style="display: none;"
+              @change="onWaterFileChange"
             />
+            <span class="text-body-2 font-weight-bold mr-4" style="color: #1e50a2;">請求書</span>
+            <v-btn
+              color="primary"
+              variant="outlined"
+              size="small"
+              :loading="isUploading"
+              @click="waterFileInput?.click()"
+            >
+              <v-icon start>mdi-paperclip</v-icon>
+              追加
+            </v-btn>
             <!-- アップロード済みファイル一覧 -->
             <div v-if="detailCheck.water_bill_photos?.length" class="mt-2">
               <v-chip
                 v-for="(url, index) in detailCheck.water_bill_photos"
-                :key="index"
+                :key="`water-${index}`"
                 class="mr-2 mb-1"
                 size="small"
+                color="primary"
               >
                 <v-icon size="small" class="mr-1 cursor-pointer" @click="openPreviewModal(url)">mdi-eye</v-icon>
                 <span class="text-truncate" style="max-width: 120px;">{{ getFileName(url) }}</span>
-                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('water_bill_photos', index, url)">mdi-close</v-icon>
+                <v-icon size="small" class="ml-1 cursor-pointer" @click="openDeleteConfirm('water_bill_photos', index, url)">mdi-close-circle</v-icon>
               </v-chip>
             </div>
           </v-col>
@@ -592,21 +616,45 @@
       </v-card-text>
     </v-card>
 
-    <!-- 画像プレビューモーダル -->
+    <!-- ファイルプレビューモーダル -->
     <v-dialog v-model="showPreviewModal" max-width="800">
       <v-card>
         <v-card-title class="d-flex justify-space-between align-center">
-          <span>画像プレビュー</span>
+          <span>ファイルプレビュー</span>
           <v-btn icon variant="text" @click="showPreviewModal = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
         <v-card-text class="text-center pa-4">
+          <!-- 画像の場合 -->
           <v-img
+            v-if="isImageFile(previewUrl)"
             :src="previewUrl"
             max-height="600"
             contain
           />
+          <!-- PDFの場合 -->
+          <iframe
+            v-else-if="isPdfFile(previewUrl)"
+            :src="previewUrl"
+            width="100%"
+            height="600"
+            style="border: none;"
+          />
+          <!-- その他のファイル（Word、Excelなど） -->
+          <div v-else class="pa-8">
+            <v-icon size="64" color="grey">mdi-file-document-outline</v-icon>
+            <p class="mt-4 text-body-1">このファイル形式はプレビューできません</p>
+            <v-btn
+              color="primary"
+              class="mt-4"
+              :href="previewUrl"
+              target="_blank"
+            >
+              <v-icon left>mdi-download</v-icon>
+              ダウンロードして開く
+            </v-btn>
+          </div>
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -806,6 +854,12 @@ const emit = defineEmits<{
 const formValid = ref(false)
 const detailForm = ref(null)
 
+// ファイル入力のref
+const contractFileInput = ref<HTMLInputElement | null>(null)
+const electricityFileInput = ref<HTMLInputElement | null>(null)
+const gasFileInput = ref<HTMLInputElement | null>(null)
+const waterFileInput = ref<HTMLInputElement | null>(null)
+
 // プレビューモーダル用
 const showPreviewModal = ref(false)
 const previewUrl = ref('')
@@ -828,6 +882,17 @@ const getFileName = (url: string): string => {
   }
 }
 
+// ファイル形式の判定
+const isImageFile = (url: string): boolean => {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+  const lowerUrl = url.toLowerCase()
+  return imageExtensions.some(ext => lowerUrl.includes(ext))
+}
+
+const isPdfFile = (url: string): boolean => {
+  return url.toLowerCase().includes('.pdf')
+}
+
 // プレビューモーダルを開く
 const openPreviewModal = (url: string) => {
   previewUrl.value = url
@@ -842,15 +907,14 @@ const openDeleteConfirm = (fieldName: string, index: number, url: string) => {
 
 // ファイルを削除
 const confirmDelete = () => {
-  if (!deleteTarget.value) return
-
-  const { fieldName, index } = deleteTarget.value
-  const currentUrls = props.detailCheck?.[fieldName] || []
-  const newUrls = currentUrls.filter((_: string, i: number) => i !== index)
-  updateDetailCheck(fieldName, newUrls)
-
+  if (deleteTarget.value) {
+    const { fieldName, index } = deleteTarget.value
+    const currentUrls = props.detailCheck?.[fieldName] || []
+    const newUrls = currentUrls.filter((_: string, i: number) => i !== index)
+    updateDetailCheck(fieldName, newUrls)
+    deleteTarget.value = null
+  }
   showDeleteConfirm.value = false
-  deleteTarget.value = null
 }
 
 // 写真のプレビューURL生成
@@ -900,25 +964,37 @@ const handleFileUpload = async (files: File[] | File | null, category: string, f
   }
 }
 
-// 契約書ファイルの追加
-const addContractDocuments = (files: File[] | File | null) => {
-  if (!files) return
-  const newFiles = Array.isArray(files) ? files : [files]
-  const currentFiles = props.detailCheck?.contract_documents || []
-  emit('update:detailCheck', {
-    ...props.detailCheck,
-    contract_documents: [...currentFiles, ...newFiles]
-  })
+// ファイル選択ハンドラー
+const onContractFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    handleFileUpload(Array.from(input.files), 'contract_documents', 'contract_documents')
+    input.value = '' // リセット
+  }
 }
 
-// 契約書ファイルの削除
-const removeContractDocument = (index: number) => {
-  const currentFiles = props.detailCheck?.contract_documents || []
-  const newFiles = currentFiles.filter((_: File, i: number) => i !== index)
-  emit('update:detailCheck', {
-    ...props.detailCheck,
-    contract_documents: newFiles
-  })
+const onElectricityFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    handleFileUpload(Array.from(input.files), 'electricity_bill', 'electricity_bill_photos')
+    input.value = ''
+  }
+}
+
+const onGasFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    handleFileUpload(Array.from(input.files), 'gas_bill', 'gas_bill_photos')
+    input.value = ''
+  }
+}
+
+const onWaterFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    handleFileUpload(Array.from(input.files), 'water_bill', 'water_bill_photos')
+    input.value = ''
+  }
 }
 
 // CustomerInput update methods
