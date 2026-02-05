@@ -697,4 +697,9 @@ defineExpose({
 :deep(.v-field--focused .v-field__field) {
   background-color: #ffffff !important;
 }
+
+/* 詳細入力ボタンのアイコンを白にする */
+.force-white-icon {
+  color: white !important;
+}
 </style>
