@@ -2271,7 +2271,9 @@ body,
   .v-container {
     padding: 12px !important;
   }
-
+  .exit-form-container {
+    padding-top: 24px !important;
+  }
   .v-card-text {
     padding: 16px !important;
   }
@@ -2302,6 +2304,9 @@ body,
     font-size: 15px !important;
     padding-top: 12px !important;
     padding-bottom: 12px !important;
+  }
+  .exit-form-container {
+    padding-top: 120px !important;
   }
 
   .v-chip {
