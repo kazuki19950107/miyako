@@ -124,28 +124,28 @@
               <v-col cols="12" md="6">
                 <v-file-input
                   :model-value="null"
-                  @update:model-value="addKitchenwarePhoto($event)"
+                  @update:model-value="(files: File[] | File | null) => { if (files) handleKitchenwarePhotoUpload(Array.isArray(files) ? files : [files]) }"
                   label="写真を追加"
                   outlined
                   dense
                   multiple
                   accept="image/*"
-                  prepend-icon="mdi-camera"
                   hide-details
+                  :loading="isUploading"
                 />
-                <div v-if="customerInput?.equipment?.kitchenware?.photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+                <div v-if="getValidPhotos(customerInput?.equipment?.kitchenware?.photos).length" class="d-flex flex-wrap mt-2" style="gap: 8px;">
                   <v-chip
-                    v-for="(photo, index) in customerInput.equipment.kitchenware.photos"
-                    :key="index"
+                    v-for="(photo, idx) in getValidPhotos(customerInput?.equipment?.kitchenware?.photos)"
+                    :key="idx"
                     size="small"
                     color="primary"
                     closable
-                    @click:close="removeKitchenwarePhoto(index)"
+                    @click:close="removeKitchenwarePhoto(idx)"
                     @click="openPreview(photo)"
                     class="cursor-pointer"
                   >
                     <v-icon start size="16">mdi-eye</v-icon>
-                    写真{{ index + 1 }}
+                    {{ getFileName(photo) || '写真' + (idx + 1) }}
                   </v-chip>
                 </div>
               </v-col>
@@ -194,14 +194,14 @@
                 型番
               </div>
               <v-file-input
-                :model-value="unit.model_photo"
-                @update:model-value="updateKitchenEquipmentUnit(index, 'model_photo', $event)"
-                label="型番写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleKitchenEquipmentFileUpload(index, 'model_photo', file) }"
+                :label="getFileName(unit.model_photo) || '型番写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
+                :loading="isUploading"
               >
                 <template v-slot:prepend-inner v-if="unit.model_photo">
                   <v-icon
@@ -209,6 +209,13 @@
                     class="cursor-pointer"
                     @click.stop="openPreview(unit.model_photo)"
                   >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="unit.model_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateKitchenEquipmentUnit(index, 'model_photo', null)"
+                  >mdi-close</v-icon>
                 </template>
               </v-file-input>
             </v-col>
@@ -219,14 +226,14 @@
                 本体
               </div>
               <v-file-input
-                :model-value="unit.body_photo"
-                @update:model-value="updateKitchenEquipmentUnit(index, 'body_photo', $event)"
-                label="本体写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleKitchenEquipmentFileUpload(index, 'body_photo', file) }"
+                :label="getFileName(unit.body_photo) || '本体写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
+                :loading="isUploading"
               >
                 <template v-slot:prepend-inner v-if="unit.body_photo">
                   <v-icon
@@ -234,6 +241,13 @@
                     class="cursor-pointer"
                     @click.stop="openPreview(unit.body_photo)"
                   >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="unit.body_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateKitchenEquipmentUnit(index, 'body_photo', null)"
+                  >mdi-close</v-icon>
                 </template>
               </v-file-input>
             </v-col>
@@ -371,14 +385,14 @@
         <v-row align="start" class="mb-4">
           <v-col cols="12" md="6">
             <v-file-input
-              :model-value="detailCheck.duct_body_photo"
-              @update:model-value="updateDetailCheck('duct_body_photo', $event)"
-              label="写真"
+              :model-value="null"
+              @update:model-value="(file: File | File[] | null) => { console.log('ダクト file-input:', file, Array.isArray(file)); if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'duct', 'duct_body_photo') }"
+              :label="getFileName(detailCheck.duct_body_photo) || '写真'"
               outlined
               dense
               accept="image/*"
-              prepend-icon="mdi-camera"
               hide-details
+              :loading="isUploading"
             >
               <template v-slot:prepend-inner v-if="detailCheck.duct_body_photo">
                 <v-icon
@@ -386,6 +400,13 @@
                   class="cursor-pointer"
                   @click.stop="openPreview(detailCheck.duct_body_photo)"
                 >mdi-eye</v-icon>
+              </template>
+              <template v-slot:append-inner v-if="detailCheck.duct_body_photo">
+                <v-icon
+                  color="error"
+                  class="cursor-pointer"
+                  @click.stop="updateDetailCheck('duct_body_photo', null)"
+                >mdi-close</v-icon>
               </template>
             </v-file-input>
           </v-col>
@@ -413,14 +434,14 @@
         <v-row align="start">
           <v-col cols="12" md="6">
             <v-file-input
-              :model-value="detailCheck.grease_trap_body_photo"
-              @update:model-value="updateDetailCheck('grease_trap_body_photo', $event)"
-              label="写真"
+              :model-value="null"
+              @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'grease_trap', 'grease_trap_body_photo') }"
+              :label="getFileName(detailCheck.grease_trap_body_photo) || '写真'"
               outlined
               dense
               accept="image/*"
-              prepend-icon="mdi-camera"
               hide-details
+              :loading="isUploading"
             >
               <template v-slot:prepend-inner v-if="detailCheck.grease_trap_body_photo">
                 <v-icon
@@ -428,6 +449,13 @@
                   class="cursor-pointer"
                   @click.stop="openPreview(detailCheck.grease_trap_body_photo)"
                 >mdi-eye</v-icon>
+              </template>
+              <template v-slot:append-inner v-if="detailCheck.grease_trap_body_photo">
+                <v-icon
+                  color="error"
+                  class="cursor-pointer"
+                  @click.stop="updateDetailCheck('grease_trap_body_photo', null)"
+                >mdi-close</v-icon>
               </template>
             </v-file-input>
           </v-col>
@@ -486,14 +514,14 @@
                 型番
               </div>
               <v-file-input
-                :model-value="unit.model_photo"
-                @update:model-value="updateIndoorUnit(index, 'model_photo', $event)"
-                label="型番写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleIndoorUnitFileUpload(index, 'model_photo', file) }"
+                :label="getFileName(unit.model_photo) || '型番写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
+                :loading="isUploading"
               >
                 <template v-slot:prepend-inner v-if="unit.model_photo">
                   <v-icon
@@ -501,6 +529,13 @@
                     class="cursor-pointer"
                     @click.stop="openPreview(unit.model_photo)"
                   >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="unit.model_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateIndoorUnit(index, 'model_photo', null)"
+                  >mdi-close</v-icon>
                 </template>
               </v-file-input>
             </v-col>
@@ -511,14 +546,14 @@
                 本体
               </div>
               <v-file-input
-                :model-value="unit.body_photo"
-                @update:model-value="updateIndoorUnit(index, 'body_photo', $event)"
-                label="本体写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleIndoorUnitFileUpload(index, 'body_photo', file) }"
+                :label="getFileName(unit.body_photo) || '本体写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
+                :loading="isUploading"
               >
                 <template v-slot:prepend-inner v-if="unit.body_photo">
                   <v-icon
@@ -526,6 +561,13 @@
                     class="cursor-pointer"
                     @click.stop="openPreview(unit.body_photo)"
                   >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="unit.body_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateIndoorUnit(index, 'body_photo', null)"
+                  >mdi-close</v-icon>
                 </template>
               </v-file-input>
             </v-col>
@@ -746,21 +788,28 @@
 
             <!-- 席の写真 -->
             <v-col cols="12">
-              <v-file-input
-                :model-value="null"
-                @update:model-value="addFloorPhoto(index, $event)"
-                label="席の写真を追加"
-                outlined
-                dense
+              <input
+                :ref="(el: any) => { floorPhotoInputs[index] = el }"
+                type="file"
                 multiple
                 accept="image/*"
-                prepend-icon="mdi-camera"
-                hide-details
+                style="display: none;"
+                @change="(e: Event) => onFloorPhotoChange(e, index)"
               />
+              <v-btn
+                color="primary"
+                variant="outlined"
+                size="small"
+                :loading="isUploading"
+                @click="floorPhotoInputs[index]?.click()"
+              >
+                <v-icon start>mdi-camera</v-icon>
+                席の写真を追加
+              </v-btn>
               <!-- 写真プレビュー -->
-              <div v-if="floor.photos?.length" class="d-flex flex-wrap gap-2 mt-2">
+              <div v-if="getValidPhotos(floor.photos).length" class="d-flex flex-wrap mt-2" style="gap: 8px;">
                 <v-chip
-                  v-for="(photo, photoIndex) in floor.photos"
+                  v-for="(photo, photoIndex) in getValidPhotos(floor.photos)"
                   :key="photoIndex"
                   size="small"
                   color="primary"
@@ -770,7 +819,7 @@
                   class="cursor-pointer"
                 >
                   <v-icon start size="16">mdi-eye</v-icon>
-                  写真{{ photoIndex + 1 }}
+                  {{ getFileName(photo) || '写真' + (photoIndex + 1) }}
                 </v-chip>
               </div>
             </v-col>
@@ -832,14 +881,14 @@
           <!-- 本体写真 -->
           <v-col cols="12" md="6">
             <v-file-input
-              :model-value="detailCheck.electric_meter_body_photo"
-              @update:model-value="updateDetailCheck('electric_meter_body_photo', $event)"
-              label="本体写真"
+              :model-value="null"
+              @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'electric_meter', 'electric_meter_body_photo') }"
+              :label="getFileName(detailCheck.electric_meter_body_photo) || '本体写真'"
               outlined
               dense
               accept="image/*"
-              prepend-icon="mdi-camera"
               hide-details
+              :loading="isUploading"
             >
               <template v-slot:prepend-inner v-if="detailCheck.electric_meter_body_photo">
                 <v-icon
@@ -847,6 +896,13 @@
                   class="cursor-pointer"
                   @click.stop="openPreview(detailCheck.electric_meter_body_photo)"
                 >mdi-eye</v-icon>
+              </template>
+              <template v-slot:append-inner v-if="detailCheck.electric_meter_body_photo">
+                <v-icon
+                  color="error"
+                  class="cursor-pointer"
+                  @click.stop="updateDetailCheck('electric_meter_body_photo', null)"
+                >mdi-close</v-icon>
               </template>
             </v-file-input>
           </v-col>
@@ -890,14 +946,14 @@
           <!-- 本体写真 -->
           <v-col cols="12" md="4">
             <v-file-input
-              :model-value="detailCheck.gas_meter_body_photo"
-              @update:model-value="updateDetailCheck('gas_meter_body_photo', $event)"
-              label="本体写真"
+              :model-value="null"
+              @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'gas_meter', 'gas_meter_body_photo') }"
+              :label="getFileName(detailCheck.gas_meter_body_photo) || '本体写真'"
               outlined
               dense
               accept="image/*"
-              prepend-icon="mdi-camera"
               hide-details
+              :loading="isUploading"
             >
               <template v-slot:prepend-inner v-if="detailCheck.gas_meter_body_photo">
                 <v-icon
@@ -905,6 +961,13 @@
                   class="cursor-pointer"
                   @click.stop="openPreview(detailCheck.gas_meter_body_photo)"
                 >mdi-eye</v-icon>
+              </template>
+              <template v-slot:append-inner v-if="detailCheck.gas_meter_body_photo">
+                <v-icon
+                  color="error"
+                  class="cursor-pointer"
+                  @click.stop="updateDetailCheck('gas_meter_body_photo', null)"
+                >mdi-close</v-icon>
               </template>
             </v-file-input>
           </v-col>
@@ -948,14 +1011,14 @@
           <!-- 本体写真 -->
           <v-col cols="12" md="4">
             <v-file-input
-              :model-value="detailCheck.water_meter_body_photo"
-              @update:model-value="updateDetailCheck('water_meter_body_photo', $event)"
-              label="本体写真"
+              :model-value="null"
+              @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'water_meter', 'water_meter_body_photo') }"
+              :label="getFileName(detailCheck.water_meter_body_photo) || '本体写真'"
               outlined
               dense
               accept="image/*"
-              prepend-icon="mdi-camera"
               hide-details
+              :loading="isUploading"
             >
               <template v-slot:prepend-inner v-if="detailCheck.water_meter_body_photo">
                 <v-icon
@@ -963,6 +1026,13 @@
                   class="cursor-pointer"
                   @click.stop="openPreview(detailCheck.water_meter_body_photo)"
                 >mdi-eye</v-icon>
+              </template>
+              <template v-slot:append-inner v-if="detailCheck.water_meter_body_photo">
+                <v-icon
+                  color="error"
+                  class="cursor-pointer"
+                  @click.stop="updateDetailCheck('water_meter_body_photo', null)"
+                >mdi-close</v-icon>
               </template>
             </v-file-input>
           </v-col>
@@ -1155,31 +1225,61 @@
             <div v-if="detailCheck.permit_health_center" class="mt-2 mb-3">
               <div class="text-caption mb-1 font-weight-bold">保健所</div>
               <v-file-input
-                :model-value="detailCheck.permit_health_center_photo"
-                @update:model-value="updateDetailCheck('permit_health_center_photo', $event)"
-                label="許可証写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'permit_health_center', 'permit_health_center_photo') }"
+                :label="getFileName(detailCheck.permit_health_center_photo) || '許可証写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
-              />
+                :loading="isUploading"
+              >
+                <template v-slot:prepend-inner v-if="detailCheck.permit_health_center_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(detailCheck.permit_health_center_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="detailCheck.permit_health_center_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateDetailCheck('permit_health_center_photo', null)"
+                  >mdi-close</v-icon>
+                </template>
+              </v-file-input>
             </div>
 
             <!-- 消防署詳細 -->
             <div v-if="detailCheck.permit_fire_department" class="mt-2 mb-3">
               <div class="text-caption mb-1 font-weight-bold">消防署</div>
               <v-file-input
-                :model-value="detailCheck.permit_fire_department_photo"
-                @update:model-value="updateDetailCheck('permit_fire_department_photo', $event)"
-                label="許可証写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'permit_fire_department', 'permit_fire_department_photo') }"
+                :label="getFileName(detailCheck.permit_fire_department_photo) || '許可証写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
                 class="mb-2"
-              />
+                :loading="isUploading"
+              >
+                <template v-slot:prepend-inner v-if="detailCheck.permit_fire_department_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(detailCheck.permit_fire_department_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="detailCheck.permit_fire_department_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateDetailCheck('permit_fire_department_photo', null)"
+                  >mdi-close</v-icon>
+                </template>
+              </v-file-input>
               <div class="text-caption mb-1">設備の設置有無</div>
               <v-row dense>
                 <v-col cols="4">
@@ -1234,16 +1334,31 @@
             <div v-if="detailCheck.permit_police" class="mt-2 mb-3">
               <div class="text-caption mb-1 font-weight-bold">警察署</div>
               <v-file-input
-                :model-value="detailCheck.permit_police_photo"
-                @update:model-value="updateDetailCheck('permit_police_photo', $event)"
-                label="許可証写真"
+                :model-value="null"
+                @update:model-value="(file: File | File[] | null) => { if (file && !Array.isArray(file)) handleSingleFileUpload(file, 'permit_police', 'permit_police_photo') }"
+                :label="getFileName(detailCheck.permit_police_photo) || '許可証写真'"
                 outlined
                 dense
                 accept="image/*"
-                prepend-icon="mdi-camera"
                 hide-details
                 class="mb-2"
-              />
+                :loading="isUploading"
+              >
+                <template v-slot:prepend-inner v-if="detailCheck.permit_police_photo">
+                  <v-icon
+                    color="primary"
+                    class="cursor-pointer"
+                    @click.stop="openPreview(detailCheck.permit_police_photo)"
+                  >mdi-eye</v-icon>
+                </template>
+                <template v-slot:append-inner v-if="detailCheck.permit_police_photo">
+                  <v-icon
+                    color="error"
+                    class="cursor-pointer"
+                    @click.stop="updateDetailCheck('permit_police_photo', null)"
+                  >mdi-close</v-icon>
+                </template>
+              </v-file-input>
               <v-text-field
                 :model-value="detailCheck.permit_police_detail"
                 @update:model-value="updateDetailCheck('permit_police_detail', $event)"
@@ -1280,8 +1395,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
+// Nuxt auto-imports useFileUpload from composables
+const { uploadFile, uploadFiles } = useFileUpload()
+
 // Props
 const props = withDefaults(defineProps<{
+  propertyId?: string | null
   customerInput?: {
     equipment: {
       notTransfer: {
@@ -1303,7 +1422,7 @@ const props = withDefaults(defineProps<{
       kitchenware: {
         status: string
         detail: string
-        photos: File[] | null
+        photos: string[] | null
       }
       seats: string
       seatingList: Array<{
@@ -1333,8 +1452,8 @@ const props = withDefaults(defineProps<{
 
     // 厨房設備（複数対応）
     kitchen_equipment_units: Array<{
-      model_photo: File | null
-      body_photo: File | null
+      model_photo: string | null
+      body_photo: string | null
       broken: boolean
       lease: boolean
       landlord_owned: boolean
@@ -1347,16 +1466,16 @@ const props = withDefaults(defineProps<{
     }>
 
     // ダクト
-    duct_model_photo: File | null
-    duct_body_photo: File | null
+    duct_model_photo: string | null
+    duct_body_photo: string | null
     duct_broken: boolean
     duct_lease: boolean
     duct_landlord_owned: boolean
     duct_detail: string
 
     // グリストラップ
-    grease_trap_model_photo: File | null
-    grease_trap_body_photo: File | null
+    grease_trap_model_photo: string | null
+    grease_trap_body_photo: string | null
     grease_trap_broken: boolean
     grease_trap_lease: boolean
     grease_trap_landlord_owned: boolean
@@ -1364,8 +1483,8 @@ const props = withDefaults(defineProps<{
 
     // エアコン室内機（複数対応）
     aircon_indoor_units: Array<{
-      model_photo: File | null
-      body_photo: File | null
+      model_photo: string | null
+      body_photo: string | null
       broken: boolean
       lease: boolean
       landlord_owned: boolean
@@ -1380,8 +1499,8 @@ const props = withDefaults(defineProps<{
 
     // エアコン室外機（複数対応）
     aircon_outdoor_units: Array<{
-      model_photo: File | null
-      body_photo: File | null
+      model_photo: string | null
+      body_photo: string | null
       location: string
       detail: string
     }>
@@ -1392,25 +1511,25 @@ const props = withDefaults(defineProps<{
       total_seats: string
       counter_seats: string
       table_seats: string
-      photos: File[] | null
+      photos: string[] | null
     }>
 
     // 電気メーター
-    electric_meter_model_photo: File | null
-    electric_meter_body_photo: File | null
+    electric_meter_model_photo: string | null
+    electric_meter_body_photo: string | null
     electric_meter_location: string
     electric_capacity: string
     power_capacity: string
 
     // ガスメーター
-    gas_meter_model_photo: File | null
-    gas_meter_body_photo: File | null
+    gas_meter_model_photo: string | null
+    gas_meter_body_photo: string | null
     gas_meter_location: string
     gas_capacity: string
 
     // 水道メーター
-    water_meter_model_photo: File | null
-    water_meter_body_photo: File | null
+    water_meter_model_photo: string | null
+    water_meter_body_photo: string | null
     water_meter_location: string
     water_pipe_capacity: string
 
@@ -1429,19 +1548,20 @@ const props = withDefaults(defineProps<{
 
     // 環境情報 - 許認可
     permit_health_center: boolean
-    permit_health_center_photo: File | null
+    permit_health_center_photo: string | null
     permit_fire_department: boolean
-    permit_fire_department_photo: File | null
+    permit_fire_department_photo: string | null
     fire_alarm: boolean
     fire_extinguisher: boolean
     sprinkler: boolean
     escape_ladder: boolean
     emergency_light: boolean
     permit_police: boolean
-    permit_police_photo: File | null
+    permit_police_photo: string | null
     permit_police_detail: string
   }
 }>(), {
+  propertyId: null,
   customerInput: () => ({
     equipment: {
       notTransfer: {
@@ -1589,14 +1709,21 @@ const emit = defineEmits<{
 // Internal state
 const formValid = ref(false)
 const equipmentForm = ref(null)
+const isUploading = ref(false)
+const floorPhotoInputs = ref<Record<number, HTMLInputElement | null>>({})
+
 
 // 写真プレビュー用
 const previewDialog = ref(false)
 const previewImageUrl = ref('')
 
-const openPreview = (file: File | null) => {
-  if (file && file instanceof File) {
-    previewImageUrl.value = URL.createObjectURL(file)
+const openPreview = (urlOrFile: string | File | null) => {
+  if (!urlOrFile) return
+  if (typeof urlOrFile === 'string') {
+    previewImageUrl.value = urlOrFile
+    previewDialog.value = true
+  } else if (urlOrFile instanceof File) {
+    previewImageUrl.value = URL.createObjectURL(urlOrFile)
     previewDialog.value = true
   }
 }
@@ -1606,16 +1733,172 @@ const closePreview = () => {
   previewImageUrl.value = ''
 }
 
-// 写真のプレビューURL生成
-const getPhotoUrl = (file: File | null): string => {
-  if (!file || !(file instanceof File)) return ''
-  return URL.createObjectURL(file)
+// 有効な写真URLのみをフィルタリング
+const getValidPhotos = (photos: (string | null | undefined)[] | null | undefined): string[] => {
+  if (!photos || !Array.isArray(photos)) return []
+  return photos.filter((p): p is string => typeof p === 'string' && p.trim() !== '')
 }
 
-// 複数写真のプレビューURL生成
-const getPhotoUrls = (files: File[] | null): string[] => {
-  if (!files || !Array.isArray(files)) return []
-  return files.filter(f => f instanceof File).map(f => URL.createObjectURL(f))
+// ファイル名を取得
+const getFileName = (url: string | null | undefined): string => {
+  // 文字列でない、または空の場合は空文字を返す
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return ''
+  }
+  try {
+    const urlObj = new URL(url)
+    const pathParts = urlObj.pathname.split('/')
+    const fileName = pathParts[pathParts.length - 1]
+    // タイムスタンプ_ファイル名の形式からファイル名を抽出
+    const match = fileName.match(/^\d+_(.+)$/)
+    return match ? decodeURIComponent(match[1]) : decodeURIComponent(fileName)
+  } catch {
+    // URLパースに失敗した場合はそのまま返す
+    return url
+  }
+}
+
+// ファイル形式の判定
+const isImageFile = (url: string): boolean => {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+  const lowerUrl = url.toLowerCase()
+  return imageExtensions.some(ext => lowerUrl.includes(ext))
+}
+
+// 単一ファイルアップロード処理
+const handleSingleFileUpload = async (file: File | null, category: string, fieldName: string) => {
+  console.log('handleSingleFileUpload called:', { file, type: typeof file, isFile: file instanceof File, category, fieldName })
+  // Fileインスタンスでない場合は処理しない（空オブジェクト等を除外）
+  if (!file || !(file instanceof File)) {
+    console.log('無効なファイル - スキップ')
+    return
+  }
+  const id = props.propertyId || `temp_${Date.now()}`
+  isUploading.value = true
+  try {
+    const url = await uploadFile(file, id, category)
+    console.log('アップロード結果URL:', url)
+    if (url) {
+      console.log('updateDetailCheck呼び出し:', fieldName, url)
+      updateDetailCheck(fieldName, url)
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// 複数ファイルアップロード処理
+const handleMultipleFileUpload = async (files: File[], category: string, fieldName: string, existingUrls: string[] = []) => {
+  // Fileインスタンスのみをフィルタリング
+  const validFiles = files.filter(f => f instanceof File)
+  if (validFiles.length === 0) return
+  const id = props.propertyId || `temp_${Date.now()}`
+  isUploading.value = true
+  try {
+    const urls = await uploadFiles(validFiles, id, category)
+    if (urls.length > 0) {
+      const allUrls = [...existingUrls, ...urls]
+      updateDetailCheck(fieldName, allUrls)
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// 厨房設備のファイルアップロード
+const handleKitchenEquipmentFileUpload = async (index: number, field: 'model_photo' | 'body_photo', file: File | null) => {
+  if (!file || !(file instanceof File)) return
+  const id = props.propertyId || `temp_${Date.now()}`
+  isUploading.value = true
+  try {
+    const url = await uploadFile(file, id, `kitchen_equipment_${index}_${field}`)
+    if (url) {
+      updateKitchenEquipmentUnit(index, field, url)
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// エアコン室内機のファイルアップロード
+const handleIndoorUnitFileUpload = async (index: number, field: 'model_photo' | 'body_photo', file: File | null) => {
+  if (!file || !(file instanceof File)) return
+  const id = props.propertyId || `temp_${Date.now()}`
+  isUploading.value = true
+  try {
+    const url = await uploadFile(file, id, `aircon_indoor_${index}_${field}`)
+    if (url) {
+      updateIndoorUnit(index, field, url)
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// フロア席の写真アップロード
+const handleFloorPhotoUpload = async (floorIndex: number, files: File[]) => {
+  const validFiles = files.filter(f => f instanceof File)
+  if (validFiles.length === 0) return
+  const id = props.propertyId || `temp_${Date.now()}`
+  isUploading.value = true
+  try {
+    const urls = await uploadFiles(validFiles, id, `floor_seats_${floorIndex}`)
+    if (urls.length > 0) {
+      const floors = [...(props.detailCheck.floor_seats || [])]
+      const currentPhotos = floors[floorIndex].photos || []
+      floors[floorIndex] = { ...floors[floorIndex], photos: [...currentPhotos, ...urls] }
+      updateDetailCheck('floor_seats', floors)
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// フロア写真の選択ハンドラー
+const onFloorPhotoChange = (event: Event, floorIndex: number) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files || input.files.length === 0) return
+  const files = Array.from(input.files)
+  handleFloorPhotoUpload(floorIndex, files)
+  input.value = ''
+}
+
+// 調理器具写真のアップロード
+const handleKitchenwarePhotoUpload = async (files: File[]) => {
+  const validFiles = files.filter(f => f instanceof File)
+  if (validFiles.length === 0 || !props.customerInput) return
+  const id = props.propertyId || `temp_${Date.now()}`
+  isUploading.value = true
+  try {
+    const urls = await uploadFiles(validFiles, id, 'kitchenware')
+    if (urls.length > 0) {
+      const currentPhotos = props.customerInput.equipment.kitchenware.photos || []
+      emit('update:customerInput', {
+        ...props.customerInput,
+        equipment: {
+          ...props.customerInput.equipment,
+          kitchenware: {
+            ...props.customerInput.equipment.kitchenware,
+            photos: [...currentPhotos, ...urls]
+          }
+        }
+      })
+    }
+  } catch (e) {
+    console.error('ファイルアップロードエラー:', e)
+  } finally {
+    isUploading.value = false
+  }
 }
 
 // Methods
@@ -1624,7 +1907,7 @@ const updateDetailCheck = (key: string, value: any) => {
 }
 
 // 瑕疵「なし」チェック時に他をクリア
-const handleDefectNone = (value: boolean) => {
+const handleDefectNone = (value: boolean | null) => {
   if (value) {
     emit('update:detailCheck', {
       ...props.detailCheck,
@@ -1765,17 +2048,7 @@ const updateFloorSeat = (index: number, key: string, value: any) => {
   updateDetailCheck('floor_seats', floors)
 }
 
-// フロア写真の追加
-const addFloorPhoto = (floorIndex: number, files: File[] | File | null) => {
-  if (!files) return
-  const newFiles = Array.isArray(files) ? files : [files]
-  const floors = [...(props.detailCheck.floor_seats || [])]
-  const currentPhotos = floors[floorIndex].photos || []
-  floors[floorIndex] = { ...floors[floorIndex], photos: [...currentPhotos, ...newFiles] }
-  updateDetailCheck('floor_seats', floors)
-}
-
-// フロア写真の削除
+// フロア写真の削除（URLベース）
 const removeFloorPhoto = (floorIndex: number, photoIndex: number) => {
   const floors = [...(props.detailCheck.floor_seats || [])]
   const currentPhotos = [...(floors[floorIndex].photos || [])]
@@ -1848,24 +2121,7 @@ const updateKitchenware = (key: string, value: any) => {
   })
 }
 
-// 調理器具写真の追加
-const addKitchenwarePhoto = (files: File[] | File | null) => {
-  if (!files || !props.customerInput) return
-  const newFiles = Array.isArray(files) ? files : [files]
-  const currentPhotos = props.customerInput.equipment.kitchenware.photos || []
-  emit('update:customerInput', {
-    ...props.customerInput,
-    equipment: {
-      ...props.customerInput.equipment,
-      kitchenware: {
-        ...props.customerInput.equipment.kitchenware,
-        photos: [...currentPhotos, ...newFiles]
-      }
-    }
-  })
-}
-
-// 調理器具写真の削除
+// 調理器具写真の削除（URLベース）
 const removeKitchenwarePhoto = (index: number) => {
   if (!props.customerInput) return
   const currentPhotos = [...(props.customerInput.equipment.kitchenware.photos || [])]

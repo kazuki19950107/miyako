@@ -112,6 +112,7 @@
       <!-- タブ4: 設備詳細 -->
       <v-window-item :value="3">
         <AdminExitFormEquipmentDetailTab
+          :property-id="selectedPropertyId"
           :detail-check="formData.detailCheck"
           @update:detail-check="formData.detailCheck = $event"
           :customer-input="formData.customerInput"
@@ -287,7 +288,12 @@ const onPropertySelect = async (propertyId: string | null) => {
   // 物件データを取得してフォームにロード
   const propertyData = await fetchPropertyById(propertyId)
   if (propertyData) {
+    console.log('=== 読み込みデバッグ ===')
+    console.log('exit_form_data:', propertyData.exit_form_data)
+    console.log('exit_form_data.detailCheck:', propertyData.exit_form_data?.detailCheck)
+    console.log('duct_body_photo:', propertyData.exit_form_data?.detailCheck?.duct_body_photo)
     const converted = propertyToFormData(propertyData)
+    console.log('converted.detailCheck:', converted.detailCheck)
     // フォームデータに反映
     Object.assign(formData.value.contact, converted.contact)
     Object.assign(formData.value.status, converted.status)
@@ -305,6 +311,8 @@ const onPropertySelect = async (propertyId: string | null) => {
     if (converted.business) Object.assign(formData.value.business, converted.business)
     if (converted.externalContacts) formData.value.externalContacts = converted.externalContacts
     if (converted.customerInput) Object.assign(formData.value.customerInput, converted.customerInput)
+    // 動画
+    if (converted.videos) formData.value.videos = converted.videos
     // 自由記述（キャンバス）
     canvasPages.value = converted.canvasPages || ['']
 
