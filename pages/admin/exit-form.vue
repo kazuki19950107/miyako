@@ -13,46 +13,42 @@
         </v-card-title>
         <!-- 物件選択バー -->
         <v-card-text class="pa-2" style="background: #f5f5f5;">
-          <v-row align="center" dense>
-            <v-col cols="auto">
-              <v-chip
-                :color="selectedPropertyId ? 'success' : 'warning'"
-                variant="flat"
-                size="small"
-              >
-                {{ selectedPropertyId ? '編集' : '新規' }}
-              </v-chip>
-            </v-col>
-            <v-col cols="12" sm="4">
-              <v-text-field
-                v-model="propertySearchQuery"
-                placeholder="検索..."
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-                density="compact"
-                hide-details
-                clearable
-                bg-color="white"
-              />
-            </v-col>
-            <v-col cols="12" sm="5">
-              <v-select
-                v-model="selectedPropertyId"
-                :items="filteredPropertyItems"
-                :loading="propertiesLoading"
-                item-title="title"
-                item-value="value"
-                placeholder="物件を選択"
-                variant="outlined"
-                density="compact"
-                hide-details
-                clearable
-                no-data-text="物件が見つかりません"
-                bg-color="white"
-                @update:model-value="onPropertySelect"
-              />
-            </v-col>
-          </v-row>
+          <div class="toolbar-row">
+            <v-chip
+              :color="selectedPropertyId ? 'success' : 'warning'"
+              variant="flat"
+              size="small"
+            >
+              {{ selectedPropertyId ? '編集' : '新規' }}
+            </v-chip>
+            <v-text-field
+              v-model="propertySearchQuery"
+              placeholder="検索..."
+              prepend-inner-icon="mdi-magnify"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              bg-color="white"
+              class="toolbar-search"
+            />
+            <v-select
+              v-model="selectedPropertyId"
+              :items="filteredPropertyItems"
+              :loading="propertiesLoading"
+              item-title="title"
+              item-value="value"
+              placeholder="物件を選択"
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              no-data-text="物件が見つかりません"
+              bg-color="white"
+              @update:model-value="onPropertySelect"
+              class="toolbar-search"
+            />
+          </div>
         </v-card-text>
       </v-card>
 
@@ -2306,7 +2302,7 @@ body,
     padding-bottom: 12px !important;
   }
   .exit-form-container {
-    padding-top: 120px !important;
+    padding-top: 24px !important;
   }
 
   .v-chip {
@@ -2429,4 +2425,27 @@ body,
 }
 
 </style>
+
+<style scoped>
+/* ★ 追加：編集＋検索の横並びツールバー */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ★ 検索は右の空きを使って伸びる */
+.toolbar-search {
+  flex: 1;
+  min-width: 120px; /* 小さすぎ防止 */
+}
+
+/* ★ スマホ幅：必ず1行に収める（下に落ちないように） */
+@media (max-width: 600px) {
+  .toolbar-row {
+    flex-wrap: nowrap; /* ←これが重要 */
+  }
+}
+</style>
+
 
