@@ -648,7 +648,7 @@
             class="detail-status-badge"
           >
             <v-icon start size="14">mdi-lock</v-icon>
-            募集終了（{{ selectedProperty.closedDate }}）
+            募集終了{{ selectedProperty.closedDate ? `（${selectedProperty.closedDate}）` : '' }}
           </v-chip>
         </div>
 
@@ -1137,7 +1137,7 @@ const filteredProperties = computed(() => {
     case 'rent_asc': result.sort((a, b) => a.rent - b.rent); break
     case 'rent_desc': result.sort((a, b) => b.rent - a.rent); break
     case 'area_desc': result.sort((a, b) => b.area - a.area); break
-    default: result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    default: result.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
   }
 
   return result
@@ -1183,6 +1183,7 @@ const stats = computed(() => [
 
 // ─── Methods ───
 const formatRent = (rent) => {
+  if (rent == null || isNaN(rent)) return '-'
   if (rent >= 10000) {
     const man = rent / 10000
     return `${man % 1 === 0 ? man : man.toFixed(1)}万円`
