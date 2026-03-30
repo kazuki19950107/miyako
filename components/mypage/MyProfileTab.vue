@@ -332,7 +332,7 @@
             <v-expansion-panel-text>
               <div class="pt-2">
                 <!-- 編集/キャンセル/削除ボタン行 -->
-                <div class="d-flex align-center ga-2 mb-4">
+                <div class="d-flex align-center justify-end ga-2 mb-4">
                   <v-btn
                     variant="text"
                     color="primary"
@@ -342,7 +342,6 @@
                     <v-icon start size="16">{{ editingPatterns[pIdx] ? 'mdi-close' : 'mdi-pencil' }}</v-icon>
                     {{ editingPatterns[pIdx] ? 'キャンセル' : '編集' }}
                   </v-btn>
-                  <v-spacer />
                   <v-btn
                     variant="text"
                     color="error"
@@ -644,21 +643,166 @@
                     <div v-else class="text-body-1">{{ pattern.towns || '-' }}</div>
                   </v-col>
 
-                  <!-- 特殊条件 -->
-                  <v-col cols="12">
-                    <div class="text-caption text-medium-emphasis mb-1">特殊条件</div>
-                    <v-textarea
+                  <!-- 沿線名 -->
+                  <v-col cols="12" sm="6">
+                    <div class="text-caption text-medium-emphasis mb-1">沿線名</div>
+                    <v-select
                       v-if="editingPatterns[pIdx]"
-                      v-model="pattern.specialConditions"
+                      v-model="pattern.railwayLines"
+                      :items="railwayLineOptions"
                       variant="outlined"
                       density="comfortable"
                       rounded="lg"
                       hide-details
-                      rows="2"
-                      auto-grow
-                      placeholder="特殊な条件があれば入力"
+                      multiple
+                      chips
+                      closable-chips
+                      placeholder="沿線を選択"
                     />
-                    <div v-else class="text-body-1" style="white-space: pre-wrap;">{{ pattern.specialConditions || '-' }}</div>
+                    <div v-else>
+                      <v-chip
+                        v-for="line in pattern.railwayLines"
+                        :key="line"
+                        size="x-small"
+                        variant="tonal"
+                        color="secondary"
+                        class="mr-1 mb-1"
+                      >
+                        {{ line }}
+                      </v-chip>
+                      <span v-if="!pattern.railwayLines || pattern.railwayLines.length === 0">-</span>
+                    </div>
+                  </v-col>
+
+                  <!-- 駅名 -->
+                  <v-col cols="12" sm="6" md="3">
+                    <div class="text-caption text-medium-emphasis mb-1">駅名</div>
+                    <v-text-field
+                      v-if="editingPatterns[pIdx]"
+                      v-model="pattern.stationName"
+                      variant="outlined"
+                      density="comfortable"
+                      rounded="lg"
+                      hide-details
+                      placeholder="例: 心斎橋"
+                    />
+                    <div v-else class="text-body-1">{{ pattern.stationName || '-' }}</div>
+                  </v-col>
+
+                  <!-- 移動手段 -->
+                  <v-col cols="12" sm="6" md="3">
+                    <div class="text-caption text-medium-emphasis mb-1">移動手段</div>
+                    <v-select
+                      v-if="editingPatterns[pIdx]"
+                      v-model="pattern.transportMethod"
+                      :items="transportMethodOptions"
+                      variant="outlined"
+                      density="comfortable"
+                      rounded="lg"
+                      hide-details
+                      placeholder="移動手段を選択"
+                    />
+                    <div v-else class="text-body-1">{{ pattern.transportMethod || '-' }}</div>
+                  </v-col>
+
+                  <!-- 移動時間 -->
+                  <v-col cols="12" sm="6" md="3">
+                    <div class="text-caption text-medium-emphasis mb-1">移動時間</div>
+                    <v-text-field
+                      v-if="editingPatterns[pIdx]"
+                      v-model.number="pattern.transportMinutes"
+                      variant="outlined"
+                      density="comfortable"
+                      rounded="lg"
+                      hide-details
+                      type="number"
+                      min="0"
+                      suffix="分"
+                      placeholder="5"
+                    />
+                    <div v-else class="text-body-1">{{ pattern.transportMinutes != null ? pattern.transportMinutes + ' 分' : '-' }}</div>
+                  </v-col>
+
+                  <!-- 室内状態 -->
+                  <v-col cols="12" sm="6" md="3">
+                    <div class="text-caption text-medium-emphasis mb-1">室内状態</div>
+                    <v-select
+                      v-if="editingPatterns[pIdx]"
+                      v-model="pattern.interiorCondition"
+                      :items="interiorConditionOptions"
+                      variant="outlined"
+                      density="comfortable"
+                      rounded="lg"
+                      hide-details
+                      multiple
+                      chips
+                      closable-chips
+                    />
+                    <div v-else>
+                      <v-chip
+                        v-for="cond in pattern.interiorCondition"
+                        :key="cond"
+                        size="x-small"
+                        variant="tonal"
+                        class="mr-1 mb-1"
+                      >
+                        {{ cond }}
+                      </v-chip>
+                      <span v-if="!pattern.interiorCondition || pattern.interiorCondition.length === 0">-</span>
+                    </div>
+                  </v-col>
+
+                  <!-- 特殊条件 (grouped checkboxes) -->
+                  <v-col cols="12">
+                    <div class="text-caption text-medium-emphasis mb-1">特殊条件</div>
+                    <template v-if="editingPatterns[pIdx]">
+                      <div class="special-requirements-grid">
+                        <v-card
+                          v-for="group in specialRequirementGroups"
+                          :key="group.label"
+                          variant="outlined"
+                          rounded="lg"
+                          class="pa-3"
+                        >
+                          <div class="text-caption font-weight-bold text-medium-emphasis mb-2">{{ group.label }}</div>
+                          <div class="d-flex flex-wrap">
+                            <v-checkbox
+                              v-for="item in group.items"
+                              :key="item"
+                              v-model="pattern.specialRequirements"
+                              :label="item"
+                              :value="item"
+                              density="compact"
+                              hide-details
+                              class="special-req-checkbox"
+                            />
+                          </div>
+                        </v-card>
+                      </div>
+                    </template>
+                    <div v-else>
+                      <template v-if="pattern.specialRequirements && pattern.specialRequirements.length > 0">
+                        <div
+                          v-for="group in specialRequirementGroups"
+                          :key="'view-' + group.label"
+                        >
+                          <template v-if="pattern.specialRequirements.some(r => group.items.includes(r))">
+                            <div class="text-caption text-medium-emphasis mt-1 mb-1">{{ group.label }}</div>
+                            <v-chip
+                              v-for="item in pattern.specialRequirements.filter(r => group.items.includes(r))"
+                              :key="item"
+                              size="x-small"
+                              variant="tonal"
+                              color="primary"
+                              class="mr-1 mb-1"
+                            >
+                              {{ item }}
+                            </v-chip>
+                          </template>
+                        </div>
+                      </template>
+                      <span v-else>-</span>
+                    </div>
                   </v-col>
 
                   <!-- 検索用メモ -->
@@ -770,6 +914,47 @@ const floorOptions = ['1階路面', '2階以上', '地下', '空中階']
 
 const kinkiPrefectures = ['大阪府', '京都府', '兵庫県', '奈良県', '滋賀県', '和歌山県', '三重県']
 
+const railwayLineOptions = [
+  'ＪＲおおさか東線', 'ＪＲ関西空港線', 'ＪＲ関西本線', 'ＪＲ阪和線', 'ＪＲ桜島線',
+  'ＪＲ山陽新幹線', 'ＪＲ大阪環状線', 'ＪＲ東海道新幹線', 'ＪＲ東海道本線', 'ＪＲ東西線',
+  'ＪＲ片町線', 'OsakaMetro御堂筋線', 'OsakaMetro今里筋線', 'OsakaMetro堺筋線',
+  'OsakaMetro四つ橋線', 'OsakaMetro千日前線', 'OsakaMetro谷町線', 'OsakaMetro中央線',
+  'OsakaMetro長堀鶴見緑地線', 'OsakaMetro南港ポートタウン線', '京阪交野線', '京阪中之島線',
+  '京阪本線', '近鉄けいはんな線', '近鉄信貴線', '近鉄西信貴ケーブル', '近鉄大阪線',
+  '近鉄長野線', '近鉄道明寺線', '近鉄奈良線', '近鉄南大阪線', '近鉄難波線',
+  '阪急京都本線', '阪急神戸本線', '阪急千里線', '阪急宝塚本線', '阪急箕面線',
+  '阪堺電気軌道阪堺線', '阪堺電気軌道上町線', '阪神なんば線', '阪神本線', '水間鉄道',
+  '泉北高速鉄道', '大阪モノレール', '大阪モノレール彩都線', '南海空港線', '南海高師浜線',
+  '南海高野線', '南海汐見橋線', '南海多奈川線', '南海本線', '能勢電鉄妙見線', '北大阪急行電鉄',
+]
+
+const transportMethodOptions = ['徒歩', 'バス', '車']
+
+const interiorConditionOptions = ['居抜き（無償）', '居抜き（有償）', 'スケルトン']
+
+const specialRequirementGroups = [
+  {
+    label: '業態許可',
+    items: ['重飲食可（炭火）', '重飲食可（炭火以外）', '軽飲食まで可', '美容可', 'サロン可', '医療可', '物販可', '事務所可', 'スクール可', '民泊可', 'スポーツジム可', '保育可', '風営可'],
+  },
+  {
+    label: '業態以外許可',
+    items: ['全面スペース利用可', '深夜営業可', 'カラオケ可', '演奏可', 'ペット可', '事業譲渡可', '検査未承可'],
+  },
+  {
+    label: '店舗外条件',
+    items: ['視認性有', '専用階段有', 'エレベーター有'],
+  },
+  {
+    label: '店舗内条件',
+    items: ['換気扇有', 'ダクト有', '内階段有', 'ダムウェーター有', 'グリストラップ有', '高天井', '重機付き', '高級店'],
+  },
+  {
+    label: 'ロケーション',
+    items: ['路面店', 'ビルイン', '角地', '駅前', '駅ビル', '商業施設', '高架下', '住宅街', '繁華街', 'ビジネス街', '学生街', '商店街', 'インバウンド', 'ロードサイド', '駐車場有（近隣）', '駐車場有（5台以下）', '駐車場有（10台以上）'],
+  },
+]
+
 const TSUBO_TO_SQM = 3.30579
 
 // ========================================
@@ -817,6 +1002,12 @@ const preferencePatterns = ref([
     towns: '',
     floors: ['1階路面'],
     specialConditions: '厨房設備あり',
+    railwayLines: ['OsakaMetro御堂筋線', 'OsakaMetro中央線'],
+    stationName: '心斎橋',
+    transportMethod: '徒歩',
+    transportMinutes: 5,
+    interiorCondition: ['居抜き（無償）', '居抜き（有償）'],
+    specialRequirements: ['重飲食可（炭火以外）', '路面店'],
     patternMemo: '',
   },
 ])
@@ -939,6 +1130,12 @@ function addPattern() {
     towns: '',
     floors: [],
     specialConditions: '',
+    railwayLines: [],
+    stationName: '',
+    transportMethod: '',
+    transportMinutes: null,
+    interiorCondition: [],
+    specialRequirements: [],
     patternMemo: '',
   }
   preferencePatterns.value.push(newPattern)
@@ -1067,5 +1264,20 @@ function formatNumber(num) {
 
 .v-expansion-panel::before {
   box-shadow: none;
+}
+
+.special-requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+
+.special-req-checkbox {
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+
+.special-req-checkbox :deep(.v-label) {
+  font-size: 0.8125rem;
 }
 </style>

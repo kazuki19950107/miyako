@@ -110,7 +110,12 @@
             <!-- 詳細フィルタ -->
             <v-expand-transition>
               <v-card v-show="showDetailFilter" color="grey-lighten-5" rounded="lg" flat class="pa-4 mb-4">
-                <v-row dense>
+                <!-- 基本条件 -->
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2">
+                  <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
+                  エリア・物件条件
+                </div>
+                <v-row dense class="mb-3">
                   <v-col cols="12" sm="6" md="3">
                     <v-select v-model="filterArea" :items="areaOptions" label="エリア" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
                   </v-col>
@@ -124,7 +129,54 @@
                     <v-select v-model="filterBusiness" :items="businessOptions" label="業態" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
                   </v-col>
                 </v-row>
-                <div class="d-flex justify-end mt-3">
+
+                <!-- アクセス・設備条件 -->
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2">
+                  <v-icon size="14" class="mr-1">mdi-train</v-icon>
+                  アクセス・設備条件
+                </div>
+                <v-row dense class="mb-3">
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterRailway" :items="railwayFilterOptions" label="沿線" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-text-field v-model="filterStation" label="駅名" placeholder="例: 心斎橋" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterWalkMinutes" :items="walkMinutesOptions" label="徒歩分数" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterInterior" :items="interiorConditionFilterOptions" label="室内状態" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                </v-row>
+
+                <!-- 特殊条件 -->
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2">
+                  <v-icon size="14" class="mr-1">mdi-tag-multiple</v-icon>
+                  特殊条件
+                </div>
+                <v-row dense>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterFloor" :items="floorFilterOptions" label="フロア" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterLocation" :items="locationFilterOptions" label="ロケーション" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterSpecial" :items="specialFilterOptions" label="許可条件" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterEquipment" :items="equipmentFilterOptions" label="店舗設備" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
+                </v-row>
+
+                <!-- アクティブフィルタ表示 + リセット -->
+                <div class="d-flex align-center mt-3">
+                  <div v-if="activeFilterCount > 0" class="text-caption text-primary font-weight-medium">
+                    <v-icon size="14" class="mr-1">mdi-filter</v-icon>
+                    {{ activeFilterCount }}件の条件で絞り込み中
+                  </div>
+                  <v-spacer />
                   <v-btn variant="text" color="primary" size="small" @click="resetFilters">
                     <v-icon start size="14">mdi-refresh</v-icon>
                     条件をリセット
@@ -202,9 +254,13 @@
 
                   <v-card-text class="pa-4 flex-grow-1">
                     <h3 class="text-subtitle-1 font-weight-bold mb-1 card-title-truncate">{{ property.name }}</h3>
-                    <div class="text-body-2 text-medium-emphasis mb-2">
+                    <div class="text-body-2 text-medium-emphasis mb-1">
                       <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
                       {{ property.location }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mb-2">
+                      <v-icon size="12" class="mr-1">mdi-train</v-icon>
+                      {{ property.station }}駅 {{ property.transportMethod }}{{ property.transportMinutes }}分
                     </div>
                     <div class="d-flex align-center ga-3 mb-3">
                       <span class="text-body-2">
@@ -574,6 +630,14 @@
               <div class="text-body-1 font-weight-medium">{{ selectedProperty.floor }}</div>
             </v-col>
             <v-col cols="6" class="mt-2">
+              <div class="text-caption text-medium-emphasis">最寄り駅</div>
+              <div class="text-body-1 font-weight-medium">{{ selectedProperty.railway }} {{ selectedProperty.station }}駅 {{ selectedProperty.transportMethod }}{{ selectedProperty.transportMinutes }}分</div>
+            </v-col>
+            <v-col cols="6" class="mt-2">
+              <div class="text-caption text-medium-emphasis">室内状態</div>
+              <div class="text-body-1 font-weight-medium">{{ selectedProperty.interiorCondition }}</div>
+            </v-col>
+            <v-col cols="6" class="mt-2">
               <div class="text-caption text-medium-emphasis">問い合わせ件数</div>
               <div class="text-body-1 font-weight-medium">
                 {{ selectedProperty.inquiryCount }}件
@@ -599,6 +663,21 @@
               >
                 <v-icon start size="14">mdi-check-circle</v-icon>
                 {{ eq }}
+              </v-chip>
+            </div>
+          </div>
+
+          <div v-if="selectedProperty.specialConditions?.length" class="mb-2 mt-4">
+            <div class="text-caption text-medium-emphasis mb-2">特殊条件</div>
+            <div class="d-flex flex-wrap ga-2">
+              <v-chip
+                v-for="cond in selectedProperty.specialConditions"
+                :key="cond"
+                size="small"
+                variant="tonal"
+                color="secondary"
+              >
+                {{ cond }}
               </v-chip>
             </div>
           </div>
@@ -683,6 +762,14 @@ const allProperties = ref([
     availableDate: '2025年9月〜',
     createdAt: '2025-07-10',
     gradient: 'linear-gradient(135deg, #5a6e7f 0%, #8fa3b3 100%)',
+    railway: 'OsakaMetro御堂筋線',
+    station: '心斎橋',
+    transportMethod: '徒歩',
+    transportMinutes: 3,
+    interiorCondition: '居抜き（有償）',
+    specialConditions: ['重飲食可（炭火以外）', '路面店', 'ダクト有'],
+    propertyCategory: '店舗',
+    floors: '1F',
   },
   {
     id: 2,
@@ -704,6 +791,14 @@ const allProperties = ref([
     availableDate: '即入居可',
     createdAt: '2025-07-12',
     gradient: 'linear-gradient(135deg, #8d7b68 0%, #b8a99a 100%)',
+    railway: 'OsakaMetro御堂筋線',
+    station: '梅田',
+    transportMethod: '徒歩',
+    transportMinutes: 5,
+    interiorCondition: '居抜き（無償）',
+    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
+    propertyCategory: '店舗',
+    floors: '1F',
   },
   {
     id: 3,
@@ -725,6 +820,14 @@ const allProperties = ref([
     availableDate: '即入居可',
     createdAt: '2025-07-14',
     gradient: 'linear-gradient(135deg, #6b705c 0%, #a5a58d 100%)',
+    railway: 'OsakaMetro御堂筋線',
+    station: 'なんば',
+    transportMethod: '徒歩',
+    transportMinutes: 2,
+    interiorCondition: '居抜き（有償）',
+    specialConditions: ['重飲食可（炭火以外）', '深夜営業可', '繁華街'],
+    propertyCategory: '店舗',
+    floors: 'B1F',
   },
   {
     id: 4,
@@ -746,6 +849,14 @@ const allProperties = ref([
     availableDate: '-',
     createdAt: '2025-06-20',
     gradient: 'linear-gradient(135deg, #7f8c8d 0%, #b2bec3 100%)',
+    railway: 'OsakaMetro谷町線',
+    station: '都島',
+    transportMethod: '徒歩',
+    transportMinutes: 7,
+    interiorCondition: 'スケルトン',
+    specialConditions: ['軽飲食まで可', '住宅街'],
+    propertyCategory: '店舗',
+    floors: '1F',
   },
   {
     id: 5,
@@ -767,6 +878,14 @@ const allProperties = ref([
     availableDate: '2025年10月〜',
     createdAt: '2025-07-11',
     gradient: 'linear-gradient(135deg, #3d405b 0%, #6c6f8a 100%)',
+    railway: 'OsakaMetro谷町線',
+    station: '東梅田',
+    transportMethod: '徒歩',
+    transportMinutes: 4,
+    interiorCondition: '居抜き（有償）',
+    specialConditions: ['深夜営業可', 'カラオケ可', '繁華街'],
+    propertyCategory: '店舗',
+    floors: '2F',
   },
   {
     id: 6,
@@ -788,6 +907,14 @@ const allProperties = ref([
     availableDate: '2025年8月〜',
     createdAt: '2025-07-08',
     gradient: 'linear-gradient(135deg, #6d4c41 0%, #8d6e63 100%)',
+    railway: '近鉄大阪線',
+    station: '鶴橋',
+    transportMethod: '徒歩',
+    transportMinutes: 3,
+    interiorCondition: '居抜き（無償）',
+    specialConditions: ['重飲食可（炭火）', '路面店', 'ダクト有', 'グリストラップ有'],
+    propertyCategory: '店舗',
+    floors: '1F',
   },
   {
     id: 7,
@@ -809,6 +936,14 @@ const allProperties = ref([
     availableDate: '-',
     createdAt: '2025-06-01',
     gradient: 'linear-gradient(135deg, #4a6741 0%, #7d9f71 100%)',
+    railway: 'OsakaMetro谷町線',
+    station: '四天王寺前夕陽ヶ丘',
+    transportMethod: '徒歩',
+    transportMinutes: 6,
+    interiorCondition: '居抜き（有償）',
+    specialConditions: ['重飲食可（炭火以外）', '高級店'],
+    propertyCategory: '店舗',
+    floors: '1F',
   },
   {
     id: 8,
@@ -830,6 +965,14 @@ const allProperties = ref([
     availableDate: '即入居可',
     createdAt: '2025-07-13',
     gradient: 'linear-gradient(135deg, #9e8c7a 0%, #c4b7a6 100%)',
+    railway: 'OsakaMetro四つ橋線',
+    station: '四ツ橋',
+    transportMethod: '徒歩',
+    transportMinutes: 5,
+    interiorCondition: 'スケルトン',
+    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
+    propertyCategory: '店舗',
+    floors: '1F',
   },
 ])
 
@@ -897,6 +1040,14 @@ const filterArea = ref(null)
 const filterRent = ref(null)
 const filterSize = ref(null)
 const filterBusiness = ref(null)
+const filterRailway = ref(null)
+const filterStation = ref('')
+const filterWalkMinutes = ref(null)
+const filterInterior = ref(null)
+const filterFloor = ref(null)
+const filterLocation = ref(null)
+const filterSpecial = ref(null)
+const filterEquipment = ref(null)
 const sortBy = ref('newest')
 
 const activeQuickFilters = ref([])
@@ -923,10 +1074,40 @@ const sizeOptions = [
 ]
 const businessOptions = ['カフェ', 'イタリアン', '居酒屋', 'ラーメン', 'バー', '焼肉', '和食', 'テイクアウト']
 
+const railwayFilterOptions = [
+  'OsakaMetro御堂筋線', 'OsakaMetro谷町線', 'OsakaMetro四つ橋線', 'OsakaMetro中央線',
+  'OsakaMetro堺筋線', 'OsakaMetro千日前線', 'OsakaMetro長堀鶴見緑地線',
+  'ＪＲ大阪環状線', 'ＪＲ東海道本線', '近鉄大阪線', '近鉄奈良線',
+  '阪急京都本線', '阪急神戸本線', '阪神本線', '南海本線', '京阪本線',
+]
+
+const interiorConditionFilterOptions = ['居抜き（無償）', '居抜き（有償）', 'スケルトン']
+
+const walkMinutesOptions = [
+  { title: '3分以内', value: 3 },
+  { title: '5分以内', value: 5 },
+  { title: '10分以内', value: 10 },
+  { title: '15分以内', value: 15 },
+]
+
+const floorFilterOptions = ['1階路面', '2階以上', '地下1階', '地下']
+
+const locationFilterOptions = ['路面店', 'ビルイン', '角地', '駅前', '駅ビル', '商業施設', '繁華街', 'ビジネス街', '住宅街', '学生街', '商店街', 'ロードサイド']
+
+const specialFilterOptions = [
+  '重飲食可（炭火）', '重飲食可（炭火以外）', '軽飲食まで可',
+  '深夜営業可', 'カラオケ可', '演奏可', 'ペット可',
+]
+
+const equipmentFilterOptions = ['ダクト有', 'グリストラップ有', '換気扇有', 'エレベーター有', '高天井', '視認性有']
+
 const quickFilters = computed(() => [
   { key: 'immediate', label: '即入居可', icon: 'mdi-flash', active: activeQuickFilters.value.includes('immediate') },
   { key: 'ground', label: '1階路面', icon: 'mdi-door', active: activeQuickFilters.value.includes('ground') },
   { key: 'kitchen', label: '厨房付き', icon: 'mdi-stove', active: activeQuickFilters.value.includes('kitchen') },
+  { key: 'walk5', label: '駅近(5分以内)', icon: 'mdi-walk', active: activeQuickFilters.value.includes('walk5') },
+  { key: 'inuki', label: '居抜き', icon: 'mdi-home-city', active: activeQuickFilters.value.includes('inuki') },
+  { key: 'skeleton', label: 'スケルトン', icon: 'mdi-cube-outline', active: activeQuickFilters.value.includes('skeleton') },
   { key: 'active_only', label: '募集中のみ', icon: 'mdi-check-circle', active: activeQuickFilters.value.includes('active_only') },
 ])
 
@@ -939,6 +1120,23 @@ const snackbar = ref({ show: false, message: '', color: 'success' })
 
 // ─── Computed ───
 const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filterArea.value) count++
+  if (filterRent.value) count++
+  if (filterSize.value) count++
+  if (filterBusiness.value) count++
+  if (filterRailway.value) count++
+  if (filterStation.value) count++
+  if (filterWalkMinutes.value) count++
+  if (filterInterior.value) count++
+  if (filterFloor.value) count++
+  if (filterLocation.value) count++
+  if (filterSpecial.value) count++
+  if (filterEquipment.value) count++
+  return count
+})
 
 const filteredProperties = computed(() => {
   let result = [...allProperties.value]
@@ -980,6 +1178,32 @@ const filteredProperties = computed(() => {
     result = result.filter(p => p.businessType === filterBusiness.value)
   }
 
+  if (filterRailway.value) {
+    result = result.filter(p => p.railway === filterRailway.value)
+  }
+  if (filterStation.value) {
+    const q = filterStation.value.toLowerCase()
+    result = result.filter(p => p.station && p.station.toLowerCase().includes(q))
+  }
+  if (filterWalkMinutes.value) {
+    result = result.filter(p => p.transportMinutes <= filterWalkMinutes.value)
+  }
+  if (filterInterior.value) {
+    result = result.filter(p => p.interiorCondition === filterInterior.value)
+  }
+  if (filterFloor.value) {
+    result = result.filter(p => p.floor && p.floor.includes(filterFloor.value))
+  }
+  if (filterLocation.value) {
+    result = result.filter(p => p.specialConditions && p.specialConditions.includes(filterLocation.value))
+  }
+  if (filterSpecial.value) {
+    result = result.filter(p => p.specialConditions && p.specialConditions.includes(filterSpecial.value))
+  }
+  if (filterEquipment.value) {
+    result = result.filter(p => p.specialConditions && p.specialConditions.includes(filterEquipment.value))
+  }
+
   if (activeQuickFilters.value.includes('immediate')) {
     result = result.filter(p => p.availableDate === '即入居可')
   }
@@ -988,6 +1212,15 @@ const filteredProperties = computed(() => {
   }
   if (activeQuickFilters.value.includes('kitchen')) {
     result = result.filter(p => p.equipment.some(e => e.includes('厨房')))
+  }
+  if (activeQuickFilters.value.includes('walk5')) {
+    result = result.filter(p => p.transportMinutes <= 5)
+  }
+  if (activeQuickFilters.value.includes('inuki')) {
+    result = result.filter(p => p.interiorCondition && p.interiorCondition.includes('居抜き'))
+  }
+  if (activeQuickFilters.value.includes('skeleton')) {
+    result = result.filter(p => p.interiorCondition === 'スケルトン')
   }
   if (activeQuickFilters.value.includes('active_only')) {
     result = result.filter(p => p.status === 'active')
@@ -1090,6 +1323,14 @@ const resetFilters = () => {
   filterRent.value = null
   filterSize.value = null
   filterBusiness.value = null
+  filterRailway.value = null
+  filterStation.value = ''
+  filterWalkMinutes.value = null
+  filterInterior.value = null
+  filterFloor.value = null
+  filterLocation.value = null
+  filterSpecial.value = null
+  filterEquipment.value = null
   activeQuickFilters.value = []
   sortBy.value = 'newest'
 }
