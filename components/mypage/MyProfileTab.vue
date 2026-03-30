@@ -97,7 +97,7 @@
           </v-col>
 
           <!-- その他電話番号 -->
-          <v-col cols="12" sm="6" md="4">
+          <v-col v-if="isEditingProfile || profile.otherPhone" cols="12" sm="6" md="4">
             <div class="text-caption text-medium-emphasis mb-1">その他電話番号</div>
             <v-text-field
               v-if="isEditingProfile"
@@ -108,11 +108,11 @@
               hide-details
               placeholder="06-1234-5678"
             />
-            <div v-else class="text-body-1">{{ profile.otherPhone || '-' }}</div>
+            <div v-else class="text-body-1">{{ profile.otherPhone }}</div>
           </v-col>
 
           <!-- FAX番号 -->
-          <v-col cols="12" sm="6" md="4">
+          <v-col v-if="isEditingProfile || profile.fax" cols="12" sm="6" md="4">
             <div class="text-caption text-medium-emphasis mb-1">FAX番号</div>
             <v-text-field
               v-if="isEditingProfile"
@@ -123,7 +123,7 @@
               hide-details
               placeholder="06-1234-5679"
             />
-            <div v-else class="text-body-1">{{ profile.fax || '-' }}</div>
+            <div v-else class="text-body-1">{{ profile.fax }}</div>
           </v-col>
 
           <!-- ログインメールアドレス (readonly) -->
@@ -265,7 +265,7 @@
           </v-col>
 
           <!-- 検索用メモ -->
-          <v-col cols="12">
+          <v-col v-if="isEditingProfile || profile.searchMemo" cols="12">
             <div class="text-caption text-medium-emphasis mb-1">検索用メモ</div>
             <v-textarea
               v-if="isEditingProfile"
@@ -278,7 +278,7 @@
               auto-grow
               placeholder="検索に使用するメモを入力"
             />
-            <div v-else class="text-body-1" style="white-space: pre-wrap;">{{ profile.searchMemo || '-' }}</div>
+            <div v-else class="text-body-1" style="white-space: pre-wrap;">{{ profile.searchMemo }}</div>
           </v-col>
         </v-row>
 
@@ -297,8 +297,13 @@
     <!-- ================================ -->
     <v-card rounded="xl" flat class="profile-section">
       <v-card-title class="d-flex align-center pa-4 pb-2">
-        <v-icon start color="secondary" size="22">mdi-tune-vertical</v-icon>
-        <span class="text-h6 font-weight-bold">出店希望条件</span>
+        <v-icon start color="primary" size="22">mdi-tune-vertical</v-icon>
+        <div>
+          <span class="text-h6 font-weight-bold">出店希望条件</span>
+          <div class="text-caption text-medium-emphasis mt-1">
+            マッチング精度を上げるために条件を設定してください
+          </div>
+        </div>
         <v-spacer />
         <v-chip size="small" variant="tonal" color="primary">
           {{ preferencePatterns.length }}パターン
@@ -315,14 +320,15 @@
             elevation="0"
           >
             <!-- パネルヘッダー -->
-            <v-expansion-panel-title class="py-3">
+            <v-expansion-panel-title class="pattern-panel-header py-3">
+              <div class="pattern-panel-accent"></div>
               <div class="d-flex align-center ga-2 flex-wrap flex-grow-1 mr-2">
                 <v-icon size="20" color="primary">mdi-store-outline</v-icon>
                 <span class="font-weight-bold text-body-1">{{ pattern.patternName || '未設定' }}</span>
-                <v-chip v-if="pattern.businessCategory" size="x-small" variant="tonal" color="secondary">
+                <v-chip v-if="pattern.businessCategory" size="x-small" variant="flat" color="primary">
                   {{ pattern.businessCategory }}
                 </v-chip>
-                <v-chip v-if="pattern.businessType" size="x-small" variant="tonal">
+                <v-chip v-if="pattern.businessType" size="x-small" variant="tonal" color="primary">
                   {{ pattern.businessType }}
                 </v-chip>
               </div>
@@ -353,12 +359,12 @@
                   </v-btn>
                 </div>
 
-                <v-row dense>
+                <!-- 編集モード: フラットレイアウト -->
+                <v-row v-if="editingPatterns[pIdx]" dense>
                   <!-- パターン名 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">パターン名</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.patternName"
                       variant="outlined"
                       density="comfortable"
@@ -366,14 +372,12 @@
                       hide-details
                       placeholder="例: ブランドA - カフェ出店"
                     />
-                    <div v-else class="text-body-1 font-weight-medium">{{ pattern.patternName || '-' }}</div>
                   </v-col>
 
                   <!-- 業態 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">業態</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.businessCategory"
                       :items="businessCategoryOptions"
                       variant="outlined"
@@ -383,14 +387,12 @@
                       placeholder="業態を選択"
                       @update:model-value="onBusinessCategoryChange(pIdx)"
                     />
-                    <div v-else class="text-body-1">{{ pattern.businessCategory || '-' }}</div>
                   </v-col>
 
                   <!-- 業種 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">業種</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.businessType"
                       :items="getBusinessTypeOptions(pattern.businessCategory)"
                       variant="outlined"
@@ -400,14 +402,12 @@
                       placeholder="業種を選択"
                       :disabled="!pattern.businessCategory"
                     />
-                    <div v-else class="text-body-1">{{ pattern.businessType || '-' }}</div>
                   </v-col>
 
                   <!-- 物件取得予算上限 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">物件取得予算上限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.maxBudget"
                       variant="outlined"
                       density="comfortable"
@@ -418,14 +418,12 @@
                       suffix="万円"
                       placeholder="500"
                     />
-                    <div v-else class="text-body-1">{{ pattern.maxBudget != null ? pattern.maxBudget + ' 万円' : '-' }}</div>
                   </v-col>
 
                   <!-- 賃料下限 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">賃料下限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.rentMin"
                       variant="outlined"
                       density="comfortable"
@@ -436,14 +434,12 @@
                       suffix="円"
                       placeholder="100000"
                     />
-                    <div v-else class="text-body-1">{{ pattern.rentMin != null ? formatNumber(pattern.rentMin) + ' 円' : '-' }}</div>
                   </v-col>
 
                   <!-- 賃料上限 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">賃料上限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.rentMax"
                       variant="outlined"
                       density="comfortable"
@@ -454,14 +450,12 @@
                       suffix="円"
                       placeholder="250000"
                     />
-                    <div v-else class="text-body-1">{{ pattern.rentMax != null ? formatNumber(pattern.rentMax) + ' 円' : '-' }}</div>
                   </v-col>
 
                   <!-- 坪数下限 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">坪数下限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.tsuboMin"
                       variant="outlined"
                       density="comfortable"
@@ -474,14 +468,12 @@
                       placeholder="10"
                       @update:model-value="onTsuboMinChange(pIdx)"
                     />
-                    <div v-else class="text-body-1">{{ pattern.tsuboMin != null ? pattern.tsuboMin + ' 坪' : '-' }}</div>
                   </v-col>
 
                   <!-- ㎡下限 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">㎡下限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.sqmMin"
                       variant="outlined"
                       density="comfortable"
@@ -494,14 +486,12 @@
                       placeholder="33.06"
                       @update:model-value="onSqmMinChange(pIdx)"
                     />
-                    <div v-else class="text-body-1">{{ pattern.sqmMin != null ? pattern.sqmMin + ' ㎡' : '-' }}</div>
                   </v-col>
 
                   <!-- 坪数上限 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">坪数上限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.tsuboMax"
                       variant="outlined"
                       density="comfortable"
@@ -514,14 +504,12 @@
                       placeholder="20"
                       @update:model-value="onTsuboMaxChange(pIdx)"
                     />
-                    <div v-else class="text-body-1">{{ pattern.tsuboMax != null ? pattern.tsuboMax + ' 坪' : '-' }}</div>
                   </v-col>
 
                   <!-- ㎡上限 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">㎡上限</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.sqmMax"
                       variant="outlined"
                       density="comfortable"
@@ -534,14 +522,12 @@
                       placeholder="66.12"
                       @update:model-value="onSqmMaxChange(pIdx)"
                     />
-                    <div v-else class="text-body-1">{{ pattern.sqmMax != null ? pattern.sqmMax + ' ㎡' : '-' }}</div>
                   </v-col>
 
                   <!-- 希望引渡し状態 -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">希望引渡し状態</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.deliveryCondition"
                       :items="deliveryConditionOptions"
                       variant="outlined"
@@ -549,14 +535,12 @@
                       rounded="lg"
                       hide-details
                     />
-                    <div v-else class="text-body-1">{{ pattern.deliveryCondition || '-' }}</div>
                   </v-col>
 
                   <!-- 可能フロア -->
                   <v-col cols="12" sm="6" md="4">
                     <div class="text-caption text-medium-emphasis mb-1">可能フロア</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.floors"
                       :items="floorOptions"
                       variant="outlined"
@@ -567,49 +551,22 @@
                       chips
                       closable-chips
                     />
-                    <div v-else>
-                      <v-chip
-                        v-for="floor in pattern.floors"
-                        :key="floor"
-                        size="x-small"
-                        variant="tonal"
-                        class="mr-1 mb-1"
-                      >
-                        {{ floor }}
-                      </v-chip>
-                      <span v-if="!pattern.floors || pattern.floors.length === 0">-</span>
-                    </div>
                   </v-col>
 
                   <!-- 希望都道府県 -->
                   <v-col cols="12">
                     <div class="text-caption text-medium-emphasis mb-1">希望都道府県（近畿地方）</div>
-                    <template v-if="editingPatterns[pIdx]">
-                      <div class="d-flex flex-wrap ga-2">
-                        <v-checkbox
-                          v-for="pref in kinkiPrefectures"
-                          :key="pref"
-                          v-model="pattern.prefectures"
-                          :label="pref"
-                          :value="pref"
-                          density="comfortable"
-                          hide-details
-                          class="prefecture-checkbox"
-                        />
-                      </div>
-                    </template>
-                    <div v-else>
-                      <v-chip
-                        v-for="pref in pattern.prefectures"
+                    <div class="d-flex flex-wrap ga-2">
+                      <v-checkbox
+                        v-for="pref in kinkiPrefectures"
                         :key="pref"
-                        size="small"
-                        variant="tonal"
-                        color="primary"
-                        class="mr-1 mb-1"
-                      >
-                        {{ pref }}
-                      </v-chip>
-                      <span v-if="!pattern.prefectures || pattern.prefectures.length === 0">-</span>
+                        v-model="pattern.prefectures"
+                        :label="pref"
+                        :value="pref"
+                        density="comfortable"
+                        hide-details
+                        class="prefecture-checkbox"
+                      />
                     </div>
                   </v-col>
 
@@ -617,7 +574,6 @@
                   <v-col cols="12" sm="6">
                     <div class="text-caption text-medium-emphasis mb-1">希望市区名</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.cities"
                       variant="outlined"
                       density="comfortable"
@@ -625,14 +581,12 @@
                       hide-details
                       placeholder="例: 中央区・北区・浪速区"
                     />
-                    <div v-else class="text-body-1">{{ pattern.cities || '-' }}</div>
                   </v-col>
 
                   <!-- 希望町村丁目 -->
                   <v-col cols="12" sm="6">
                     <div class="text-caption text-medium-emphasis mb-1">希望町村丁目</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.towns"
                       variant="outlined"
                       density="comfortable"
@@ -640,14 +594,12 @@
                       hide-details
                       placeholder="例: 心斎橋筋1丁目"
                     />
-                    <div v-else class="text-body-1">{{ pattern.towns || '-' }}</div>
                   </v-col>
 
                   <!-- 沿線名 -->
                   <v-col cols="12" sm="6">
                     <div class="text-caption text-medium-emphasis mb-1">沿線名</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.railwayLines"
                       :items="railwayLineOptions"
                       variant="outlined"
@@ -659,26 +611,12 @@
                       closable-chips
                       placeholder="沿線を選択"
                     />
-                    <div v-else>
-                      <v-chip
-                        v-for="line in pattern.railwayLines"
-                        :key="line"
-                        size="x-small"
-                        variant="tonal"
-                        color="secondary"
-                        class="mr-1 mb-1"
-                      >
-                        {{ line }}
-                      </v-chip>
-                      <span v-if="!pattern.railwayLines || pattern.railwayLines.length === 0">-</span>
-                    </div>
                   </v-col>
 
                   <!-- 駅名 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">駅名</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.stationName"
                       variant="outlined"
                       density="comfortable"
@@ -686,14 +624,12 @@
                       hide-details
                       placeholder="例: 心斎橋"
                     />
-                    <div v-else class="text-body-1">{{ pattern.stationName || '-' }}</div>
                   </v-col>
 
                   <!-- 移動手段 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">移動手段</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.transportMethod"
                       :items="transportMethodOptions"
                       variant="outlined"
@@ -702,14 +638,12 @@
                       hide-details
                       placeholder="移動手段を選択"
                     />
-                    <div v-else class="text-body-1">{{ pattern.transportMethod || '-' }}</div>
                   </v-col>
 
                   <!-- 移動時間 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">移動時間</div>
                     <v-text-field
-                      v-if="editingPatterns[pIdx]"
                       v-model.number="pattern.transportMinutes"
                       variant="outlined"
                       density="comfortable"
@@ -720,14 +654,12 @@
                       suffix="分"
                       placeholder="5"
                     />
-                    <div v-else class="text-body-1">{{ pattern.transportMinutes != null ? pattern.transportMinutes + ' 分' : '-' }}</div>
                   </v-col>
 
                   <!-- 室内状態 -->
                   <v-col cols="12" sm="6" md="3">
                     <div class="text-caption text-medium-emphasis mb-1">室内状態</div>
                     <v-select
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.interiorCondition"
                       :items="interiorConditionOptions"
                       variant="outlined"
@@ -738,70 +670,33 @@
                       chips
                       closable-chips
                     />
-                    <div v-else>
-                      <v-chip
-                        v-for="cond in pattern.interiorCondition"
-                        :key="cond"
-                        size="x-small"
-                        variant="tonal"
-                        class="mr-1 mb-1"
-                      >
-                        {{ cond }}
-                      </v-chip>
-                      <span v-if="!pattern.interiorCondition || pattern.interiorCondition.length === 0">-</span>
-                    </div>
                   </v-col>
 
                   <!-- 特殊条件 (grouped checkboxes) -->
                   <v-col cols="12">
                     <div class="text-caption text-medium-emphasis mb-1">特殊条件</div>
-                    <template v-if="editingPatterns[pIdx]">
-                      <div class="special-requirements-grid">
-                        <v-card
-                          v-for="group in specialRequirementGroups"
-                          :key="group.label"
-                          variant="outlined"
-                          rounded="lg"
-                          class="pa-3"
-                        >
-                          <div class="text-caption font-weight-bold text-medium-emphasis mb-2">{{ group.label }}</div>
-                          <div class="d-flex flex-wrap">
-                            <v-checkbox
-                              v-for="item in group.items"
-                              :key="item"
-                              v-model="pattern.specialRequirements"
-                              :label="item"
-                              :value="item"
-                              density="compact"
-                              hide-details
-                              class="special-req-checkbox"
-                            />
-                          </div>
-                        </v-card>
-                      </div>
-                    </template>
-                    <div v-else>
-                      <template v-if="pattern.specialRequirements && pattern.specialRequirements.length > 0">
-                        <div
-                          v-for="group in specialRequirementGroups"
-                          :key="'view-' + group.label"
-                        >
-                          <template v-if="pattern.specialRequirements.some(r => group.items.includes(r))">
-                            <div class="text-caption text-medium-emphasis mt-1 mb-1">{{ group.label }}</div>
-                            <v-chip
-                              v-for="item in pattern.specialRequirements.filter(r => group.items.includes(r))"
-                              :key="item"
-                              size="x-small"
-                              variant="tonal"
-                              color="primary"
-                              class="mr-1 mb-1"
-                            >
-                              {{ item }}
-                            </v-chip>
-                          </template>
+                    <div class="special-requirements-grid">
+                      <v-card
+                        v-for="group in specialRequirementGroups"
+                        :key="group.label"
+                        variant="outlined"
+                        rounded="lg"
+                        class="pa-3"
+                      >
+                        <div class="text-caption font-weight-bold text-medium-emphasis mb-2">{{ group.label }}</div>
+                        <div class="d-flex flex-wrap">
+                          <v-checkbox
+                            v-for="item in group.items"
+                            :key="item"
+                            v-model="pattern.specialRequirements"
+                            :label="item"
+                            :value="item"
+                            density="compact"
+                            hide-details
+                            class="special-req-checkbox"
+                          />
                         </div>
-                      </template>
-                      <span v-else>-</span>
+                      </v-card>
                     </div>
                   </v-col>
 
@@ -809,7 +704,6 @@
                   <v-col cols="12">
                     <div class="text-caption text-medium-emphasis mb-1">検索用メモ</div>
                     <v-textarea
-                      v-if="editingPatterns[pIdx]"
                       v-model="pattern.patternMemo"
                       variant="outlined"
                       density="comfortable"
@@ -819,9 +713,241 @@
                       auto-grow
                       placeholder="検索に使用するメモを入力"
                     />
-                    <div v-else class="text-body-1" style="white-space: pre-wrap;">{{ pattern.patternMemo || '-' }}</div>
                   </v-col>
                 </v-row>
+
+                <!-- 閲覧モード: セクション分けレイアウト -->
+                <div v-else>
+                  <!-- Group 1: 基本情報 -->
+                  <v-col cols="12" class="pb-0 pt-2 px-0">
+                    <div class="text-caption font-weight-bold text-primary d-flex align-center ga-1">
+                      <v-icon size="14">mdi-information-outline</v-icon>
+                      基本情報
+                    </div>
+                    <v-divider class="mt-1" />
+                  </v-col>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">パターン名</div>
+                      <div class="text-body-1 font-weight-medium">{{ pattern.patternName || '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">業態</div>
+                      <div class="text-body-1">{{ pattern.businessCategory || '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">業種</div>
+                      <div class="text-body-1">{{ pattern.businessType || '-' }}</div>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Group 2: 予算・面積 -->
+                  <v-col cols="12" class="pb-0 pt-2 px-0">
+                    <div class="text-caption font-weight-bold text-primary d-flex align-center ga-1">
+                      <v-icon size="14">mdi-currency-jpy</v-icon>
+                      予算・面積
+                    </div>
+                    <v-divider class="mt-1" />
+                  </v-col>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">物件取得予算上限</div>
+                      <div class="text-body-1">{{ pattern.maxBudget != null ? pattern.maxBudget + ' 万円' : '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">賃料下限</div>
+                      <div class="text-body-1">{{ pattern.rentMin != null ? formatNumber(pattern.rentMin) + ' 円' : '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">賃料上限</div>
+                      <div class="text-body-1">{{ pattern.rentMax != null ? formatNumber(pattern.rentMax) + ' 円' : '-' }}</div>
+                    </v-col>
+                  </v-row>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">坪数下限</div>
+                      <div class="text-body-1">{{ pattern.tsuboMin != null ? pattern.tsuboMin + ' 坪' : '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">坪数上限</div>
+                      <div class="text-body-1">{{ pattern.tsuboMax != null ? pattern.tsuboMax + ' 坪' : '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">㎡下限</div>
+                      <div class="text-body-1">{{ pattern.sqmMin != null ? pattern.sqmMin + ' ㎡' : '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">㎡上限</div>
+                      <div class="text-body-1">{{ pattern.sqmMax != null ? pattern.sqmMax + ' ㎡' : '-' }}</div>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Group 3: 物件条件 -->
+                  <v-col cols="12" class="pb-0 pt-2 px-0">
+                    <div class="text-caption font-weight-bold text-primary d-flex align-center ga-1">
+                      <v-icon size="14">mdi-home-outline</v-icon>
+                      物件条件
+                    </div>
+                    <v-divider class="mt-1" />
+                  </v-col>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">希望引渡し状態</div>
+                      <div class="text-body-1">{{ pattern.deliveryCondition || '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="4">
+                      <div class="text-caption text-medium-emphasis mb-1">可能フロア</div>
+                      <div>
+                        <v-chip
+                          v-for="floor in pattern.floors"
+                          :key="floor"
+                          size="x-small"
+                          variant="tonal"
+                          class="mr-1 mb-1"
+                        >
+                          {{ floor }}
+                        </v-chip>
+                        <span v-if="!pattern.floors || pattern.floors.length === 0">-</span>
+                      </div>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Group 4: エリア -->
+                  <v-col cols="12" class="pb-0 pt-2 px-0">
+                    <div class="text-caption font-weight-bold text-primary d-flex align-center ga-1">
+                      <v-icon size="14">mdi-map-marker-outline</v-icon>
+                      エリア
+                    </div>
+                    <v-divider class="mt-1" />
+                  </v-col>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12">
+                      <div class="text-caption text-medium-emphasis mb-1">希望都道府県（近畿地方）</div>
+                      <div>
+                        <v-chip
+                          v-for="pref in pattern.prefectures"
+                          :key="pref"
+                          size="small"
+                          variant="tonal"
+                          color="primary"
+                          class="mr-1 mb-1"
+                        >
+                          {{ pref }}
+                        </v-chip>
+                        <span v-if="!pattern.prefectures || pattern.prefectures.length === 0">-</span>
+                      </div>
+                    </v-col>
+                  </v-row>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6">
+                      <div class="text-caption text-medium-emphasis mb-1">希望市区名</div>
+                      <div class="text-body-1">{{ pattern.cities || '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <div class="text-caption text-medium-emphasis mb-1">希望町村丁目</div>
+                      <div class="text-body-1">{{ pattern.towns || '-' }}</div>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Group 5: アクセス -->
+                  <v-col cols="12" class="pb-0 pt-2 px-0">
+                    <div class="text-caption font-weight-bold text-primary d-flex align-center ga-1">
+                      <v-icon size="14">mdi-train</v-icon>
+                      アクセス
+                    </div>
+                    <v-divider class="mt-1" />
+                  </v-col>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6">
+                      <div class="text-caption text-medium-emphasis mb-1">沿線名</div>
+                      <div>
+                        <v-chip
+                          v-for="line in pattern.railwayLines"
+                          :key="line"
+                          size="x-small"
+                          variant="tonal"
+                          color="primary"
+                          class="mr-1 mb-1"
+                        >
+                          {{ line }}
+                        </v-chip>
+                        <span v-if="!pattern.railwayLines || pattern.railwayLines.length === 0">-</span>
+                      </div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">駅名</div>
+                      <div class="text-body-1">{{ pattern.stationName || '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">移動手段</div>
+                      <div class="text-body-1">{{ pattern.transportMethod || '-' }}</div>
+                    </v-col>
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">移動時間</div>
+                      <div class="text-body-1">{{ pattern.transportMinutes != null ? pattern.transportMinutes + ' 分' : '-' }}</div>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Group 6: こだわり条件 -->
+                  <v-col cols="12" class="pb-0 pt-2 px-0">
+                    <div class="text-caption font-weight-bold text-primary d-flex align-center ga-1">
+                      <v-icon size="14">mdi-star-outline</v-icon>
+                      こだわり条件
+                    </div>
+                    <v-divider class="mt-1" />
+                  </v-col>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12" sm="6" md="3">
+                      <div class="text-caption text-medium-emphasis mb-1">室内状態</div>
+                      <div>
+                        <v-chip
+                          v-for="cond in pattern.interiorCondition"
+                          :key="cond"
+                          size="x-small"
+                          variant="tonal"
+                          class="mr-1 mb-1"
+                        >
+                          {{ cond }}
+                        </v-chip>
+                        <span v-if="!pattern.interiorCondition || pattern.interiorCondition.length === 0">-</span>
+                      </div>
+                    </v-col>
+                  </v-row>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12">
+                      <div class="text-caption text-medium-emphasis mb-1">特殊条件</div>
+                      <div>
+                        <template v-if="pattern.specialRequirements && pattern.specialRequirements.length > 0">
+                          <div
+                            v-for="group in specialRequirementGroups"
+                            :key="'view-' + group.label"
+                          >
+                            <template v-if="pattern.specialRequirements.some(r => group.items.includes(r))">
+                              <div class="text-caption text-medium-emphasis mt-1 mb-1">{{ group.label }}</div>
+                              <v-chip
+                                v-for="item in pattern.specialRequirements.filter(r => group.items.includes(r))"
+                                :key="item"
+                                size="x-small"
+                                variant="tonal"
+                                color="primary"
+                                class="mr-1 mb-1"
+                              >
+                                {{ item }}
+                              </v-chip>
+                            </template>
+                          </div>
+                        </template>
+                        <span v-else>-</span>
+                      </div>
+                    </v-col>
+                  </v-row>
+                  <v-row dense class="mb-1">
+                    <v-col cols="12">
+                      <div class="text-caption text-medium-emphasis mb-1">検索用メモ</div>
+                      <div class="text-body-1" style="white-space: pre-wrap;">{{ pattern.patternMemo || '-' }}</div>
+                    </v-col>
+                  </v-row>
+                </div>
 
                 <!-- パターン保存ボタン -->
                 <div v-if="editingPatterns[pIdx]" class="d-flex justify-end mt-4">
@@ -1248,6 +1374,22 @@ function formatNumber(num) {
 <style scoped>
 .profile-section {
   border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ── パターンパネルヘッダー ── */
+.pattern-panel-header {
+  background: #f0f4fa !important;
+  position: relative;
+  border-bottom: 1px solid rgba(30, 80, 162, 0.08);
+}
+.pattern-panel-accent {
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  background: #1e50a2;
+  border-radius: 0 2px 2px 0;
 }
 
 .prefecture-checkbox {

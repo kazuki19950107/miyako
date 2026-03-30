@@ -94,7 +94,8 @@
               >
                 <v-icon start>mdi-tune</v-icon>
                 絞り込み
-                <v-icon end size="18">{{ showDetailFilter ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                <v-badge v-if="activeFilterCount > 0" :content="activeFilterCount" color="error" inline class="ml-1" />
+                <v-icon v-else end size="18">{{ showDetailFilter ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
               </v-btn>
               <v-select
                 v-model="sortBy"
@@ -110,30 +111,50 @@
             <!-- 詳細フィルタ -->
             <v-expand-transition>
               <v-card v-show="showDetailFilter" color="grey-lighten-5" rounded="lg" flat class="pa-4 mb-4">
-                <!-- 基本条件 -->
+                <!-- エリア・物件条件 -->
                 <div class="text-caption text-medium-emphasis font-weight-bold mb-2">
                   <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
                   エリア・物件条件
                 </div>
                 <v-row dense class="mb-3">
                   <v-col cols="12" sm="6" md="3">
-                    <v-select v-model="filterArea" :items="areaOptions" label="エリア" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                    <v-select v-model="filterPrefecture" :items="prefectureOptions" label="都道府県" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
                   </v-col>
                   <v-col cols="12" sm="6" md="3">
-                    <v-select v-model="filterRent" :items="rentOptions" label="賃料" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
-                  </v-col>
-                  <v-col cols="12" sm="6" md="3">
-                    <v-select v-model="filterSize" :items="sizeOptions" label="坪数" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                    <v-select v-model="filterArea" :items="filteredAreaOptions" label="市区" variant="outlined" density="comfortable" rounded="lg" hide-details clearable :disabled="!filterPrefecture" />
                   </v-col>
                   <v-col cols="12" sm="6" md="3">
                     <v-select v-model="filterBusiness" :items="businessOptions" label="業態" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
                   </v-col>
+                  <v-col cols="12" sm="6" md="3">
+                    <v-select v-model="filterInterior" :items="interiorConditionFilterOptions" label="室内状態" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  </v-col>
                 </v-row>
 
-                <!-- アクセス・設備条件 -->
+                <!-- 賃料・面積 -->
+                <div class="text-caption text-medium-emphasis font-weight-bold mb-2">
+                  <v-icon size="14" class="mr-1">mdi-currency-jpy</v-icon>
+                  賃料・面積
+                </div>
+                <v-row dense class="mb-3">
+                  <v-col cols="6" sm="3">
+                    <v-text-field v-model.number="filterRentMin" label="賃料（万円以上）" type="number" variant="outlined" density="comfortable" rounded="lg" hide-details clearable suffix="万円" />
+                  </v-col>
+                  <v-col cols="6" sm="3">
+                    <v-text-field v-model.number="filterRentMax" label="賃料（万円以下）" type="number" variant="outlined" density="comfortable" rounded="lg" hide-details clearable suffix="万円" />
+                  </v-col>
+                  <v-col cols="6" sm="3">
+                    <v-text-field v-model.number="filterSizeMin" label="坪数（以上）" type="number" variant="outlined" density="comfortable" rounded="lg" hide-details clearable suffix="坪" />
+                  </v-col>
+                  <v-col cols="6" sm="3">
+                    <v-text-field v-model.number="filterSizeMax" label="坪数（以下）" type="number" variant="outlined" density="comfortable" rounded="lg" hide-details clearable suffix="坪" />
+                  </v-col>
+                </v-row>
+
+                <!-- アクセス -->
                 <div class="text-caption text-medium-emphasis font-weight-bold mb-2">
                   <v-icon size="14" class="mr-1">mdi-train</v-icon>
-                  アクセス・設備条件
+                  アクセス
                 </div>
                 <v-row dense class="mb-3">
                   <v-col cols="12" sm="6" md="3">
@@ -142,11 +163,11 @@
                   <v-col cols="12" sm="6" md="3">
                     <v-text-field v-model="filterStation" label="駅名" placeholder="例: 心斎橋" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
                   </v-col>
-                  <v-col cols="12" sm="6" md="3">
-                    <v-select v-model="filterWalkMinutes" :items="walkMinutesOptions" label="徒歩分数" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  <v-col cols="6" sm="3">
+                    <v-text-field v-model.number="filterWalkMinutes" label="徒歩（分以内）" type="number" variant="outlined" density="comfortable" rounded="lg" hide-details clearable suffix="分" />
                   </v-col>
-                  <v-col cols="12" sm="6" md="3">
-                    <v-select v-model="filterInterior" :items="interiorConditionFilterOptions" label="室内状態" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
+                  <v-col cols="6" sm="3">
+                    <v-select v-model="filterFloor" :items="floorFilterOptions" label="フロア" variant="outlined" density="comfortable" rounded="lg" hide-details clearable />
                   </v-col>
                 </v-row>
 
@@ -185,37 +206,22 @@
               </v-card>
             </v-expand-transition>
 
-            <!-- クイックフィルタチップ -->
-            <div class="d-flex flex-wrap ga-2 mb-5">
-              <v-chip
-                v-for="chip in quickFilters"
-                :key="chip.key"
-                :variant="chip.active ? 'flat' : 'outlined'"
-                :color="chip.active ? 'primary' : undefined"
-                size="small"
-                rounded="lg"
-                @click="toggleQuickFilter(chip.key)"
-              >
-                <v-icon start size="14">{{ chip.icon }}</v-icon>
-                {{ chip.label }}
-              </v-chip>
-            </div>
-
             <!-- 件数表示 -->
             <div class="text-body-2 text-medium-emphasis mb-4">
-              {{ filteredProperties.length }}件の物件
+              {{ filteredProperties.length }}件の水面下物件
             </div>
 
             <!-- 物件グリッド -->
-            <v-row v-if="filteredProperties.length > 0" dense>
+            <v-row v-if="filteredProperties.length > 0" dense class="mx-n1">
               <v-col
                 v-for="property in filteredProperties"
                 :key="property.id"
                 cols="12"
                 sm="6"
                 lg="4"
+                class="pa-2"
               >
-                <v-card class="property-card h-100 d-flex flex-column" rounded="xl" flat @click="openDetail(property)">
+                <v-card class="property-card h-100 d-flex flex-column" rounded="xl" elevation="2" @click="openDetail(property)">
                   <!-- 画像プレースホルダ -->
                   <div class="property-image d-flex align-center justify-center" :style="{ background: property.gradient }">
                     <v-icon size="44" color="white" style="opacity: 0.2">mdi-silverware-fork-knife</v-icon>
@@ -242,13 +248,13 @@
                       募集終了
                     </v-chip>
                     <v-chip
-                      v-else-if="property.availableDate === '即入居可'"
-                      color="success"
+                      v-else-if="property.availableDate && property.availableDate !== '-'"
+                      color="info"
                       size="x-small"
                       variant="flat"
                       class="status-badge"
                     >
-                      即入居可
+                      {{ property.availableDate }}
                     </v-chip>
                   </div>
 
@@ -256,24 +262,28 @@
                     <h3 class="text-subtitle-1 font-weight-bold mb-1 card-title-truncate">{{ property.name }}</h3>
                     <div class="text-body-2 text-medium-emphasis mb-1">
                       <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
-                      {{ property.location }}
+                      {{ getLocation(property) }}
                     </div>
-                    <div class="text-caption text-medium-emphasis mb-2">
+                    <div class="text-caption text-medium-emphasis mb-2 d-flex align-center">
                       <v-icon size="12" class="mr-1">mdi-train</v-icon>
-                      {{ property.station }}駅 {{ property.transportMethod }}{{ property.transportMinutes }}分
+                      {{ property.nearestStations[0].station }}駅 {{ property.nearestStations[0].transportMethod }}{{ property.nearestStations[0].transportMinutes }}分
+                      <v-chip v-if="property.nearestStations.length > 1" size="x-small" variant="tonal" color="primary" class="ml-1">+{{ property.nearestStations.length - 1 }}駅</v-chip>
+                    </div>
+                    <div class="text-h6 font-weight-bold text-primary mb-2">
+                      {{ formatRent(property.rent) }}<span class="text-body-2 font-weight-regular text-medium-emphasis">/月</span>
+                    </div>
+                    <div v-if="property.transferListPrice" class="text-caption text-medium-emphasis">
+                      造作: {{ property.transferListPrice }}万円
                     </div>
                     <div class="d-flex align-center ga-3 mb-3">
-                      <span class="text-body-2">
+                      <span class="text-body-2 text-medium-emphasis">
                         <v-icon size="14" class="mr-1">mdi-texture-box</v-icon>
-                        {{ property.area }}坪
-                      </span>
-                      <span class="text-subtitle-2 font-weight-bold text-primary">
-                        {{ formatRent(property.rent) }}<span class="text-caption font-weight-regular">/月</span>
+                        {{ property.tsubo }}坪
                       </span>
                     </div>
                     <div class="d-flex flex-wrap ga-1">
-                      <v-chip size="x-small" variant="tonal" color="primary">{{ property.businessType }}</v-chip>
-                      <v-chip v-if="property.floor" size="x-small" variant="tonal">{{ property.floor }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
+                      <v-chip v-if="property.floorDisplay" size="x-small" variant="tonal">{{ property.floorDisplay }}</v-chip>
                     </div>
                   </v-card-text>
 
@@ -345,12 +355,12 @@
                       </div>
                       <div class="text-body-2 text-medium-emphasis mb-2">
                         <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
-                        {{ property.location }}
+                        {{ getLocation(property) }}
                       </div>
                       <div class="d-flex align-center ga-3 mb-3 flex-wrap">
-                        <span class="text-body-2">{{ property.area }}坪</span>
+                        <span class="text-body-2">{{ property.tsubo }}坪</span>
                         <span class="text-subtitle-2 font-weight-bold text-primary">{{ formatRent(property.rent) }}/月</span>
-                        <v-chip size="x-small" variant="tonal" color="primary">{{ property.businessType }}</v-chip>
+                        <v-chip size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
                       </div>
                       <!-- お気に入り専用情報 -->
                       <div class="d-flex ga-3 flex-wrap">
@@ -441,9 +451,9 @@
                       </div>
                       <div class="text-body-2 text-medium-emphasis mb-2">
                         <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
-                        {{ property.location }}
+                        {{ getLocation(property) }}
                         <span class="mx-2">|</span>
-                        {{ property.area }}坪
+                        {{ property.tsubo }}坪
                         <span class="mx-2">|</span>
                         {{ formatRent(property.rent) }}/月
                       </div>
@@ -544,7 +554,7 @@
     </v-card>
 
     <!-- ===== 物件詳細ダイアログ ===== -->
-    <v-dialog v-model="showDetail" :max-width="640" :fullscreen="isMobile" scrollable>
+    <v-dialog v-model="showDetail" :max-width="780" :fullscreen="isMobile" scrollable>
       <v-card v-if="selectedProperty" rounded="xl" class="detail-card">
         <!-- ヘッダー画像 -->
         <div class="detail-image d-flex align-center justify-center" :style="{ background: selectedProperty.gradient }">
@@ -570,140 +580,296 @@
         </div>
 
         <v-card-text class="pa-5 pa-md-6">
-          <h2 class="text-h5 font-weight-bold mb-2">{{ selectedProperty.name }}</h2>
+          <!-- 物件名 + お気に入りボタン -->
+          <div class="d-flex align-start justify-space-between mb-2">
+            <h2 class="text-h5 font-weight-bold" style="flex: 1; min-width: 0;">{{ selectedProperty.name }}</h2>
+            <v-btn
+              icon
+              variant="text"
+              size="small"
+              class="ml-2 flex-shrink-0"
+              @click="toggleFavorite(selectedProperty.id)"
+            >
+              <v-icon :color="selectedProperty.isFavorite ? '#b85450' : 'grey'" size="26">
+                {{ selectedProperty.isFavorite ? 'mdi-heart' : 'mdi-heart-outline' }}
+              </v-icon>
+            </v-btn>
+          </div>
           <div class="text-body-1 text-medium-emphasis mb-4">
             <v-icon size="16" class="mr-1">mdi-map-marker</v-icon>
-            {{ selectedProperty.location }}
+            {{ getLocation(selectedProperty) }}
           </div>
 
-          <!-- スペックカード -->
-          <v-row dense class="mb-5">
-            <v-col cols="4" class="d-none d-sm-block">
-              <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 text-center">
-                <div class="text-caption text-medium-emphasis">坪数</div>
-                <div class="text-h6 font-weight-bold text-primary">{{ selectedProperty.area }}<span class="text-body-2">坪</span></div>
-              </v-card>
-            </v-col>
-            <v-col cols="4" class="d-none d-sm-block">
-              <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 text-center">
-                <div class="text-caption text-medium-emphasis">月額賃料</div>
-                <div class="text-h6 font-weight-bold text-primary">{{ formatRent(selectedProperty.rent) }}</div>
-              </v-card>
-            </v-col>
-            <v-col cols="4" class="d-none d-sm-block">
-              <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 text-center">
-                <div class="text-caption text-medium-emphasis">入居時期</div>
-                <div class="text-subtitle-2 font-weight-bold text-primary mt-1">{{ selectedProperty.availableDate }}</div>
-              </v-card>
-            </v-col>
-            <!-- モバイル用：横並びリスト -->
-            <v-col cols="12" class="d-sm-none">
+          <!-- Section: 物件概要 -->
+          <div class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-home-city</v-icon>
+              物件概要
+            </div>
+            <v-row dense>
+              <v-col cols="4" class="d-none d-sm-block">
+                <v-card color="grey-lighten-4" rounded="lg" flat class="pa-3 text-center">
+                  <div class="text-caption text-medium-emphasis">坪数</div>
+                  <div class="text-h5 font-weight-bold text-primary">{{ selectedProperty.tsubo }}<span class="text-body-2">坪</span></div>
+                </v-card>
+              </v-col>
+              <v-col cols="4" class="d-none d-sm-block">
+                <v-card color="grey-lighten-4" rounded="lg" flat class="pa-3 text-center">
+                  <div class="text-caption text-medium-emphasis">月額賃料</div>
+                  <div class="text-h5 font-weight-bold text-primary">{{ formatRent(selectedProperty.rent) }}</div>
+                </v-card>
+              </v-col>
+              <v-col cols="4" class="d-none d-sm-block">
+                <v-card color="grey-lighten-4" rounded="lg" flat class="pa-3 text-center">
+                  <div class="text-caption text-medium-emphasis">入居時期</div>
+                  <div class="text-h5 font-weight-bold text-primary">{{ selectedProperty.availableDate }}</div>
+                </v-card>
+              </v-col>
+              <v-col cols="12" class="d-sm-none">
+                <v-card color="grey-lighten-4" rounded="lg" flat class="pa-3">
+                  <div class="d-flex justify-space-around text-center">
+                    <div>
+                      <div class="text-caption text-medium-emphasis">坪数</div>
+                      <div class="text-subtitle-1 font-weight-bold text-primary">{{ selectedProperty.tsubo }}坪</div>
+                    </div>
+                    <v-divider vertical class="mx-2" />
+                    <div>
+                      <div class="text-caption text-medium-emphasis">賃料</div>
+                      <div class="text-subtitle-1 font-weight-bold text-primary">{{ formatRent(selectedProperty.rent) }}</div>
+                    </div>
+                    <v-divider vertical class="mx-2" />
+                    <div>
+                      <div class="text-caption text-medium-emphasis">入居時期</div>
+                      <div class="text-subtitle-2 font-weight-bold text-primary">{{ selectedProperty.availableDate }}</div>
+                    </div>
+                  </div>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider class="my-1" />
+
+          <!-- Section: アクセス -->
+          <div class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-train</v-icon>
+              アクセス
+            </div>
+            <div v-for="(st, idx) in selectedProperty.nearestStations" :key="idx" class="mb-2">
               <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3">
-                <div class="d-flex justify-space-around text-center">
+                <div class="d-flex align-center justify-space-between flex-wrap ga-2">
                   <div>
-                    <div class="text-caption text-medium-emphasis">坪数</div>
-                    <div class="text-subtitle-1 font-weight-bold text-primary">{{ selectedProperty.area }}坪</div>
+                    <div class="text-caption text-medium-emphasis">{{ st.railway }}</div>
+                    <div class="text-body-1 font-weight-bold">{{ st.station }}駅</div>
                   </div>
-                  <v-divider vertical class="mx-2" />
-                  <div>
-                    <div class="text-caption text-medium-emphasis">賃料</div>
-                    <div class="text-subtitle-1 font-weight-bold text-primary">{{ formatRent(selectedProperty.rent) }}</div>
-                  </div>
-                  <v-divider vertical class="mx-2" />
-                  <div>
-                    <div class="text-caption text-medium-emphasis">入居時期</div>
-                    <div class="text-subtitle-2 font-weight-bold text-primary">{{ selectedProperty.availableDate }}</div>
-                  </div>
+                  <v-chip size="default" variant="flat" color="primary">
+                    <v-icon start size="16">mdi-walk</v-icon>
+                    {{ st.transportMethod }}{{ st.transportMinutes }}分
+                  </v-chip>
                 </div>
               </v-card>
-            </v-col>
-          </v-row>
+            </div>
+          </div>
 
-          <!-- 詳細情報 -->
-          <v-row dense class="mb-4">
-            <v-col cols="6">
-              <div class="text-caption text-medium-emphasis">業態</div>
-              <div class="text-body-1 font-weight-medium">{{ selectedProperty.businessType }}</div>
-            </v-col>
-            <v-col cols="6">
-              <div class="text-caption text-medium-emphasis">階数・立地</div>
-              <div class="text-body-1 font-weight-medium">{{ selectedProperty.floor }}</div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">最寄り駅</div>
-              <div class="text-body-1 font-weight-medium">{{ selectedProperty.railway }} {{ selectedProperty.station }}駅 {{ selectedProperty.transportMethod }}{{ selectedProperty.transportMinutes }}分</div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">室内状態</div>
-              <div class="text-body-1 font-weight-medium">{{ selectedProperty.interiorCondition }}</div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">問い合わせ件数</div>
-              <div class="text-body-1 font-weight-medium">
-                {{ selectedProperty.inquiryCount }}件
-                <v-icon v-if="selectedProperty.inquiryCount >= 5" size="16" color="warning" class="ml-1">mdi-fire</v-icon>
-              </div>
-            </v-col>
-            <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">登録日</div>
-              <div class="text-body-1 font-weight-medium">{{ selectedProperty.createdAt }}</div>
-            </v-col>
-          </v-row>
+          <v-divider class="my-1" />
 
-          <!-- 設備 -->
-          <div class="mb-2">
-            <div class="text-caption text-medium-emphasis mb-2">設備・内装</div>
+          <!-- Section: 物件詳細 -->
+          <div class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-text-box-outline</v-icon>
+              物件詳細
+            </div>
+            <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 mb-3">
+              <v-row dense>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">階数</div>
+                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.floorDisplay }}</div>
+                </v-col>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">室内状態</div>
+                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.interiorCondition }}</div>
+                </v-col>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">種別</div>
+                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.propertyType }}</div>
+                </v-col>
+              </v-row>
+            </v-card>
+            <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 mb-3">
+              <v-row dense>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">構造</div>
+                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.structure }}</div>
+                </v-col>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">築年</div>
+                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.builtYear }}</div>
+                </v-col>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">契約期間</div>
+                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.contractPeriod }}</div>
+                </v-col>
+              </v-row>
+            </v-card>
+            <v-row dense>
+              <v-col cols="6">
+                <div class="detail-info-item">
+                  <v-icon size="14" class="mr-1" color="grey">mdi-account-group</v-icon>
+                  <span class="text-caption text-medium-emphasis">問い合わせ</span>
+                  <span class="text-body-2 font-weight-bold ml-1">
+                    {{ selectedProperty.inquiryCount }}件
+                    <v-icon v-if="selectedProperty.inquiryCount >= 5" size="14" color="warning">mdi-fire</v-icon>
+                  </span>
+                </div>
+              </v-col>
+              <v-col cols="6">
+                <div class="detail-info-item">
+                  <v-icon size="14" class="mr-1" color="grey">mdi-calendar</v-icon>
+                  <span class="text-caption text-medium-emphasis">登録日</span>
+                  <span class="text-body-2 font-weight-bold ml-1">{{ selectedProperty.createdAt }}</span>
+                </div>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider class="my-1" />
+
+          <!-- Section: 可能業態 -->
+          <div class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-store</v-icon>
+              可能業態
+            </div>
             <div class="d-flex flex-wrap ga-2">
               <v-chip
-                v-for="eq in selectedProperty.equipment"
-                :key="eq"
+                v-for="biz in selectedProperty.allowedBusinessTypes"
+                :key="biz"
                 size="small"
                 variant="tonal"
                 color="primary"
               >
-                <v-icon start size="14">mdi-check-circle</v-icon>
-                {{ eq }}
+                {{ biz }}
               </v-chip>
             </div>
           </div>
 
-          <div v-if="selectedProperty.specialConditions?.length" class="mb-2 mt-4">
-            <div class="text-caption text-medium-emphasis mb-2">特殊条件</div>
+          <v-divider class="my-1" />
+
+          <!-- Section: 設備・特殊条件 -->
+          <div class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-toolbox-outline</v-icon>
+              設備・特殊条件
+            </div>
             <div class="d-flex flex-wrap ga-2">
               <v-chip
                 v-for="cond in selectedProperty.specialConditions"
                 :key="cond"
                 size="small"
                 variant="tonal"
-                color="secondary"
+                color="primary"
               >
+                <v-icon start size="14">mdi-check-circle</v-icon>
                 {{ cond }}
               </v-chip>
             </div>
           </div>
+
+          <v-divider class="my-1" />
+
+          <!-- Section: 費用詳細 -->
+          <div class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-currency-jpy</v-icon>
+              費用詳細
+            </div>
+            <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3">
+              <v-row dense>
+                <v-col cols="6" sm="4" class="mb-2">
+                  <div class="text-caption text-medium-emphasis">管理費/共益費</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.managementFee ? formatRent(selectedProperty.managementFee) : 'なし' }}</div>
+                </v-col>
+                <v-col cols="6" sm="4" class="mb-2">
+                  <div class="text-caption text-medium-emphasis">保証金/敷金</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.deposit ? formatRent(selectedProperty.deposit) : 'なし' }}</div>
+                  <div v-if="selectedProperty.depositDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.depositDetail }}</div>
+                </v-col>
+                <v-col cols="6" sm="4" class="mb-2">
+                  <div class="text-caption text-medium-emphasis">解約引/敷引</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.penalty ? formatRent(selectedProperty.penalty) : 'なし' }}</div>
+                  <div v-if="selectedProperty.penaltyDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.penaltyDetail }}</div>
+                </v-col>
+                <v-col cols="6" sm="4" class="mb-2">
+                  <div class="text-caption text-medium-emphasis">礼金</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.keyMoney ? formatRent(selectedProperty.keyMoney) : 'なし' }}</div>
+                  <div v-if="selectedProperty.keyMoneyDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.keyMoneyDetail }}</div>
+                </v-col>
+                <v-col cols="6" sm="4" class="mb-2">
+                  <div class="text-caption text-medium-emphasis">仲介手数料</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.brokerageFee ? formatRent(selectedProperty.brokerageFee) : 'なし' }}</div>
+                  <div v-if="selectedProperty.brokerageDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.brokerageDetail }}</div>
+                </v-col>
+              </v-row>
+            </v-card>
+          </div>
+
+          <!-- Section: 造作譲渡 -->
+          <div v-if="selectedProperty.transferDisplay" class="detail-section">
+            <v-divider class="my-1" />
+            <div class="detail-section-header mt-4">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-hand-coin</v-icon>
+              造作譲渡
+            </div>
+            <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3">
+              <v-row dense>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">造作譲渡</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.transferDisplay }}</div>
+                </v-col>
+                <v-col v-if="selectedProperty.transferAskedPrice" cols="4">
+                  <div class="text-caption text-medium-emphasis">依頼額</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.transferAskedPrice }}万円</div>
+                </v-col>
+                <v-col v-if="selectedProperty.transferListPrice" cols="4">
+                  <div class="text-caption text-medium-emphasis">募集額</div>
+                  <div class="text-body-2 font-weight-bold">{{ selectedProperty.transferListPrice }}万円</div>
+                </v-col>
+              </v-row>
+            </v-card>
+          </div>
         </v-card-text>
 
         <v-divider />
-        <v-card-actions class="pa-4 ga-3">
-          <v-btn
-            :variant="selectedProperty.isFavorite ? 'flat' : 'outlined'"
-            :color="selectedProperty.isFavorite ? 'error' : 'grey'"
-            rounded="lg"
-            class="flex-grow-1"
-            @click="toggleFavorite(selectedProperty.id)"
-          >
-            <v-icon start>{{ selectedProperty.isFavorite ? 'mdi-heart' : 'mdi-heart-outline' }}</v-icon>
-            {{ selectedProperty.isFavorite ? 'お気に入り済み' : 'お気に入り' }}
-          </v-btn>
+        <v-card-actions class="pa-4">
           <v-btn
             v-if="selectedProperty.status !== 'closed'"
             color="primary"
             rounded="lg"
-            class="flex-grow-1"
+            block
+            size="large"
             @click="showDetail = false"
           >
             <v-icon start>mdi-email-fast</v-icon>
             問い合わせる
+          </v-btn>
+          <v-btn
+            v-else
+            variant="outlined"
+            color="grey"
+            rounded="lg"
+            block
+            size="large"
+            disabled
+          >
+            募集終了
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -740,16 +906,59 @@ const tabs = computed(() => [
   { key: 'profile', title: 'マイ情報', icon: 'mdi-account-cog', badge: null },
 ])
 
+// ─── ロケーション表示ヘルパー ───
+const getLocation = (p) => `${p.prefecture}${p.city}${p.town}${p.chome}`
+
 // ─── 物件データ ───
 const allProperties = ref([
   {
     id: 1,
     name: 'イタリアンレストラン跡地',
-    location: '大阪府大阪市中央区心斎橋筋1丁目',
-    area: 18,
+    floorDisplay: '1F',
+    floorSearch: '1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市中央区',
+    town: '心斎橋筋',
+    chome: '1丁目',
+    banchi: '1-1',
+    go: '',
+    tsubo: 18,
+    sqm: 59.5,
+    builtYear: '1998年',
+    floorsAbove: 8,
+    floorsBelow: 1,
+    structure: '鉄骨鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '普通建物賃貸借 2年',
+    nearestStations: [
+      { railway: 'OsakaMetro御堂筋線', station: '心斎橋', transportMethod: '徒歩', transportMinutes: 3 },
+      { railway: 'OsakaMetro長堀鶴見緑地線', station: '長堀橋', transportMethod: '徒歩', transportMinutes: 5 },
+      { railway: 'OsakaMetro御堂筋線', station: 'なんば', transportMethod: '徒歩', transportMinutes: 8 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: '居抜き（有償）',
+    shopName: '旧イタリアーノ',
+    availableDate: '2025年9月〜',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['イタリアン', 'フレンチ', 'カフェ'],
+    specialConditions: ['重飲食可（炭火以外）', '路面店', 'ダクト有'],
+    transferDisplay: 'あり',
+    transferAskedPrice: 200,
+    transferListPrice: 150,
     rent: 250000,
-    businessType: 'イタリアン',
-    floor: '1階路面',
+    managementFee: 10000,
+    deposit: 500000,
+    depositDetail: '賃料2ヶ月分',
+    penalty: 250000,
+    penaltyDetail: '賃料1ヶ月分',
+    keyMoney: 0,
+    keyMoneyDetail: 'なし',
+    brokerageFee: 250000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'active',
     isFavorite: true,
     isInquired: true,
@@ -758,27 +967,57 @@ const allProperties = ref([
     inquiryStatus: '内見調整中',
     closedDate: null,
     documentStatus: '許可済',
-    equipment: ['厨房設備一式', '業務用空調', 'カウンター8席', 'テーブル4卓'],
-    availableDate: '2025年9月〜',
     createdAt: '2025-07-10',
     gradient: 'linear-gradient(135deg, #5a6e7f 0%, #8fa3b3 100%)',
-    railway: 'OsakaMetro御堂筋線',
-    station: '心斎橋',
-    transportMethod: '徒歩',
-    transportMinutes: 3,
-    interiorCondition: '居抜き（有償）',
-    specialConditions: ['重飲食可（炭火以外）', '路面店', 'ダクト有'],
-    propertyCategory: '店舗',
-    floors: '1F',
   },
   {
     id: 2,
     name: 'カフェ＆ダイニング跡地',
-    location: '大阪府大阪市北区梅田1丁目',
-    area: 14,
+    floorDisplay: '1F',
+    floorSearch: '1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市北区',
+    town: '梅田',
+    chome: '1丁目',
+    banchi: '3-10',
+    go: '',
+    tsubo: 14,
+    sqm: 46.3,
+    builtYear: '2005年',
+    floorsAbove: 10,
+    floorsBelow: 2,
+    structure: '鉄骨鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '普通建物賃貸借 3年',
+    nearestStations: [
+      { railway: 'OsakaMetro御堂筋線', station: '梅田', transportMethod: '徒歩', transportMinutes: 5 },
+      { railway: 'ＪＲ大阪環状線', station: '大阪', transportMethod: '徒歩', transportMinutes: 7 },
+      { railway: '阪急京都本線', station: '大阪梅田', transportMethod: '徒歩', transportMinutes: 6 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: '居抜き（無償）',
+    shopName: '旧カフェ・ド・ウメダ',
+    availableDate: '即入居可',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['カフェ', 'ダイニングバー', 'スイーツ'],
+    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
+    transferDisplay: 'なし',
+    transferAskedPrice: null,
+    transferListPrice: null,
     rent: 200000,
-    businessType: 'カフェ',
-    floor: '1階路面',
+    managementFee: 15000,
+    deposit: 600000,
+    depositDetail: '賃料3ヶ月分',
+    penalty: 200000,
+    penaltyDetail: '賃料1ヶ月分',
+    keyMoney: 200000,
+    keyMoneyDetail: '賃料1ヶ月分',
+    brokerageFee: 200000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'active',
     isFavorite: true,
     isInquired: false,
@@ -787,27 +1026,57 @@ const allProperties = ref([
     inquiryStatus: null,
     closedDate: null,
     documentStatus: null,
-    equipment: ['エスプレッソマシン', '業務用空調', 'カウンター6席', 'テラス席あり'],
-    availableDate: '即入居可',
     createdAt: '2025-07-12',
     gradient: 'linear-gradient(135deg, #8d7b68 0%, #b8a99a 100%)',
-    railway: 'OsakaMetro御堂筋線',
-    station: '梅田',
-    transportMethod: '徒歩',
-    transportMinutes: 5,
-    interiorCondition: '居抜き（無償）',
-    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
-    propertyCategory: '店舗',
-    floors: '1F',
   },
   {
     id: 3,
     name: '居酒屋「なにわ亭」跡地',
-    location: '大阪府大阪市浪速区難波中1丁目',
-    area: 15,
+    floorDisplay: 'B1F',
+    floorSearch: '地下1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市浪速区',
+    town: '難波中',
+    chome: '1丁目',
+    banchi: '6-8',
+    go: '',
+    tsubo: 15,
+    sqm: 49.6,
+    builtYear: '1992年',
+    floorsAbove: 6,
+    floorsBelow: 1,
+    structure: '鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '定期建物賃貸借 5年',
+    nearestStations: [
+      { railway: 'OsakaMetro御堂筋線', station: 'なんば', transportMethod: '徒歩', transportMinutes: 2 },
+      { railway: '南海本線', station: '難波', transportMethod: '徒歩', transportMinutes: 4 },
+      { railway: 'OsakaMetro千日前線', station: 'なんば', transportMethod: '徒歩', transportMinutes: 3 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: '居抜き（有償）',
+    shopName: 'なにわ亭',
+    availableDate: '即入居可',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['居酒屋', '和食', '焼鳥'],
+    specialConditions: ['重飲食可（炭火以外）', '深夜営業可', '繁華街', 'ダクト有', 'グリストラップ有'],
+    transferDisplay: 'あり',
+    transferAskedPrice: 300,
+    transferListPrice: 250,
     rent: 180000,
-    businessType: '居酒屋',
-    floor: '地下1階',
+    managementFee: 8000,
+    deposit: 900000,
+    depositDetail: '賃料5ヶ月分',
+    penalty: 360000,
+    penaltyDetail: '賃料2ヶ月分',
+    keyMoney: 0,
+    keyMoneyDetail: 'なし',
+    brokerageFee: 180000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'active',
     isFavorite: false,
     isInquired: false,
@@ -816,27 +1085,56 @@ const allProperties = ref([
     inquiryStatus: null,
     closedDate: null,
     documentStatus: null,
-    equipment: ['厨房設備一式', '業務用空調', 'カウンター10席', '座敷20席'],
-    availableDate: '即入居可',
     createdAt: '2025-07-14',
     gradient: 'linear-gradient(135deg, #6b705c 0%, #a5a58d 100%)',
-    railway: 'OsakaMetro御堂筋線',
-    station: 'なんば',
-    transportMethod: '徒歩',
-    transportMinutes: 2,
-    interiorCondition: '居抜き（有償）',
-    specialConditions: ['重飲食可（炭火以外）', '深夜営業可', '繁華街'],
-    propertyCategory: '店舗',
-    floors: 'B1F',
   },
   {
     id: 4,
     name: 'ラーメン店跡地',
-    location: '大阪府大阪市都島区都島本通3丁目',
-    area: 10,
+    floorDisplay: '1F',
+    floorSearch: '1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市都島区',
+    town: '都島本通',
+    chome: '3丁目',
+    banchi: '15-2',
+    go: '',
+    tsubo: 10,
+    sqm: 33.1,
+    builtYear: '1985年',
+    floorsAbove: 4,
+    floorsBelow: 0,
+    structure: '鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '普通建物賃貸借 2年',
+    nearestStations: [
+      { railway: 'OsakaMetro谷町線', station: '都島', transportMethod: '徒歩', transportMinutes: 7 },
+      { railway: 'ＪＲ大阪環状線', station: '桜ノ宮', transportMethod: '徒歩', transportMinutes: 10 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: 'スケルトン',
+    shopName: '',
+    availableDate: '-',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['ラーメン', 'うどん', 'テイクアウト'],
+    specialConditions: ['軽飲食まで可', '住宅街', '換気扇有'],
+    transferDisplay: 'なし',
+    transferAskedPrice: null,
+    transferListPrice: null,
     rent: 120000,
-    businessType: 'ラーメン',
-    floor: '1階路面',
+    managementFee: 5000,
+    deposit: 360000,
+    depositDetail: '賃料3ヶ月分',
+    penalty: 120000,
+    penaltyDetail: '賃料1ヶ月分',
+    keyMoney: 120000,
+    keyMoneyDetail: '賃料1ヶ月分',
+    brokerageFee: 120000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'closed',
     isFavorite: false,
     isInquired: false,
@@ -845,27 +1143,57 @@ const allProperties = ref([
     inquiryStatus: null,
     closedDate: '2025-07-01',
     documentStatus: null,
-    equipment: ['厨房設備一式', '換気設備', 'カウンター12席'],
-    availableDate: '-',
     createdAt: '2025-06-20',
     gradient: 'linear-gradient(135deg, #7f8c8d 0%, #b2bec3 100%)',
-    railway: 'OsakaMetro谷町線',
-    station: '都島',
-    transportMethod: '徒歩',
-    transportMinutes: 7,
-    interiorCondition: 'スケルトン',
-    specialConditions: ['軽飲食まで可', '住宅街'],
-    propertyCategory: '店舗',
-    floors: '1F',
   },
   {
     id: 5,
     name: 'ダイニングバー跡地',
-    location: '大阪府大阪市北区堂山町',
-    area: 22,
+    floorDisplay: '2F',
+    floorSearch: '2階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市北区',
+    town: '堂山町',
+    chome: '',
+    banchi: '5-12',
+    go: '',
+    tsubo: 22,
+    sqm: 72.7,
+    builtYear: '2001年',
+    floorsAbove: 7,
+    floorsBelow: 1,
+    structure: '重量鉄骨造',
+    propertyType: '店舗',
+    contractPeriod: '定期建物賃貸借 3年',
+    nearestStations: [
+      { railway: 'OsakaMetro谷町線', station: '東梅田', transportMethod: '徒歩', transportMinutes: 4 },
+      { railway: 'OsakaMetro御堂筋線', station: '梅田', transportMethod: '徒歩', transportMinutes: 6 },
+      { railway: '阪急京都本線', station: '大阪梅田', transportMethod: '徒歩', transportMinutes: 7 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: '居抜き（有償）',
+    shopName: '旧バー・ノクターン',
+    availableDate: '2025年10月〜',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['バー', 'ダイニングバー', 'ラウンジ'],
+    specialConditions: ['深夜営業可', 'カラオケ可', '繁華街', 'ビルイン', '専用階段有'],
+    transferDisplay: 'あり',
+    transferAskedPrice: 180,
+    transferListPrice: 120,
     rent: 350000,
-    businessType: 'バー',
-    floor: '2階',
+    managementFee: 20000,
+    deposit: 1750000,
+    depositDetail: '賃料5ヶ月分',
+    penalty: 700000,
+    penaltyDetail: '賃料2ヶ月分',
+    keyMoney: 350000,
+    keyMoneyDetail: '賃料1ヶ月分',
+    brokerageFee: 350000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'active',
     isFavorite: false,
     isInquired: false,
@@ -874,27 +1202,57 @@ const allProperties = ref([
     inquiryStatus: null,
     closedDate: null,
     documentStatus: null,
-    equipment: ['バーカウンター', '業務用空調', '照明設備', 'DJ ブース'],
-    availableDate: '2025年10月〜',
     createdAt: '2025-07-11',
     gradient: 'linear-gradient(135deg, #3d405b 0%, #6c6f8a 100%)',
-    railway: 'OsakaMetro谷町線',
-    station: '東梅田',
-    transportMethod: '徒歩',
-    transportMinutes: 4,
-    interiorCondition: '居抜き（有償）',
-    specialConditions: ['深夜営業可', 'カラオケ可', '繁華街'],
-    propertyCategory: '店舗',
-    floors: '2F',
   },
   {
     id: 6,
     name: '焼肉店跡地',
-    location: '大阪府大阪市生野区鶴橋2丁目',
-    area: 25,
+    floorDisplay: '1F',
+    floorSearch: '1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市生野区',
+    town: '鶴橋',
+    chome: '2丁目',
+    banchi: '3-18',
+    go: '',
+    tsubo: 25,
+    sqm: 82.6,
+    builtYear: '1990年',
+    floorsAbove: 3,
+    floorsBelow: 0,
+    structure: '鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '普通建物賃貸借 3年',
+    nearestStations: [
+      { railway: '近鉄大阪線', station: '鶴橋', transportMethod: '徒歩', transportMinutes: 3 },
+      { railway: 'ＪＲ大阪環状線', station: '鶴橋', transportMethod: '徒歩', transportMinutes: 3 },
+      { railway: 'OsakaMetro千日前線', station: '鶴橋', transportMethod: '徒歩', transportMinutes: 4 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: '居抜き（無償）',
+    shopName: '旧焼肉一番',
+    availableDate: '2025年8月〜',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['焼肉', 'ホルモン', '韓国料理'],
+    specialConditions: ['重飲食可（炭火）', '路面店', 'ダクト有', 'グリストラップ有', '商店街'],
+    transferDisplay: 'なし',
+    transferAskedPrice: null,
+    transferListPrice: null,
     rent: 220000,
-    businessType: '焼肉',
-    floor: '1階路面',
+    managementFee: 10000,
+    deposit: 1320000,
+    depositDetail: '賃料6ヶ月分',
+    penalty: 440000,
+    penaltyDetail: '賃料2ヶ月分',
+    keyMoney: 0,
+    keyMoneyDetail: 'なし',
+    brokerageFee: 220000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'active',
     isFavorite: false,
     isInquired: true,
@@ -903,27 +1261,56 @@ const allProperties = ref([
     inquiryStatus: '確認中',
     closedDate: null,
     documentStatus: '申請中',
-    equipment: ['無煙ロースター8台', '厨房設備一式', '業務用空調', 'テーブル8卓'],
-    availableDate: '2025年8月〜',
     createdAt: '2025-07-08',
     gradient: 'linear-gradient(135deg, #6d4c41 0%, #8d6e63 100%)',
-    railway: '近鉄大阪線',
-    station: '鶴橋',
-    transportMethod: '徒歩',
-    transportMinutes: 3,
-    interiorCondition: '居抜き（無償）',
-    specialConditions: ['重飲食可（炭火）', '路面店', 'ダクト有', 'グリストラップ有'],
-    propertyCategory: '店舗',
-    floors: '1F',
   },
   {
     id: 7,
     name: '和食料理店跡地',
-    location: '大阪府大阪市天王寺区上本町6丁目',
-    area: 20,
+    floorDisplay: '1F',
+    floorSearch: '1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市天王寺区',
+    town: '上本町',
+    chome: '6丁目',
+    banchi: '2-5',
+    go: '',
+    tsubo: 20,
+    sqm: 66.1,
+    builtYear: '1995年',
+    floorsAbove: 5,
+    floorsBelow: 0,
+    structure: '鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '普通建物賃貸借 2年',
+    nearestStations: [
+      { railway: 'OsakaMetro谷町線', station: '四天王寺前夕陽ヶ丘', transportMethod: '徒歩', transportMinutes: 6 },
+      { railway: '近鉄大阪線', station: '大阪上本町', transportMethod: '徒歩', transportMinutes: 8 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: '居抜き（有償）',
+    shopName: '旧割烹さくら',
+    availableDate: '-',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['和食', '割烹', '寿司'],
+    specialConditions: ['重飲食可（炭火以外）', '高級店', '換気扇有'],
+    transferDisplay: 'あり',
+    transferAskedPrice: 350,
+    transferListPrice: 280,
     rent: 200000,
-    businessType: '和食',
-    floor: '1階路面',
+    managementFee: 10000,
+    deposit: 1200000,
+    depositDetail: '賃料6ヶ月分',
+    penalty: 400000,
+    penaltyDetail: '賃料2ヶ月分',
+    keyMoney: 200000,
+    keyMoneyDetail: '賃料1ヶ月分',
+    brokerageFee: 200000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'closed',
     isFavorite: true,
     isInquired: false,
@@ -932,27 +1319,57 @@ const allProperties = ref([
     inquiryStatus: null,
     closedDate: '2025-06-15',
     documentStatus: null,
-    equipment: ['厨房設備一式', '業務用空調', 'カウンター6席', '個室3室'],
-    availableDate: '-',
     createdAt: '2025-06-01',
     gradient: 'linear-gradient(135deg, #4a6741 0%, #7d9f71 100%)',
-    railway: 'OsakaMetro谷町線',
-    station: '四天王寺前夕陽ヶ丘',
-    transportMethod: '徒歩',
-    transportMinutes: 6,
-    interiorCondition: '居抜き（有償）',
-    specialConditions: ['重飲食可（炭火以外）', '高級店'],
-    propertyCategory: '店舗',
-    floors: '1F',
   },
   {
     id: 8,
     name: 'たこ焼き・テイクアウト跡地',
-    location: '大阪府大阪市西区南堀江1丁目',
-    area: 8,
+    floorDisplay: '1F',
+    floorSearch: '1階',
+    roomNumber: '',
+    prefecture: '大阪府',
+    city: '大阪市西区',
+    town: '南堀江',
+    chome: '1丁目',
+    banchi: '12-7',
+    go: '',
+    tsubo: 8,
+    sqm: 26.4,
+    builtYear: '2010年',
+    floorsAbove: 6,
+    floorsBelow: 0,
+    structure: '鉄筋コンクリート造',
+    propertyType: '店舗',
+    contractPeriod: '普通建物賃貸借 2年',
+    nearestStations: [
+      { railway: 'OsakaMetro四つ橋線', station: '四ツ橋', transportMethod: '徒歩', transportMinutes: 5 },
+      { railway: 'OsakaMetro長堀鶴見緑地線', station: '西大橋', transportMethod: '徒歩', transportMinutes: 3 },
+      { railway: 'OsakaMetro御堂筋線', station: '心斎橋', transportMethod: '徒歩', transportMinutes: 10 },
+    ],
+    currentStatus: '空室',
+    interiorCondition: 'スケルトン',
+    shopName: '',
+    availableDate: '即入居可',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: ['テイクアウト', 'たこ焼き', 'クレープ'],
+    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
+    transferDisplay: 'なし',
+    transferAskedPrice: null,
+    transferListPrice: null,
     rent: 100000,
-    businessType: 'テイクアウト',
-    floor: '1階路面',
+    managementFee: 5000,
+    deposit: 300000,
+    depositDetail: '賃料3ヶ月分',
+    penalty: 100000,
+    penaltyDetail: '賃料1ヶ月分',
+    keyMoney: 0,
+    keyMoneyDetail: 'なし',
+    brokerageFee: 100000,
+    brokerageDetail: '賃料1ヶ月分',
+    remarks: '',
+    searchMemo: '',
     status: 'active',
     isFavorite: false,
     isInquired: false,
@@ -961,18 +1378,8 @@ const allProperties = ref([
     inquiryStatus: null,
     closedDate: null,
     documentStatus: null,
-    equipment: ['業務用オーブン', '冷蔵ショーケース', 'テイクアウトカウンター'],
-    availableDate: '即入居可',
     createdAt: '2025-07-13',
     gradient: 'linear-gradient(135deg, #9e8c7a 0%, #c4b7a6 100%)',
-    railway: 'OsakaMetro四つ橋線',
-    station: '四ツ橋',
-    transportMethod: '徒歩',
-    transportMinutes: 5,
-    interiorCondition: 'スケルトン',
-    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
-    propertyCategory: '店舗',
-    floors: '1F',
   },
 ])
 
@@ -1036,9 +1443,12 @@ const profile = ref({
 // ─── 検索・フィルタ ───
 const searchText = ref('')
 const showDetailFilter = ref(false)
+const filterPrefecture = ref(null)
 const filterArea = ref(null)
-const filterRent = ref(null)
-const filterSize = ref(null)
+const filterRentMin = ref(null)
+const filterRentMax = ref(null)
+const filterSizeMin = ref(null)
+const filterSizeMax = ref(null)
 const filterBusiness = ref(null)
 const filterRailway = ref(null)
 const filterStation = ref('')
@@ -1050,7 +1460,6 @@ const filterSpecial = ref(null)
 const filterEquipment = ref(null)
 const sortBy = ref('newest')
 
-const activeQuickFilters = ref([])
 
 const sortOptions = [
   { title: '新着順', value: 'newest' },
@@ -1059,20 +1468,24 @@ const sortOptions = [
   { title: '面積が広い順', value: 'area_desc' },
 ]
 
-const areaOptions = ['中央区', '北区', '浪速区', '都島区', '天王寺区', '西区', '生野区', '福島区']
-const rentOptions = [
-  { title: '〜15万円', value: 'under15' },
-  { title: '15〜25万円', value: '15to25' },
-  { title: '25〜35万円', value: '25to35' },
-  { title: '35万円〜', value: 'over35' },
-]
-const sizeOptions = [
-  { title: '〜10坪', value: 'under10' },
-  { title: '10〜15坪', value: '10to15' },
-  { title: '15〜20坪', value: '15to20' },
-  { title: '20坪〜', value: 'over20' },
-]
-const businessOptions = ['カフェ', 'イタリアン', '居酒屋', 'ラーメン', 'バー', '焼肉', '和食', 'テイクアウト']
+const prefectureOptions = ['大阪府', '京都府', '兵庫県', '奈良県', '滋賀県', '和歌山県', '三重県']
+
+const areaOptionsMap = {
+  '大阪府': ['大阪市中央区', '大阪市北区', '大阪市浪速区', '大阪市都島区', '大阪市天王寺区', '大阪市西区', '大阪市生野区', '大阪市福島区', '大阪市城東区', '大阪市東成区', '大阪市阿倍野区', '大阪市住吉区', '大阪市東住吉区', '大阪市平野区', '大阪市此花区', '大阪市港区', '大阪市大正区', '大阪市西成区', '大阪市住之江区', '大阪市鶴見区', '大阪市旭区', '大阪市淀川区', '大阪市東淀川区', '大阪市西淀川区'],
+  '京都府': ['京都市中京区', '京都市下京区', '京都市東山区', '京都市左京区', '京都市右京区', '京都市上京区'],
+  '兵庫県': ['神戸市中央区', '神戸市兵庫区', '神戸市長田区', '西宮市', '尼崎市', '芦屋市'],
+  '奈良県': ['奈良市', '橿原市', '生駒市'],
+  '滋賀県': ['大津市', '草津市'],
+  '和歌山県': ['和歌山市'],
+  '三重県': ['津市', '四日市市'],
+}
+
+const filteredAreaOptions = computed(() => {
+  if (!filterPrefecture.value) return []
+  return areaOptionsMap[filterPrefecture.value] || []
+})
+
+const businessOptions = ['カフェ', 'イタリアン', '居酒屋', 'ラーメン', 'バー', '焼肉', '和食', 'テイクアウト', 'フレンチ', '焼鳥', 'うどん', 'そば']
 
 const railwayFilterOptions = [
   'OsakaMetro御堂筋線', 'OsakaMetro谷町線', 'OsakaMetro四つ橋線', 'OsakaMetro中央線',
@@ -1083,14 +1496,7 @@ const railwayFilterOptions = [
 
 const interiorConditionFilterOptions = ['居抜き（無償）', '居抜き（有償）', 'スケルトン']
 
-const walkMinutesOptions = [
-  { title: '3分以内', value: 3 },
-  { title: '5分以内', value: 5 },
-  { title: '10分以内', value: 10 },
-  { title: '15分以内', value: 15 },
-]
-
-const floorFilterOptions = ['1階路面', '2階以上', '地下1階', '地下']
+const floorFilterOptions = ['1階', '2階', '地下1階', '地下']
 
 const locationFilterOptions = ['路面店', 'ビルイン', '角地', '駅前', '駅ビル', '商業施設', '繁華街', 'ビジネス街', '住宅街', '学生街', '商店街', 'ロードサイド']
 
@@ -1099,17 +1505,8 @@ const specialFilterOptions = [
   '深夜営業可', 'カラオケ可', '演奏可', 'ペット可',
 ]
 
-const equipmentFilterOptions = ['ダクト有', 'グリストラップ有', '換気扇有', 'エレベーター有', '高天井', '視認性有']
+const equipmentFilterOptions = ['換気扇有', 'ダクト有', '内階段有', 'ダムウェーター有', 'グリストラップ有', '高天井', '重機付き', '高級店']
 
-const quickFilters = computed(() => [
-  { key: 'immediate', label: '即入居可', icon: 'mdi-flash', active: activeQuickFilters.value.includes('immediate') },
-  { key: 'ground', label: '1階路面', icon: 'mdi-door', active: activeQuickFilters.value.includes('ground') },
-  { key: 'kitchen', label: '厨房付き', icon: 'mdi-stove', active: activeQuickFilters.value.includes('kitchen') },
-  { key: 'walk5', label: '駅近(5分以内)', icon: 'mdi-walk', active: activeQuickFilters.value.includes('walk5') },
-  { key: 'inuki', label: '居抜き', icon: 'mdi-home-city', active: activeQuickFilters.value.includes('inuki') },
-  { key: 'skeleton', label: 'スケルトン', icon: 'mdi-cube-outline', active: activeQuickFilters.value.includes('skeleton') },
-  { key: 'active_only', label: '募集中のみ', icon: 'mdi-check-circle', active: activeQuickFilters.value.includes('active_only') },
-])
 
 // ─── 詳細ダイアログ ───
 const showDetail = ref(false)
@@ -1123,9 +1520,12 @@ const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).le
 
 const activeFilterCount = computed(() => {
   let count = 0
+  if (filterPrefecture.value) count++
   if (filterArea.value) count++
-  if (filterRent.value) count++
-  if (filterSize.value) count++
+  if (filterRentMin.value) count++
+  if (filterRentMax.value) count++
+  if (filterSizeMin.value) count++
+  if (filterSizeMax.value) count++
   if (filterBusiness.value) count++
   if (filterRailway.value) count++
   if (filterStation.value) count++
@@ -1143,56 +1543,54 @@ const filteredProperties = computed(() => {
 
   if (searchText.value) {
     const q = searchText.value.toLowerCase()
-    result = result.filter(p => p.name.toLowerCase().includes(q) || p.location.toLowerCase().includes(q))
+    result = result.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      getLocation(p).toLowerCase().includes(q) ||
+      p.nearestStations.some(s => s.station.toLowerCase().includes(q)) ||
+      p.shopName?.toLowerCase().includes(q)
+    )
   }
 
+  if (filterPrefecture.value) {
+    result = result.filter(p => p.prefecture === filterPrefecture.value)
+  }
   if (filterArea.value) {
-    result = result.filter(p => p.location.includes(filterArea.value))
+    result = result.filter(p => p.city === filterArea.value)
   }
 
-  if (filterRent.value) {
-    result = result.filter(p => {
-      switch (filterRent.value) {
-        case 'under15': return p.rent <= 150000
-        case '15to25': return p.rent > 150000 && p.rent <= 250000
-        case '25to35': return p.rent > 250000 && p.rent <= 350000
-        case 'over35': return p.rent > 350000
-        default: return true
-      }
-    })
+  if (filterRentMin.value) {
+    result = result.filter(p => p.rent >= filterRentMin.value * 10000)
+  }
+  if (filterRentMax.value) {
+    result = result.filter(p => p.rent <= filterRentMax.value * 10000)
   }
 
-  if (filterSize.value) {
-    result = result.filter(p => {
-      switch (filterSize.value) {
-        case 'under10': return p.area <= 10
-        case '10to15': return p.area > 10 && p.area <= 15
-        case '15to20': return p.area > 15 && p.area <= 20
-        case 'over20': return p.area > 20
-        default: return true
-      }
-    })
+  if (filterSizeMin.value) {
+    result = result.filter(p => p.tsubo >= filterSizeMin.value)
+  }
+  if (filterSizeMax.value) {
+    result = result.filter(p => p.tsubo <= filterSizeMax.value)
   }
 
   if (filterBusiness.value) {
-    result = result.filter(p => p.businessType === filterBusiness.value)
+    result = result.filter(p => p.allowedBusinessTypes && p.allowedBusinessTypes.includes(filterBusiness.value))
   }
 
   if (filterRailway.value) {
-    result = result.filter(p => p.railway === filterRailway.value)
+    result = result.filter(p => p.nearestStations.some(s => s.railway === filterRailway.value))
   }
   if (filterStation.value) {
     const q = filterStation.value.toLowerCase()
-    result = result.filter(p => p.station && p.station.toLowerCase().includes(q))
+    result = result.filter(p => p.nearestStations.some(s => s.station.toLowerCase().includes(q)))
   }
   if (filterWalkMinutes.value) {
-    result = result.filter(p => p.transportMinutes <= filterWalkMinutes.value)
+    result = result.filter(p => p.nearestStations.some(s => s.transportMinutes <= filterWalkMinutes.value))
   }
   if (filterInterior.value) {
     result = result.filter(p => p.interiorCondition === filterInterior.value)
   }
   if (filterFloor.value) {
-    result = result.filter(p => p.floor && p.floor.includes(filterFloor.value))
+    result = result.filter(p => p.floorSearch && p.floorSearch.includes(filterFloor.value))
   }
   if (filterLocation.value) {
     result = result.filter(p => p.specialConditions && p.specialConditions.includes(filterLocation.value))
@@ -1204,32 +1602,11 @@ const filteredProperties = computed(() => {
     result = result.filter(p => p.specialConditions && p.specialConditions.includes(filterEquipment.value))
   }
 
-  if (activeQuickFilters.value.includes('immediate')) {
-    result = result.filter(p => p.availableDate === '即入居可')
-  }
-  if (activeQuickFilters.value.includes('ground')) {
-    result = result.filter(p => p.floor === '1階路面')
-  }
-  if (activeQuickFilters.value.includes('kitchen')) {
-    result = result.filter(p => p.equipment.some(e => e.includes('厨房')))
-  }
-  if (activeQuickFilters.value.includes('walk5')) {
-    result = result.filter(p => p.transportMinutes <= 5)
-  }
-  if (activeQuickFilters.value.includes('inuki')) {
-    result = result.filter(p => p.interiorCondition && p.interiorCondition.includes('居抜き'))
-  }
-  if (activeQuickFilters.value.includes('skeleton')) {
-    result = result.filter(p => p.interiorCondition === 'スケルトン')
-  }
-  if (activeQuickFilters.value.includes('active_only')) {
-    result = result.filter(p => p.status === 'active')
-  }
 
   switch (sortBy.value) {
     case 'rent_asc': result.sort((a, b) => a.rent - b.rent); break
     case 'rent_desc': result.sort((a, b) => b.rent - a.rent); break
-    case 'area_desc': result.sort((a, b) => b.area - a.area); break
+    case 'area_desc': result.sort((a, b) => b.tsubo - a.tsubo); break
     default: result.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
   }
 
@@ -1303,14 +1680,6 @@ const toggleFavorite = (id) => {
   }
 }
 
-const toggleQuickFilter = (key) => {
-  const idx = activeQuickFilters.value.indexOf(key)
-  if (idx >= 0) {
-    activeQuickFilters.value.splice(idx, 1)
-  } else {
-    activeQuickFilters.value.push(key)
-  }
-}
 
 const openDetail = (property) => {
   selectedProperty.value = { ...property }
@@ -1319,9 +1688,12 @@ const openDetail = (property) => {
 
 const resetFilters = () => {
   searchText.value = ''
+  filterPrefecture.value = null
   filterArea.value = null
-  filterRent.value = null
-  filterSize.value = null
+  filterRentMin.value = null
+  filterRentMax.value = null
+  filterSizeMin.value = null
+  filterSizeMax.value = null
   filterBusiness.value = null
   filterRailway.value = null
   filterStation.value = ''
@@ -1331,7 +1703,6 @@ const resetFilters = () => {
   filterLocation.value = null
   filterSpecial.value = null
   filterEquipment.value = null
-  activeQuickFilters.value = []
   sortBy.value = 'newest'
 }
 
@@ -1371,7 +1742,7 @@ const showSnackbar = (message, color = 'success') => {
   margin: 0 auto;
 }
 
-/* ── ヒーロー ── */
+/* -- ヒーロー -- */
 .hero-bg {
   background: linear-gradient(135deg, #1e50a2 0%, #3d7bc5 50%, #5a9bd5 100%);
   border-radius: inherit;
@@ -1380,7 +1751,7 @@ const showSnackbar = (message, color = 'success') => {
   background: white;
 }
 
-/* ── 統計カード ── */
+/* -- 統計カード -- */
 .stat-card {
   transition: transform 0.2s, box-shadow 0.2s;
   border: 1px solid rgba(0, 0, 0, 0.04);
@@ -1395,13 +1766,13 @@ const showSnackbar = (message, color = 'success') => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
-/* ── メインカード ── */
+/* -- メインカード -- */
 .main-card {
   border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
-/* ── 検索 ── */
+/* -- 検索 -- */
 .search-field {
   flex: 1 1 200px;
   max-width: 400px;
@@ -1421,16 +1792,17 @@ const showSnackbar = (message, color = 'success') => {
   }
 }
 
-/* ── 物件カード（グリッド） ── */
+/* -- 物件カード（グリッド） -- */
 .property-card {
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
 }
 .property-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
 }
 .property-image {
   height: 156px;
@@ -1455,7 +1827,7 @@ const showSnackbar = (message, color = 'success') => {
   letter-spacing: 0.02em;
 }
 
-/* ── 物件カード（横並び） ── */
+/* -- 物件カード（横並び） -- */
 .property-card-horizontal {
   border: 1px solid rgba(0, 0, 0, 0.06);
   cursor: pointer;
@@ -1485,7 +1857,7 @@ const showSnackbar = (message, color = 'success') => {
   font-weight: 600;
 }
 
-/* ── お知らせ ── */
+/* -- お知らせ -- */
 .notice-list {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
@@ -1493,12 +1865,12 @@ const showSnackbar = (message, color = 'success') => {
   background: #f0f6ff;
 }
 
-/* ── プロフィール ── */
+/* -- プロフィール -- */
 .profile-section {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-/* ── 詳細ダイアログ ── */
+/* -- 詳細ダイアログ -- */
 .detail-image {
   height: 200px;
   position: relative;
@@ -1516,7 +1888,31 @@ const showSnackbar = (message, color = 'success') => {
   left: 12px;
 }
 
-/* ── ボトムナビ余白（レイアウトのbottom-navigation分） ── */
+/* -- モーダルセクション -- */
+.detail-section {
+  padding: 16px 0;
+}
+.detail-section-header {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.detail-info-item {
+  display: flex;
+  align-items: center;
+}
+
+/* -- セクションアクセント -- */
+.section-accent {
+  width: 4px;
+  height: 20px;
+  background: #1e50a2;
+  border-radius: 2px;
+}
+
+/* -- ボトムナビ余白（レイアウトのbottom-navigation分） -- */
 @media (max-width: 959px) {
   .mypage-wrapper {
     padding-bottom: 72px !important;
