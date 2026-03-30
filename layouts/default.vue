@@ -197,6 +197,10 @@
         <v-icon>mdi-handshake-outline</v-icon>
         マッチ
       </v-btn>
+      <v-btn @click="go('/mypage?tab=profile')" :class="{'text-primary': isActive('/mypage?tab=profile')}">
+        <v-icon>mdi-account-cog</v-icon>
+        マイ情報
+      </v-btn>
     </v-bottom-navigation>
   </v-app>
 </template>

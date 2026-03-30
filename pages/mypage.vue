@@ -26,7 +26,7 @@
 
     <!-- ===== クイック統計 ===== -->
     <v-row class="mb-5" dense>
-      <v-col v-for="stat in stats" :key="stat.label" cols="6" sm="3">
+      <v-col v-for="stat in stats" :key="stat.label" cols="4" sm>
         <v-card
           class="stat-card text-center py-4 px-2"
           rounded="xl"
@@ -35,7 +35,7 @@
           @click="activeTab = stat.tab"
         >
           <v-icon :color="stat.color" size="28" class="mb-1">{{ stat.icon }}</v-icon>
-          <div class="text-h5 font-weight-bold" :style="{ color: stat.color }">{{ stat.value }}</div>
+          <div v-if="stat.value !== ''" class="text-h5 font-weight-bold" :style="{ color: stat.color }">{{ stat.value }}</div>
           <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
         </v-card>
       </v-col>
@@ -372,6 +372,16 @@
                         >
                           {{ property.inquiryStatus }}
                         </v-chip>
+                        <v-chip
+                          v-if="property.documentStatus"
+                          size="x-small"
+                          :color="getDocumentStatusColor(property.documentStatus)"
+                          variant="flat"
+                          class="ml-1"
+                        >
+                          <v-icon start size="12">{{ getDocumentStatusIcon(property.documentStatus) }}</v-icon>
+                          資料: {{ property.documentStatus }}
+                        </v-chip>
                       </div>
                       <div class="text-body-2 text-medium-emphasis mb-2">
                         <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
@@ -390,6 +400,18 @@
                           <v-icon size="12" class="mr-1" color="error">mdi-alert-circle</v-icon>
                           募集終了
                         </span>
+                      </div>
+                      <div v-if="property.documentStatus === '許可済'" class="mt-2">
+                        <v-btn size="small" variant="tonal" color="success" rounded="lg" @click.stop="showSnackbar('資料を表示します（実装予定）', 'info')">
+                          <v-icon start size="16">mdi-file-document</v-icon>
+                          資料を見る
+                        </v-btn>
+                      </div>
+                      <div v-else-if="property.documentStatus === '申請中'" class="mt-2">
+                        <v-chip size="small" color="warning" variant="tonal">
+                          <v-icon start size="14">mdi-clock-outline</v-icon>
+                          本部確認中 - 許可が下りると資料を閲覧できます
+                        </v-chip>
                       </div>
                     </div>
                   </div>
@@ -457,170 +479,9 @@
         <!-- ========== マイ情報 ========== -->
         <v-window-item value="profile">
           <div class="pa-4 pa-md-6">
-
-            <!-- プロフィール -->
-            <v-card rounded="xl" flat class="mb-5 profile-section">
-              <v-card-title class="d-flex align-center pa-4 pb-2">
-                <v-icon start color="primary" size="22">mdi-account-circle</v-icon>
-                <span class="text-h6 font-weight-bold">プロフィール</span>
-                <v-spacer />
-                <v-btn
-                  variant="text"
-                  color="primary"
-                  size="small"
-                  @click="isEditingProfile = !isEditingProfile"
-                >
-                  <v-icon start size="16">{{ isEditingProfile ? 'mdi-close' : 'mdi-pencil' }}</v-icon>
-                  {{ isEditingProfile ? 'キャンセル' : '編集' }}
-                </v-btn>
-              </v-card-title>
-              <v-card-text class="pa-4 pt-2">
-                <v-row dense>
-                  <v-col cols="12" sm="4">
-                    <div class="text-caption text-medium-emphasis mb-1">氏名</div>
-                    <v-text-field
-                      v-if="isEditingProfile"
-                      v-model="profile.name"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ profile.name }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="4">
-                    <div class="text-caption text-medium-emphasis mb-1">メールアドレス</div>
-                    <v-text-field
-                      v-if="isEditingProfile"
-                      v-model="profile.email"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1">{{ profile.email }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="4">
-                    <div class="text-caption text-medium-emphasis mb-1">電話番号</div>
-                    <v-text-field
-                      v-if="isEditingProfile"
-                      v-model="profile.phone"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1">{{ profile.phone }}</div>
-                  </v-col>
-                </v-row>
-                <div v-if="isEditingProfile" class="d-flex justify-end mt-4">
-                  <v-btn color="primary" rounded="lg" @click="saveProfile">
-                    <v-icon start>mdi-content-save</v-icon>
-                    保存する
-                  </v-btn>
-                </div>
-              </v-card-text>
-            </v-card>
-
-            <!-- 希望条件 -->
-            <v-card rounded="xl" flat class="profile-section">
-              <v-card-title class="d-flex align-center pa-4 pb-2">
-                <v-icon start color="secondary" size="22">mdi-tune-vertical</v-icon>
-                <span class="text-h6 font-weight-bold">希望条件</span>
-                <v-spacer />
-                <v-btn
-                  variant="text"
-                  color="primary"
-                  size="small"
-                  @click="isEditingPreferences = !isEditingPreferences"
-                >
-                  <v-icon start size="16">{{ isEditingPreferences ? 'mdi-close' : 'mdi-pencil' }}</v-icon>
-                  {{ isEditingPreferences ? 'キャンセル' : '編集' }}
-                </v-btn>
-              </v-card-title>
-              <v-card-text class="pa-4 pt-2">
-                <v-row dense>
-                  <v-col cols="12" sm="6" md="4">
-                    <div class="text-caption text-medium-emphasis mb-1">希望エリア</div>
-                    <v-text-field
-                      v-if="isEditingPreferences"
-                      v-model="preferences.area"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ preferences.area }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <div class="text-caption text-medium-emphasis mb-1">希望業態</div>
-                    <v-text-field
-                      v-if="isEditingPreferences"
-                      v-model="preferences.businessType"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ preferences.businessType }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <div class="text-caption text-medium-emphasis mb-1">希望坪数</div>
-                    <v-text-field
-                      v-if="isEditingPreferences"
-                      v-model="preferences.size"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ preferences.size }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <div class="text-caption text-medium-emphasis mb-1">希望賃料</div>
-                    <v-text-field
-                      v-if="isEditingPreferences"
-                      v-model="preferences.maxRent"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ preferences.maxRent }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <div class="text-caption text-medium-emphasis mb-1">出店時期</div>
-                    <v-text-field
-                      v-if="isEditingPreferences"
-                      v-model="preferences.timing"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ preferences.timing }}</div>
-                  </v-col>
-                  <v-col cols="12" sm="6" md="4">
-                    <div class="text-caption text-medium-emphasis mb-1">こだわり条件</div>
-                    <v-text-field
-                      v-if="isEditingPreferences"
-                      v-model="preferences.requirements"
-                      variant="outlined"
-                      density="comfortable"
-                      rounded="lg"
-                      hide-details
-                    />
-                    <div v-else class="text-body-1 font-weight-medium">{{ preferences.requirements }}</div>
-                  </v-col>
-                </v-row>
-                <div v-if="isEditingPreferences" class="d-flex justify-end mt-4">
-                  <v-btn color="primary" rounded="lg" @click="savePreferences">
-                    <v-icon start>mdi-content-save</v-icon>
-                    保存する
-                  </v-btn>
-                </div>
-              </v-card-text>
-            </v-card>
+            <MypageMyProfileTab
+              @show-snackbar="(msg) => showSnackbar(msg)"
+            />
           </div>
         </v-window-item>
       </v-window>
@@ -720,7 +581,7 @@
               </div>
             </v-col>
             <v-col cols="6" class="mt-2">
-              <div class="text-caption text-medium-emphasis">掲載日</div>
+              <div class="text-caption text-medium-emphasis">登録日</div>
               <div class="text-body-1 font-weight-medium">{{ selectedProperty.createdAt }}</div>
             </v-col>
           </v-row>
@@ -787,9 +648,11 @@ useHead({
 })
 
 const { smAndDown: isMobile } = useDisplay()
+const route = useRoute()
 
 // ─── タブ設定 ───
-const activeTab = ref('search')
+const initialTab = route.query.tab === 'profile' ? 'profile' : 'search'
+const activeTab = ref(initialTab)
 const tabs = computed(() => [
   { key: 'search', title: '物件を探す', icon: 'mdi-store-search', badge: null },
   { key: 'favorites', title: 'お気に入り', icon: 'mdi-heart', badge: null },
@@ -815,6 +678,7 @@ const allProperties = ref([
     inquiryDate: '2025-07-08',
     inquiryStatus: '内見調整中',
     closedDate: null,
+    documentStatus: '許可済',
     equipment: ['厨房設備一式', '業務用空調', 'カウンター8席', 'テーブル4卓'],
     availableDate: '2025年9月〜',
     createdAt: '2025-07-10',
@@ -835,6 +699,7 @@ const allProperties = ref([
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: null,
+    documentStatus: null,
     equipment: ['エスプレッソマシン', '業務用空調', 'カウンター6席', 'テラス席あり'],
     availableDate: '即入居可',
     createdAt: '2025-07-12',
@@ -855,6 +720,7 @@ const allProperties = ref([
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: null,
+    documentStatus: null,
     equipment: ['厨房設備一式', '業務用空調', 'カウンター10席', '座敷20席'],
     availableDate: '即入居可',
     createdAt: '2025-07-14',
@@ -875,6 +741,7 @@ const allProperties = ref([
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: '2025-07-01',
+    documentStatus: null,
     equipment: ['厨房設備一式', '換気設備', 'カウンター12席'],
     availableDate: '-',
     createdAt: '2025-06-20',
@@ -895,6 +762,7 @@ const allProperties = ref([
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: null,
+    documentStatus: null,
     equipment: ['バーカウンター', '業務用空調', '照明設備', 'DJ ブース'],
     availableDate: '2025年10月〜',
     createdAt: '2025-07-11',
@@ -915,6 +783,7 @@ const allProperties = ref([
     inquiryDate: '2025-07-05',
     inquiryStatus: '確認中',
     closedDate: null,
+    documentStatus: '申請中',
     equipment: ['無煙ロースター8台', '厨房設備一式', '業務用空調', 'テーブル8卓'],
     availableDate: '2025年8月〜',
     createdAt: '2025-07-08',
@@ -935,6 +804,7 @@ const allProperties = ref([
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: '2025-06-15',
+    documentStatus: null,
     equipment: ['厨房設備一式', '業務用空調', 'カウンター6席', '個室3室'],
     availableDate: '-',
     createdAt: '2025-06-01',
@@ -955,6 +825,7 @@ const allProperties = ref([
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: null,
+    documentStatus: null,
     equipment: ['業務用オーブン', '冷蔵ショーケース', 'テイクアウトカウンター'],
     availableDate: '即入居可',
     createdAt: '2025-07-13',
@@ -1018,17 +889,6 @@ const profile = ref({
   phone: '090-1234-5678',
 })
 
-const preferences = ref({
-  area: '中央区・北区・浪速区',
-  businessType: 'カフェ',
-  size: '10〜20坪',
-  maxRent: '〜25万円',
-  timing: '3ヶ月以内',
-  requirements: '1階路面、厨房設備あり',
-})
-
-const isEditingProfile = ref(false)
-const isEditingPreferences = ref(false)
 
 // ─── 検索・フィルタ ───
 const searchText = ref('')
@@ -1148,7 +1008,7 @@ const inquiredProperties = computed(() => allProperties.value.filter(p => p.isIn
 
 const stats = computed(() => [
   {
-    label: '掲載物件',
+    label: '水面下物件',
     value: allProperties.value.filter(p => p.status === 'active').length,
     icon: 'mdi-store',
     color: '#1e50a2',
@@ -1178,6 +1038,14 @@ const stats = computed(() => [
     color: '#9b6b5e',
     bg: '#f5efec',
     tab: 'notices',
+  },
+  {
+    label: 'マイ情報',
+    value: '',
+    icon: 'mdi-account-cog',
+    color: '#5c6b7a',
+    bg: '#edf0f3',
+    tab: 'profile',
   },
 ])
 
@@ -1236,19 +1104,19 @@ const markAllAsRead = () => {
   showSnackbar('すべて既読にしました')
 }
 
-const saveProfile = () => {
-  isEditingProfile.value = false
-  showSnackbar('プロフィールを保存しました')
-}
-
-const savePreferences = () => {
-  isEditingPreferences.value = false
-  showSnackbar('希望条件を保存しました')
-}
-
 const getInquiryStatusColor = (status) => {
   const map = { '確認中': 'warning', '内見調整中': 'info', '内見完了': 'success', '返答待ち': 'grey' }
   return map[status] || 'primary'
+}
+
+const getDocumentStatusColor = (status) => {
+  const map = { '申請中': 'warning', '許可済': 'success', '非許可': 'error' }
+  return map[status] || 'grey'
+}
+
+const getDocumentStatusIcon = (status) => {
+  const map = { '申請中': 'mdi-clock-outline', '許可済': 'mdi-check-circle', '非許可': 'mdi-close-circle' }
+  return map[status] || 'mdi-help-circle'
 }
 
 const showSnackbar = (message, color = 'success') => {
@@ -1275,6 +1143,11 @@ const showSnackbar = (message, color = 'success') => {
 .stat-card {
   transition: transform 0.2s, box-shadow 0.2s;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .stat-card:hover {
   transform: translateY(-2px);
