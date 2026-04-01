@@ -672,30 +672,53 @@
                     />
                   </v-col>
 
-                  <!-- 特殊条件 (grouped checkboxes) -->
+                  <!-- 特殊条件 (accordion groups) -->
                   <v-col cols="12">
                     <div class="text-caption text-medium-emphasis mb-1">特殊条件</div>
-                    <div class="special-requirements-grid">
+                    <div class="special-requirements-accordion">
                       <v-card
                         v-for="group in specialRequirementGroups"
                         :key="group.label"
                         variant="outlined"
                         rounded="lg"
-                        class="pa-3"
+                        class="mb-2"
                       >
-                        <div class="text-caption font-weight-bold text-medium-emphasis mb-2">{{ group.label }}</div>
-                        <div class="d-flex flex-wrap">
-                          <v-checkbox
-                            v-for="item in group.items"
-                            :key="item"
-                            v-model="pattern.specialRequirements"
-                            :label="item"
-                            :value="item"
-                            density="compact"
-                            hide-details
-                            class="special-req-checkbox"
-                          />
+                        <div
+                          class="d-flex align-center pa-3 cursor-pointer"
+                          @click="toggleSpecialGroup(pIdx, group.label)"
+                        >
+                          <div class="text-caption font-weight-bold text-medium-emphasis">{{ group.label }}</div>
+                          <v-chip
+                            v-if="getGroupSelectedCount(pattern, group) > 0"
+                            size="x-small"
+                            color="primary"
+                            variant="flat"
+                            class="ml-2"
+                          >
+                            {{ getGroupSelectedCount(pattern, group) }}件選択
+                          </v-chip>
+                          <v-spacer />
+                          <v-icon size="18" color="grey">
+                            {{ isSpecialGroupOpen(pIdx, group.label) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                          </v-icon>
                         </div>
+                        <v-expand-transition>
+                          <div v-show="isSpecialGroupOpen(pIdx, group.label)" class="px-3 pb-3">
+                            <v-divider class="mb-2" />
+                            <div class="d-flex flex-wrap">
+                              <v-checkbox
+                                v-for="item in group.items"
+                                :key="item"
+                                v-model="pattern.specialRequirements"
+                                :label="item"
+                                :value="item"
+                                density="compact"
+                                hide-details
+                                class="special-req-checkbox"
+                              />
+                            </div>
+                          </div>
+                        </v-expand-transition>
                       </v-card>
                     </div>
                   </v-col>
@@ -1168,6 +1191,23 @@ const editingPatterns = reactive({})
 const patternBackups = reactive({})
 const openPanels = ref([])
 
+// Special requirements accordion state
+const openSpecialGroups = reactive({})
+
+const toggleSpecialGroup = (patternIdx, groupLabel) => {
+  const key = `${patternIdx}_${groupLabel}`
+  openSpecialGroups[key] = !openSpecialGroups[key]
+}
+
+const isSpecialGroupOpen = (patternIdx, groupLabel) => {
+  return !!openSpecialGroups[`${patternIdx}_${groupLabel}`]
+}
+
+const getGroupSelectedCount = (pattern, group) => {
+  if (!pattern.specialRequirements) return 0
+  return group.items.filter(item => pattern.specialRequirements.includes(item)).length
+}
+
 // Delete dialog
 const showDeleteDialog = ref(false)
 const deleteTargetIndex = ref(-1)
@@ -1434,10 +1474,16 @@ function formatNumber(num) {
   box-shadow: none;
 }
 
-.special-requirements-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 8px;
+.special-requirements-accordion .v-card {
+  border-color: rgba(0, 0, 0, 0.24) !important;
+}
+
+.special-requirements-accordion .d-flex.align-center {
+  cursor: pointer;
+}
+
+.special-requirements-accordion .d-flex.align-center:hover {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .special-req-checkbox {
