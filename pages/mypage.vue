@@ -963,7 +963,7 @@ const getLocation = (p) => `${p.prefecture}${p.city}${p.town}${p.chome}`
 const allProperties = ref([
   {
     id: 1,
-    name: 'イタリアンレストラン跡地',
+    name: 'イタリアンレストラン',
     floorDisplay: '1F',
     floorSearch: '1階',
     roomNumber: '',
@@ -1022,7 +1022,7 @@ const allProperties = ref([
   },
   {
     id: 2,
-    name: 'カフェ＆ダイニング跡地',
+    name: 'カフェ＆ダイニング',
     floorDisplay: '1F',
     floorSearch: '1階',
     roomNumber: '',
@@ -1081,7 +1081,7 @@ const allProperties = ref([
   },
   {
     id: 3,
-    name: '居酒屋「なにわ亭」跡地',
+    name: '居酒屋「なにわ亭」',
     floorDisplay: 'B1F',
     floorSearch: '地下1階',
     roomNumber: '',
@@ -1140,7 +1140,7 @@ const allProperties = ref([
   },
   {
     id: 4,
-    name: 'ラーメン店跡地',
+    name: 'ラーメン店',
     floorDisplay: '1F',
     floorSearch: '1階',
     roomNumber: '',
@@ -1198,7 +1198,7 @@ const allProperties = ref([
   },
   {
     id: 5,
-    name: 'ダイニングバー跡地',
+    name: 'ダイニングバー',
     floorDisplay: '2F',
     floorSearch: '2階',
     roomNumber: '',
@@ -1257,7 +1257,7 @@ const allProperties = ref([
   },
   {
     id: 6,
-    name: '焼肉店跡地',
+    name: '焼肉店',
     floorDisplay: '1F',
     floorSearch: '1階',
     roomNumber: '',
@@ -1316,7 +1316,7 @@ const allProperties = ref([
   },
   {
     id: 7,
-    name: '和食料理店跡地',
+    name: '和食料理店',
     floorDisplay: '1F',
     floorSearch: '1階',
     roomNumber: '',
@@ -1374,7 +1374,7 @@ const allProperties = ref([
   },
   {
     id: 8,
-    name: 'たこ焼き・テイクアウト跡地',
+    name: 'たこ焼き・テイクアウト',
     floorDisplay: '1F',
     floorSearch: '1階',
     roomNumber: '',
@@ -1438,7 +1438,7 @@ const notifications = ref([
   {
     id: 1,
     title: '新着マッチング物件のお知らせ',
-    message: 'ご希望条件にマッチする物件「カフェ＆ダイニング跡地（梅田）」が新着で掲載されました。',
+    message: 'ご希望条件にマッチする物件「カフェ＆ダイニング（梅田）」が新着で掲載されました。',
     date: '2025-07-15',
     isRead: false,
     color: 'primary',
@@ -1447,7 +1447,7 @@ const notifications = ref([
   {
     id: 2,
     title: '募集終了のお知らせ',
-    message: 'お気に入り登録中の「和食料理店跡地（天王寺区）」は募集を終了しました。',
+    message: 'お気に入り登録中の「和食料理店（天王寺区）」は募集を終了しました。',
     date: '2025-07-10',
     isRead: false,
     color: 'error',
@@ -1456,7 +1456,7 @@ const notifications = ref([
   {
     id: 3,
     title: '内見日程のご案内',
-    message: '「イタリアンレストラン跡地（心斎橋）」の内見日程候補をお送りしました。ご確認ください。',
+    message: '「イタリアンレストラン（心斎橋）」の内見日程候補をお送りしました。ご確認ください。',
     date: '2025-07-09',
     isRead: true,
     color: 'success',
