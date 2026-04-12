@@ -23,10 +23,11 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    // サーバーサイドのみの設定を追加
+    // サーバーサイドのみの設定
     openaiApiKey: process.env.NUXT_OPENAI_API_KEY,
     openaiApiUrl: process.env.NUXT_OPENAI_API_URL,
-    
+    supabaseServiceKey: process.env.NUXT_SUPABASE_SERVICE_KEY,
+
     public: {
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
       supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,

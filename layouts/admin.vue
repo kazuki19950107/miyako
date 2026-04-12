@@ -206,9 +206,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 
 // UI状態
 const drawer = ref(true)
@@ -320,10 +322,9 @@ const focusSearch = () => {
   searchField.value?.focus()
 }
 
-const logout = () => {
-  // ログアウト処理
-  console.log('ログアウト')
-  navigateTo('/login')
+const logout = async () => {
+  await authStore.logout()
+  router.push('/admin/login')
 }
 
 const navigateTo = (path) => {

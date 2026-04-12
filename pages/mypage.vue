@@ -11,14 +11,29 @@
             </v-avatar>
           </v-col>
           <v-col class="pl-4">
-            <h2 class="text-h5 font-weight-bold text-white mb-1">{{ profile.name }}さん</h2>
+            <h2 class="text-h5 font-weight-bold text-white mb-1">{{ userName || profile.name }}さん</h2>
             <div class="d-flex align-center ga-2 flex-wrap">
               <v-chip size="small" color="white" variant="flat" class="font-weight-medium text-primary">
                 <v-icon start size="14">mdi-store-plus</v-icon>
                 出店希望者
               </v-chip>
-              <span class="text-white text-body-2" style="opacity: 0.8">登録日: 2025年6月1日</span>
+              <span v-if="clientProfile" class="text-white text-body-2" style="opacity: 0.8">
+                登録日: {{ clientProfile.created_at?.split('T')[0] }}
+              </span>
             </div>
+          </v-col>
+          <v-col cols="auto">
+            <v-btn
+              variant="outlined"
+              color="white"
+              size="small"
+              rounded="lg"
+              class="text-none"
+              @click="handleLogout"
+            >
+              <v-icon start size="16">mdi-logout</v-icon>
+              ログアウト
+            </v-btn>
           </v-col>
         </v-row>
       </div>
@@ -238,6 +253,18 @@
               </v-card>
             </v-expand-transition>
 
+            <!-- ローディング -->
+            <div v-if="propertiesLoading" class="text-center py-8">
+              <v-progress-circular indeterminate color="primary" size="40" />
+              <div class="text-body-2 text-medium-emphasis mt-3">物件データを読み込み中...</div>
+            </div>
+
+            <!-- エラー -->
+            <v-alert v-else-if="propertiesError" type="error" variant="tonal" rounded="lg" class="mb-4">
+              {{ propertiesError }}
+            </v-alert>
+
+            <template v-else>
             <!-- 件数表示 -->
             <div class="text-body-2 text-medium-emphasis mb-4">
               {{ filteredProperties.length }}件の水面下物件
@@ -357,6 +384,7 @@
               <div class="text-body-1 text-medium-emphasis mb-2">条件に合う物件が見つかりませんでした</div>
               <v-btn variant="text" color="primary" @click="resetFilters">条件をリセット</v-btn>
             </v-card>
+            </template>
           </div>
         </v-window-item>
 
@@ -900,18 +928,7 @@
         <v-divider />
         <v-card-actions class="pa-4">
           <v-btn
-            v-if="selectedProperty.status !== 'closed'"
-            color="primary"
-            rounded="lg"
-            block
-            size="large"
-            @click="showDetail = false"
-          >
-            <v-icon start>mdi-email-fast</v-icon>
-            問い合わせる
-          </v-btn>
-          <v-btn
-            v-else
+            v-if="selectedProperty.status === 'closed'"
             variant="outlined"
             color="grey"
             rounded="lg"
@@ -920,6 +937,78 @@
             disabled
           >
             募集終了
+          </v-btn>
+          <v-btn
+            v-else-if="isInquiredProperty(selectedProperty.id)"
+            variant="outlined"
+            color="success"
+            rounded="lg"
+            block
+            size="large"
+            disabled
+          >
+            <v-icon start>mdi-check-circle</v-icon>
+            問い合わせ済み
+          </v-btn>
+          <v-btn
+            v-else
+            color="primary"
+            rounded="lg"
+            block
+            size="large"
+            @click="openInquiryDialog(selectedProperty)"
+          >
+            <v-icon start>mdi-email-fast</v-icon>
+            問い合わせる
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- ===== 問い合わせダイアログ ===== -->
+    <v-dialog v-model="showInquiry" max-width="500" persistent>
+      <v-card rounded="xl">
+        <v-card-title class="pa-4">
+          <div class="d-flex align-center">
+            <v-icon color="primary" class="mr-2">mdi-email-fast</v-icon>
+            物件への問い合わせ
+          </div>
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4">
+          <div class="text-body-2 text-medium-emphasis mb-3">
+            「{{ inquiryTarget?.name }}」への問い合わせ
+          </div>
+          <v-select
+            v-model="inquiryType"
+            :items="['一般', '内見希望', '資料請求']"
+            label="問い合わせ種別"
+            variant="outlined"
+            density="comfortable"
+            rounded="lg"
+            class="mb-3"
+          />
+          <v-textarea
+            v-model="inquiryMessage"
+            label="メッセージ（任意）"
+            variant="outlined"
+            rounded="lg"
+            rows="4"
+            placeholder="ご質問やご要望があればご記入ください"
+          />
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" rounded="lg" @click="showInquiry = false">キャンセル</v-btn>
+          <v-spacer />
+          <v-btn
+            color="primary"
+            rounded="lg"
+            :loading="inquirySubmitting"
+            @click="handleSubmitInquiry"
+          >
+            <v-icon start>mdi-send</v-icon>
+            送信
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -934,6 +1023,8 @@
 
 <script setup>
 import { useDisplay } from 'vuetify'
+import { useMiyakoProperties } from '~/composables/useMiyakoProperties'
+import { useClientAuth } from '~/composables/useClientAuth'
 
 useHead({
   title: 'マイページ - みやこ不動産企画',
@@ -944,6 +1035,42 @@ useHead({
 
 const { smAndDown: isMobile } = useDisplay()
 const route = useRoute()
+const router = useRouter()
+const { fetchPropertiesForMypage, loading: propertiesLoading, error: propertiesError } = useMiyakoProperties()
+const { clientProfile, userName, signOut } = useClientAuth()
+
+// お気に入り・問い合わせ・お知らせ
+import { useClientFavorites } from '~/composables/useClientFavorites'
+import { useClientInquiries } from '~/composables/useClientInquiries'
+import { useClientNotices } from '~/composables/useClientNotices'
+const {
+  isFavorite: isFavoriteProperty,
+  fetchFavorites,
+  toggleFavorite: toggleFavoriteDb,
+  favoritePropertyIds,
+} = useClientFavorites()
+const {
+  isInquired: isInquiredProperty,
+  getInquiry,
+  fetchInquiries,
+  submitInquiry,
+  inquiries,
+} = useClientInquiries()
+const {
+  notices: dbNotices,
+  unreadCount: dbUnreadCount,
+  isRead: isNoticeRead,
+  getNoticeColor,
+  fetchNotices,
+  markAsRead: markNoticeAsRead,
+  markAllAsRead: markAllNoticesAsRead,
+} = useClientNotices()
+
+// ─── ログアウト処理 ───
+const handleLogout = async () => {
+  await signOut()
+  router.push('/login')
+}
 
 // ─── タブ設定 ───
 const initialTab = route.query.tab === 'profile' ? 'profile' : 'search'
@@ -960,527 +1087,163 @@ const tabs = computed(() => [
 const getLocation = (p) => `${p.prefecture}${p.city}${p.town}${p.chome}`
 
 // ─── 物件データ ───
-const allProperties = ref([
-  {
-    id: 1,
-    name: 'イタリアンレストラン',
-    floorDisplay: '1F',
-    floorSearch: '1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市中央区',
-    town: '心斎橋筋',
-    chome: '1丁目',
-    banchi: '1-1',
-    go: '',
-    tsubo: 18,
-    sqm: 59.5,
-    builtYear: '1998年',
-    floorsAbove: 8,
-    floorsBelow: 1,
-    structure: '鉄骨鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '普通建物賃貸借 2年',
-    nearestStations: [
-      { railway: 'OsakaMetro御堂筋線', station: '心斎橋', transportMethod: '徒歩', transportMinutes: 3 },
-      { railway: 'OsakaMetro長堀鶴見緑地線', station: '長堀橋', transportMethod: '徒歩', transportMinutes: 5 },
-      { railway: 'OsakaMetro御堂筋線', station: 'なんば', transportMethod: '徒歩', transportMinutes: 8 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: '居抜き（有償）',
-    shopName: '旧イタリアーノ',
-    availableDate: '2025年9月〜',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['イタリアン', 'フレンチ', 'カフェ'],
-    specialConditions: ['重飲食可（炭火以外）', '路面店', 'ダクト有'],
-    transferDisplay: 'あり',
-    transferAskedPrice: 200,
-    transferListPrice: 150,
-    rent: 250000,
-    managementFee: 10000,
-    deposit: 500000,
-    depositDetail: '賃料2ヶ月分',
-    penalty: 250000,
-    penaltyDetail: '賃料1ヶ月分',
-    keyMoney: 0,
-    keyMoneyDetail: 'なし',
-    brokerageFee: 250000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'active',
-    isFavorite: true,
-    isInquired: true,
-    inquiryCount: 5,
-    inquiryDate: '2025-07-08',
-    inquiryStatus: '内見調整中',
-    closedDate: null,
-    documentStatus: '許可済',
-    createdAt: '2025-07-10',
-    gradient: 'linear-gradient(135deg, #5a6e7f 0%, #8fa3b3 100%)',
-  },
-  {
-    id: 2,
-    name: 'カフェ＆ダイニング',
-    floorDisplay: '1F',
-    floorSearch: '1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市北区',
-    town: '梅田',
-    chome: '1丁目',
-    banchi: '3-10',
-    go: '',
-    tsubo: 14,
-    sqm: 46.3,
-    builtYear: '2005年',
-    floorsAbove: 10,
-    floorsBelow: 2,
-    structure: '鉄骨鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '普通建物賃貸借 3年',
-    nearestStations: [
-      { railway: 'OsakaMetro御堂筋線', station: '梅田', transportMethod: '徒歩', transportMinutes: 5 },
-      { railway: 'ＪＲ大阪環状線', station: '大阪', transportMethod: '徒歩', transportMinutes: 7 },
-      { railway: '阪急京都本線', station: '大阪梅田', transportMethod: '徒歩', transportMinutes: 6 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: '居抜き（無償）',
-    shopName: '旧カフェ・ド・ウメダ',
-    availableDate: '即入居可',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['カフェ', 'ダイニングバー', 'スイーツ'],
-    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
-    transferDisplay: 'なし',
-    transferAskedPrice: null,
-    transferListPrice: null,
-    rent: 200000,
-    managementFee: 15000,
-    deposit: 600000,
-    depositDetail: '賃料3ヶ月分',
-    penalty: 200000,
-    penaltyDetail: '賃料1ヶ月分',
-    keyMoney: 200000,
-    keyMoneyDetail: '賃料1ヶ月分',
-    brokerageFee: 200000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'active',
-    isFavorite: true,
-    isInquired: false,
-    inquiryCount: 3,
-    inquiryDate: null,
-    inquiryStatus: null,
-    closedDate: null,
-    documentStatus: null,
-    createdAt: '2025-07-12',
-    gradient: 'linear-gradient(135deg, #8d7b68 0%, #b8a99a 100%)',
-  },
-  {
-    id: 3,
-    name: '居酒屋「なにわ亭」',
-    floorDisplay: 'B1F',
-    floorSearch: '地下1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市浪速区',
-    town: '難波中',
-    chome: '1丁目',
-    banchi: '6-8',
-    go: '',
-    tsubo: 15,
-    sqm: 49.6,
-    builtYear: '1992年',
-    floorsAbove: 6,
-    floorsBelow: 1,
-    structure: '鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '定期建物賃貸借 5年',
-    nearestStations: [
-      { railway: 'OsakaMetro御堂筋線', station: 'なんば', transportMethod: '徒歩', transportMinutes: 2 },
-      { railway: '南海本線', station: '難波', transportMethod: '徒歩', transportMinutes: 4 },
-      { railway: 'OsakaMetro千日前線', station: 'なんば', transportMethod: '徒歩', transportMinutes: 3 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: '居抜き（有償）',
-    shopName: 'なにわ亭',
-    availableDate: '即入居可',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['居酒屋', '和食', '焼鳥'],
-    specialConditions: ['重飲食可（炭火以外）', '深夜営業可', '繁華街', 'ダクト有', 'グリストラップ有'],
-    transferDisplay: 'あり',
-    transferAskedPrice: 300,
-    transferListPrice: 250,
-    rent: 180000,
-    managementFee: 8000,
-    deposit: 900000,
-    depositDetail: '賃料5ヶ月分',
-    penalty: 360000,
-    penaltyDetail: '賃料2ヶ月分',
-    keyMoney: 0,
-    keyMoneyDetail: 'なし',
-    brokerageFee: 180000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'active',
-    isFavorite: false,
-    isInquired: false,
-    inquiryCount: 8,
-    inquiryDate: null,
-    inquiryStatus: null,
-    closedDate: null,
-    documentStatus: null,
-    createdAt: '2025-07-14',
-    gradient: 'linear-gradient(135deg, #6b705c 0%, #a5a58d 100%)',
-  },
-  {
-    id: 4,
-    name: 'ラーメン店',
-    floorDisplay: '1F',
-    floorSearch: '1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市都島区',
-    town: '都島本通',
-    chome: '3丁目',
-    banchi: '15-2',
-    go: '',
-    tsubo: 10,
-    sqm: 33.1,
-    builtYear: '1985年',
-    floorsAbove: 4,
-    floorsBelow: 0,
-    structure: '鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '普通建物賃貸借 2年',
-    nearestStations: [
-      { railway: 'OsakaMetro谷町線', station: '都島', transportMethod: '徒歩', transportMinutes: 7 },
-      { railway: 'ＪＲ大阪環状線', station: '桜ノ宮', transportMethod: '徒歩', transportMinutes: 10 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: 'スケルトン',
-    shopName: '',
-    availableDate: '-',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['ラーメン', 'うどん', 'テイクアウト'],
-    specialConditions: ['軽飲食まで可', '住宅街', '換気扇有'],
-    transferDisplay: 'なし',
-    transferAskedPrice: null,
-    transferListPrice: null,
-    rent: 120000,
-    managementFee: 5000,
-    deposit: 360000,
-    depositDetail: '賃料3ヶ月分',
-    penalty: 120000,
-    penaltyDetail: '賃料1ヶ月分',
-    keyMoney: 120000,
-    keyMoneyDetail: '賃料1ヶ月分',
-    brokerageFee: 120000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'closed',
-    isFavorite: false,
-    isInquired: false,
-    inquiryCount: 0,
-    inquiryDate: null,
-    inquiryStatus: null,
-    closedDate: '2025-07-01',
-    documentStatus: null,
-    createdAt: '2025-06-20',
-    gradient: 'linear-gradient(135deg, #7f8c8d 0%, #b2bec3 100%)',
-  },
-  {
-    id: 5,
-    name: 'ダイニングバー',
-    floorDisplay: '2F',
-    floorSearch: '2階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市北区',
-    town: '堂山町',
-    chome: '',
-    banchi: '5-12',
-    go: '',
-    tsubo: 22,
-    sqm: 72.7,
-    builtYear: '2001年',
-    floorsAbove: 7,
-    floorsBelow: 1,
-    structure: '重量鉄骨造',
-    propertyType: '店舗',
-    contractPeriod: '定期建物賃貸借 3年',
-    nearestStations: [
-      { railway: 'OsakaMetro谷町線', station: '東梅田', transportMethod: '徒歩', transportMinutes: 4 },
-      { railway: 'OsakaMetro御堂筋線', station: '梅田', transportMethod: '徒歩', transportMinutes: 6 },
-      { railway: '阪急京都本線', station: '大阪梅田', transportMethod: '徒歩', transportMinutes: 7 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: '居抜き（有償）',
-    shopName: '旧バー・ノクターン',
-    availableDate: '2025年10月〜',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['バー', 'ダイニングバー', 'ラウンジ'],
-    specialConditions: ['深夜営業可', 'カラオケ可', '繁華街', 'ビルイン', '専用階段有'],
-    transferDisplay: 'あり',
-    transferAskedPrice: 180,
-    transferListPrice: 120,
-    rent: 350000,
-    managementFee: 20000,
-    deposit: 1750000,
-    depositDetail: '賃料5ヶ月分',
-    penalty: 700000,
-    penaltyDetail: '賃料2ヶ月分',
-    keyMoney: 350000,
-    keyMoneyDetail: '賃料1ヶ月分',
-    brokerageFee: 350000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'active',
-    isFavorite: false,
-    isInquired: false,
-    inquiryCount: 2,
-    inquiryDate: null,
-    inquiryStatus: null,
-    closedDate: null,
-    documentStatus: null,
-    createdAt: '2025-07-11',
-    gradient: 'linear-gradient(135deg, #3d405b 0%, #6c6f8a 100%)',
-  },
-  {
-    id: 6,
-    name: '焼肉店',
-    floorDisplay: '1F',
-    floorSearch: '1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市生野区',
-    town: '鶴橋',
-    chome: '2丁目',
-    banchi: '3-18',
-    go: '',
-    tsubo: 25,
-    sqm: 82.6,
-    builtYear: '1990年',
-    floorsAbove: 3,
-    floorsBelow: 0,
-    structure: '鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '普通建物賃貸借 3年',
-    nearestStations: [
-      { railway: '近鉄大阪線', station: '鶴橋', transportMethod: '徒歩', transportMinutes: 3 },
-      { railway: 'ＪＲ大阪環状線', station: '鶴橋', transportMethod: '徒歩', transportMinutes: 3 },
-      { railway: 'OsakaMetro千日前線', station: '鶴橋', transportMethod: '徒歩', transportMinutes: 4 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: '居抜き（無償）',
-    shopName: '旧焼肉一番',
-    availableDate: '2025年8月〜',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['焼肉', 'ホルモン', '韓国料理'],
-    specialConditions: ['重飲食可（炭火）', '路面店', 'ダクト有', 'グリストラップ有', '商店街'],
-    transferDisplay: 'なし',
-    transferAskedPrice: null,
-    transferListPrice: null,
-    rent: 220000,
-    managementFee: 10000,
-    deposit: 1320000,
-    depositDetail: '賃料6ヶ月分',
-    penalty: 440000,
-    penaltyDetail: '賃料2ヶ月分',
-    keyMoney: 0,
-    keyMoneyDetail: 'なし',
-    brokerageFee: 220000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'active',
-    isFavorite: false,
-    isInquired: true,
-    inquiryCount: 6,
-    inquiryDate: '2025-07-05',
-    inquiryStatus: '確認中',
-    closedDate: null,
-    documentStatus: '申請中',
-    createdAt: '2025-07-08',
-    gradient: 'linear-gradient(135deg, #6d4c41 0%, #8d6e63 100%)',
-  },
-  {
-    id: 7,
-    name: '和食料理店',
-    floorDisplay: '1F',
-    floorSearch: '1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市天王寺区',
-    town: '上本町',
-    chome: '6丁目',
-    banchi: '2-5',
-    go: '',
-    tsubo: 20,
-    sqm: 66.1,
-    builtYear: '1995年',
-    floorsAbove: 5,
-    floorsBelow: 0,
-    structure: '鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '普通建物賃貸借 2年',
-    nearestStations: [
-      { railway: 'OsakaMetro谷町線', station: '四天王寺前夕陽ヶ丘', transportMethod: '徒歩', transportMinutes: 6 },
-      { railway: '近鉄大阪線', station: '大阪上本町', transportMethod: '徒歩', transportMinutes: 8 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: '居抜き（有償）',
-    shopName: '旧割烹さくら',
-    availableDate: '-',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['和食', '割烹', '寿司'],
-    specialConditions: ['重飲食可（炭火以外）', '高級店', '換気扇有'],
-    transferDisplay: 'あり',
-    transferAskedPrice: 350,
-    transferListPrice: 280,
-    rent: 200000,
-    managementFee: 10000,
-    deposit: 1200000,
-    depositDetail: '賃料6ヶ月分',
-    penalty: 400000,
-    penaltyDetail: '賃料2ヶ月分',
-    keyMoney: 200000,
-    keyMoneyDetail: '賃料1ヶ月分',
-    brokerageFee: 200000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'closed',
-    isFavorite: true,
-    isInquired: false,
-    inquiryCount: 0,
-    inquiryDate: null,
-    inquiryStatus: null,
-    closedDate: '2025-06-15',
-    documentStatus: null,
-    createdAt: '2025-06-01',
-    gradient: 'linear-gradient(135deg, #4a6741 0%, #7d9f71 100%)',
-  },
-  {
-    id: 8,
-    name: 'たこ焼き・テイクアウト',
-    floorDisplay: '1F',
-    floorSearch: '1階',
-    roomNumber: '',
-    prefecture: '大阪府',
-    city: '大阪市西区',
-    town: '南堀江',
-    chome: '1丁目',
-    banchi: '12-7',
-    go: '',
-    tsubo: 8,
-    sqm: 26.4,
-    builtYear: '2010年',
-    floorsAbove: 6,
-    floorsBelow: 0,
-    structure: '鉄筋コンクリート造',
-    propertyType: '店舗',
-    contractPeriod: '普通建物賃貸借 2年',
-    nearestStations: [
-      { railway: 'OsakaMetro四つ橋線', station: '四ツ橋', transportMethod: '徒歩', transportMinutes: 5 },
-      { railway: 'OsakaMetro長堀鶴見緑地線', station: '西大橋', transportMethod: '徒歩', transportMinutes: 3 },
-      { railway: 'OsakaMetro御堂筋線', station: '心斎橋', transportMethod: '徒歩', transportMinutes: 10 },
-    ],
-    currentStatus: '空室',
-    interiorCondition: 'スケルトン',
-    shopName: '',
-    availableDate: '即入居可',
-    photos: [],
-    floorPlan: null,
-    allowedBusinessTypes: ['テイクアウト', 'たこ焼き', 'クレープ'],
-    specialConditions: ['軽飲食まで可', '路面店', '視認性有'],
-    transferDisplay: 'なし',
-    transferAskedPrice: null,
-    transferListPrice: null,
-    rent: 100000,
-    managementFee: 5000,
-    deposit: 300000,
-    depositDetail: '賃料3ヶ月分',
-    penalty: 100000,
-    penaltyDetail: '賃料1ヶ月分',
-    keyMoney: 0,
-    keyMoneyDetail: 'なし',
-    brokerageFee: 100000,
-    brokerageDetail: '賃料1ヶ月分',
-    remarks: '',
-    searchMemo: '',
-    status: 'active',
-    isFavorite: false,
-    isInquired: false,
-    inquiryCount: 1,
-    inquiryDate: null,
-    inquiryStatus: null,
-    closedDate: null,
-    documentStatus: null,
-    createdAt: '2025-07-13',
-    gradient: 'linear-gradient(135deg, #9e8c7a 0%, #c4b7a6 100%)',
-  },
-])
+const allProperties = ref([])
 
-// ─── お知らせ ───
-const notifications = ref([
-  {
-    id: 1,
-    title: '新着マッチング物件のお知らせ',
-    message: 'ご希望条件にマッチする物件「カフェ＆ダイニング（梅田）」が新着で掲載されました。',
-    date: '2025-07-15',
-    isRead: false,
-    color: 'primary',
-    icon: 'mdi-handshake',
-  },
-  {
-    id: 2,
-    title: '募集終了のお知らせ',
-    message: 'お気に入り登録中の「和食料理店（天王寺区）」は募集を終了しました。',
-    date: '2025-07-10',
-    isRead: false,
-    color: 'error',
-    icon: 'mdi-store-remove',
-  },
-  {
-    id: 3,
-    title: '内見日程のご案内',
-    message: '「イタリアンレストラン（心斎橋）」の内見日程候補をお送りしました。ご確認ください。',
-    date: '2025-07-09',
-    isRead: true,
-    color: 'success',
-    icon: 'mdi-calendar-check',
-  },
-  {
-    id: 4,
-    title: '新着物件5件のお知らせ',
-    message: '今週、新しく5件の物件が掲載されました。条件に合う物件をチェックしましょう。',
-    date: '2025-07-07',
-    isRead: true,
-    color: 'info',
-    icon: 'mdi-new-box',
-  },
-  {
-    id: 5,
-    title: '会員登録完了のお知らせ',
-    message: '会員登録が完了しました。マイページより物件の検索・お気に入り登録が可能です。',
-    date: '2025-06-01',
-    isRead: true,
-    color: 'primary',
-    icon: 'mdi-account-check',
-  },
-])
+// ─── グラデーションパレット（物件カードの背景色） ───
+const gradientPalette = [
+  'linear-gradient(135deg, #5a6e7f 0%, #8fa3b3 100%)',
+  'linear-gradient(135deg, #8d7b68 0%, #b8a99a 100%)',
+  'linear-gradient(135deg, #6b705c 0%, #a5a58d 100%)',
+  'linear-gradient(135deg, #7f8c8d 0%, #b2bec3 100%)',
+  'linear-gradient(135deg, #3d405b 0%, #6c6f8a 100%)',
+  'linear-gradient(135deg, #6d4c41 0%, #8d6e63 100%)',
+  'linear-gradient(135deg, #4a6741 0%, #7d9f71 100%)',
+  'linear-gradient(135deg, #9e8c7a 0%, #c4b7a6 100%)',
+]
+
+// ─── DB → フロント形式マッピング ───
+const parseFloorDisplay = (floor) => {
+  if (!floor) return { display: '', search: '' }
+  const f = floor.trim()
+  // B1, B2 など地下表記
+  if (/^B?\d/i.test(f) || f.includes('地下')) {
+    const num = f.replace(/[^0-9]/g, '') || '1'
+    return { display: `B${num}F`, search: `地下${num}階` }
+  }
+  // 通常階
+  const num = f.replace(/[^0-9]/g, '') || '1'
+  return { display: `${num}F`, search: `${num}階` }
+}
+
+const parseNearestStations = (stationStr, minutes, accessInfo) => {
+  // nearest_station が文字列1つなので、簡易的に配列に変換
+  if (!stationStr) {
+    return [{ railway: '', station: '未設定', transportMethod: '徒歩', transportMinutes: 0 }]
+  }
+  // access_info に複数駅の情報がJSON等で入っている場合を考慮
+  if (accessInfo) {
+    try {
+      const parsed = JSON.parse(accessInfo)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(s => ({
+          railway: s.railway || '',
+          station: s.station || stationStr,
+          transportMethod: s.transportMethod || '徒歩',
+          transportMinutes: s.transportMinutes ?? minutes ?? 0,
+        }))
+      }
+    } catch {
+      // JSON でなければそのまま
+    }
+  }
+  return [{ railway: '', station: stationStr, transportMethod: '徒歩', transportMinutes: minutes || 0 }]
+}
+
+const mapDbPropertyToDisplay = (dbProp, index) => {
+  const floorInfo = parseFloorDisplay(dbProp.floor)
+  const stations = parseNearestStations(dbProp.nearest_station, dbProp.station_distance_minutes, dbProp.access_info)
+  const rent = dbProp.rent || 0
+  const depositAmt = dbProp.deposit_amount || 0
+  const keyMoneyAmt = dbProp.key_money_amount || 0
+  const handoverAmt = dbProp.handover_amount || 0
+
+  return {
+    id: dbProp.id,
+    name: dbProp.shop_name || dbProp.previous_usage || '物件',
+    floorDisplay: floorInfo.display,
+    floorSearch: floorInfo.search,
+    roomNumber: dbProp.room_number || '',
+    prefecture: dbProp.prefecture || '',
+    city: dbProp.city || '',
+    town: dbProp.address || '',
+    chome: '',
+    banchi: '',
+    go: '',
+    tsubo: dbProp.floor_space_tsubo || 0,
+    sqm: dbProp.floor_space_sqm || 0,
+    builtYear: dbProp.built_year ? `${dbProp.built_year}年` : '',
+    floorsAbove: parseInt(dbProp.total_floors) || 0,
+    floorsBelow: 0,
+    structure: dbProp.structure || '',
+    propertyType: dbProp.property_type || '店舗',
+    contractPeriod: dbProp.contract_period || '',
+    nearestStations: stations,
+    currentStatus: dbProp.master_status || '',
+    interiorCondition: dbProp.skeleton_or_furnished || dbProp.handover_condition || '',
+    shopName: dbProp.previous_usage || dbProp.shop_name || '',
+    availableDate: dbProp.move_in_timing || '-',
+    photos: [],
+    floorPlan: null,
+    allowedBusinessTypes: dbProp.allowed_business_types || (dbProp.business_type ? [dbProp.business_type] : []),
+    specialConditions: [
+      ...(dbProp.new_conditions ? [dbProp.new_conditions] : []),
+      ...(Array.isArray(dbProp.property_strengths) ? dbProp.property_strengths : []),
+    ].filter(Boolean),
+    transferDisplay: handoverAmt > 0 ? 'あり' : 'なし',
+    transferAskedPrice: handoverAmt > 0 ? Math.round(handoverAmt / 10000) : null,
+    transferListPrice: dbProp.valuation_amount ? Math.round(dbProp.valuation_amount / 10000) : null,
+    rent: rent,
+    managementFee: dbProp.management_fee || 0,
+    deposit: depositAmt,
+    depositDetail: dbProp.deposit || '',
+    penalty: 0,
+    penaltyDetail: '',
+    keyMoney: keyMoneyAmt,
+    keyMoneyDetail: dbProp.key_money || '',
+    brokerageFee: 0,
+    brokerageDetail: '',
+    remarks: '',
+    searchMemo: '',
+    status: dbProp.master_status === '成約' ? 'closed' : 'active',
+    isFavorite: false,
+    isInquired: false,
+    inquiryCount: 0,
+    inquiryDate: null,
+    inquiryStatus: null,
+    closedDate: null,
+    documentStatus: null,
+    createdAt: dbProp.created_at ? dbProp.created_at.split('T')[0] : '',
+    gradient: gradientPalette[index % gradientPalette.length],
+  }
+}
+
+// ─── DB から物件データ + お気に入り + 問い合わせ取得 ───
+onMounted(async () => {
+  // 並行取得
+  const [data] = await Promise.all([
+    fetchPropertiesForMypage(),
+    fetchFavorites(),
+    fetchInquiries(),
+    fetchNotices(),
+  ])
+  if (data && data.length > 0) {
+    allProperties.value = data.map((p, i) => {
+      const mapped = mapDbPropertyToDisplay(p, i)
+      // DB のお気に入り・問い合わせ状態を反映
+      mapped.isFavorite = isFavoriteProperty(p.id)
+      mapped.isInquired = isInquiredProperty(p.id)
+      const inquiry = getInquiry(p.id)
+      if (inquiry) {
+        mapped.inquiryDate = inquiry.created_at.split('T')[0]
+        mapped.inquiryStatus = inquiry.status
+      }
+      return mapped
+    })
+  }
+})
+
+// ─── お知らせ（DBから取得したデータをnotifications形式に変換） ───
+const notifications = computed(() =>
+  dbNotices.value.map(n => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    date: (n.published_at || n.created_at || '').split('T')[0],
+    isRead: isNoticeRead(n.id),
+    color: getNoticeColor(n.notice_type),
+    icon: n.icon || 'mdi-bell',
+  }))
+)
 
 // ─── プロフィール ───
 const profile = ref({
@@ -1683,11 +1446,56 @@ const equipmentFilterOptions = ['換気扇有', 'ダクト有', '内階段有', 
 const showDetail = ref(false)
 const selectedProperty = ref(null)
 
+// ─── 問い合わせダイアログ ───
+const showInquiry = ref(false)
+const inquiryTarget = ref(null)
+const inquiryType = ref('一般')
+const inquiryMessage = ref('')
+const inquirySubmitting = ref(false)
+
+const openInquiryDialog = (property) => {
+  inquiryTarget.value = property
+  inquiryType.value = '一般'
+  inquiryMessage.value = ''
+  showInquiry.value = true
+}
+
+const handleSubmitInquiry = async () => {
+  if (!inquiryTarget.value) return
+  inquirySubmitting.value = true
+
+  const success = await submitInquiry({
+    propertyId: inquiryTarget.value.id,
+    message: inquiryMessage.value || undefined,
+    inquiryType: inquiryType.value,
+  })
+
+  inquirySubmitting.value = false
+
+  if (success) {
+    // ローカル状態を更新
+    const property = allProperties.value.find(p => p.id === inquiryTarget.value.id)
+    if (property) {
+      property.isInquired = true
+      property.inquiryDate = new Date().toISOString().split('T')[0]
+      property.inquiryStatus = '未対応'
+    }
+    if (selectedProperty.value?.id === inquiryTarget.value.id) {
+      selectedProperty.value = { ...selectedProperty.value, isInquired: true }
+    }
+    showInquiry.value = false
+    showDetail.value = false
+    showSnackbar('問い合わせを送信しました')
+  } else {
+    showSnackbar('問い合わせの送信に失敗しました', 'error')
+  }
+}
+
 // ─── スナックバー ───
 const snackbar = ref({ show: false, message: '', color: 'success' })
 
 // ─── Computed ───
-const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
+const unreadCount = dbUnreadCount
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -1840,14 +1648,19 @@ const formatRent = (rent) => {
   return `${rent.toLocaleString()}円`
 }
 
-const toggleFavorite = (id) => {
+const toggleFavorite = async (id) => {
   const property = allProperties.value.find(p => p.id === id)
-  if (property) {
+  if (!property) return
+
+  const success = await toggleFavoriteDb(id)
+  if (success) {
     property.isFavorite = !property.isFavorite
     if (selectedProperty.value?.id === id) {
       selectedProperty.value = { ...property }
     }
     showSnackbar(property.isFavorite ? 'お気に入りに追加しました' : 'お気に入りを解除しました')
+  } else {
+    showSnackbar('操作に失敗しました', 'error')
   }
 }
 
@@ -1878,13 +1691,12 @@ const resetFilters = () => {
   activePreferenceFilter.value = null
 }
 
-const markAsRead = (id) => {
-  const notice = notifications.value.find(n => n.id === id)
-  if (notice) notice.isRead = true
+const markAsRead = async (id) => {
+  await markNoticeAsRead(id)
 }
 
-const markAllAsRead = () => {
-  notifications.value.forEach(n => { n.isRead = true })
+const markAllAsRead = async () => {
+  await markAllNoticesAsRead()
   showSnackbar('すべて既読にしました')
 }
 

@@ -861,6 +861,84 @@ export const useMiyakoProperties = () => {
   }
 
   // ============================================================
+  // 水面下物件一覧取得（マイページ表示用）
+  // ============================================================
+  const fetchPropertiesForMypage = async (options?: {
+    limit?: number
+  }) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const supabase = getSupabase()
+      let query = supabase
+        .from('MIYAKO_PROPERTIES')
+        .select(`
+          id,
+          shop_name,
+          property_type,
+          property_category,
+          lifecycle_stage,
+          master_status,
+          auto_distribution,
+          prefecture,
+          city,
+          address,
+          building_name,
+          room_number,
+          floor,
+          total_floors,
+          structure,
+          built_year,
+          nearest_station,
+          station_distance_minutes,
+          access_info,
+          floor_space_tsubo,
+          floor_space_sqm,
+          rent,
+          management_fee,
+          deposit,
+          deposit_amount,
+          key_money,
+          key_money_amount,
+          contract_period,
+          skeleton_or_furnished,
+          handover_condition,
+          handover_amount,
+          valuation_amount,
+          move_in_timing,
+          previous_usage,
+          allowed_business_types,
+          new_conditions,
+          property_strengths,
+          business_type,
+          seats_count,
+          created_at,
+          updated_at
+        `)
+        .eq('lifecycle_stage', 'property')
+        .in('master_status', ['募集中', '商談中'])
+        .order('created_at', { ascending: false })
+
+      if (options?.limit) {
+        query = query.limit(options.limit)
+      }
+
+      const { data, error: fetchError } = await query
+
+      if (fetchError) throw fetchError
+
+      return data || []
+    } catch (e: any) {
+      error.value = e.message || '水面下物件の取得に失敗しました'
+      console.error('fetchPropertiesForMypage error:', e)
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============================================================
   // Return
   // ============================================================
   return {
@@ -878,6 +956,7 @@ export const useMiyakoProperties = () => {
     // Methods
     fetchProperties,
     fetchPropertyById,
+    fetchPropertiesForMypage,
     updateProperty,
     updateFromExitForm,
     propertyToFormData

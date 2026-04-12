@@ -13,8 +13,6 @@
 
         <!-- ロゴ/タイトル -->
         <div class="d-flex align-center cursor-pointer" @click="go('/')">
-          <!-- <v-icon size="26" class="mr-2">mdi-store-outline</v-icon> -->
-          <!-- 画像ロゴに変更。縦横を合わせてテキストと揃える -->
           <v-img
             src="/miyako-logo.png"
             width="26" height="26"
@@ -27,8 +25,8 @@
 
         <v-spacer />
 
-        <!-- デスクトップ：メインメニュー（ロール別・アクティブ強調） -->
-        <div class="d-none d-md-flex align-center">
+        <!-- デスクトップ：メインメニュー（ログイン時のみ） -->
+        <div v-if="isClientLoggedIn" class="d-none d-md-flex align-center">
           <v-btn
             v-for="item in mainMenu"
             :key="item.to"
@@ -42,49 +40,87 @@
           </v-btn>
         </div>
 
-        <v-spacer class="d-none d-lg-flex" />
+        <!-- 管理者ログイン（仮：本番前に削除） -->
+        <v-btn
+          v-if="!isClientLoggedIn"
+          variant="text"
+          class="d-none d-md-flex mx-1 text-none"
+          @click="go('/admin/login')"
+        >
+          <v-icon start>mdi-shield-account</v-icon>
+          管理者ログイン
+        </v-btn>
 
-        <!-- デスクトップ：検索 -->
-        <v-text-field
-          v-model="q"
-          class="d-none d-lg-flex"
-          style="max-width: 280px"
-          density="compact"
-          variant="solo"
-          hide-details
-          prepend-inner-icon="mdi-magnify"
-          placeholder="検索（Ctrl + K）"
-          @keydown.enter="onSearch"
-        />
+        <!-- ===== 未ログイン時：ログイン/新規登録ボタン ===== -->
+        <template v-if="!isClientLoggedIn">
+          <v-btn
+            variant="text"
+            class="text-none ml-2 d-none d-sm-flex"
+            @click="go('/login')"
+          >
+            ログイン
+          </v-btn>
+          <v-btn
+            variant="flat"
+            color="primary"
+            class="text-none ml-1 d-none d-sm-flex"
+            rounded="lg"
+            size="small"
+            @click="goSignup"
+          >
+            <v-icon start size="16">mdi-account-plus</v-icon>
+            新規登録
+          </v-btn>
+          <!-- モバイル：アイコンだけ -->
+          <v-btn
+            icon
+            class="d-sm-none ml-1"
+            @click="go('/login')"
+            aria-label="ログイン"
+          >
+            <v-icon>mdi-login</v-icon>
+          </v-btn>
+        </template>
 
-        <!-- 右側アイコン群 -->
-        <!-- <v-btn icon @click="toggleTheme" :aria-label="`テーマ切替`"><v-icon>mdi-theme-light-dark</v-icon></v-btn> -->
-        <v-btn icon @click="go('/notifications')" aria-label="通知"><v-icon>mdi-bell-outline</v-icon></v-btn>
-        
+        <!-- ===== ログイン済み：アイコン群 + アバターメニュー ===== -->
+        <template v-else>
+          <v-btn icon @click="go('/mypage?tab=notices')" aria-label="通知">
+            <v-badge v-if="clientUnreadCount > 0" :content="clientUnreadCount" color="error" overlap>
+              <v-icon>mdi-bell-outline</v-icon>
+            </v-badge>
+            <v-icon v-else>mdi-bell-outline</v-icon>
+          </v-btn>
 
-        <!-- アバターメニュー -->
-        <v-menu>
-          <template #activator="{ props }">
-            <v-btn icon v-bind="props" aria-label="アカウント">
-              <v-avatar size="28"><v-icon>mdi-account-circle</v-icon></v-avatar>
-            </v-btn>
-          </template>
-          <v-list density="comfortable">
-            <v-list-item @click="go('/mypage')">
-              <template #prepend><v-icon>mdi-account</v-icon></template>
-              <v-list-item-title>マイページ</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-if="isStaff" @click="go('/admin')">
-              <template #prepend><v-icon>mdi-shield-account</v-icon></template>
-              <v-list-item-title>管理</v-list-item-title>
-            </v-list-item>
-            <v-divider />
-            <v-list-item @click="logout">
-              <template #prepend><v-icon>mdi-logout</v-icon></template>
-              <v-list-item-title>ログアウト</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
+          <!-- アバターメニュー -->
+          <v-menu>
+            <template #activator="{ props }">
+              <v-btn icon v-bind="props" aria-label="アカウント">
+                <v-avatar size="28"><v-icon>mdi-account-circle</v-icon></v-avatar>
+              </v-btn>
+            </template>
+            <v-list density="comfortable">
+              <v-list-item disabled>
+                <v-list-item-title class="font-weight-medium">{{ clientUserName }}</v-list-item-title>
+                <v-list-item-subtitle class="text-caption">{{ clientUserEmail }}</v-list-item-subtitle>
+              </v-list-item>
+              <v-divider />
+              <v-list-item @click="go('/mypage')">
+                <template #prepend><v-icon>mdi-account</v-icon></template>
+                <v-list-item-title>マイページ</v-list-item-title>
+              </v-list-item>
+              <v-list-item v-if="isStaff" @click="go('/admin')">
+                <template #prepend><v-icon>mdi-shield-account</v-icon></template>
+                <v-list-item-title>管理</v-list-item-title>
+              </v-list-item>
+              <v-divider />
+              <v-list-item @click="handleLogout">
+                <template #prepend><v-icon>mdi-logout</v-icon></template>
+                <v-list-item-title>ログアウト</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </template>
+
         <!-- 右側トリガー（右ドロワーのときだけ出す） -->
         <v-btn
           v-if="isRight"
@@ -98,7 +134,7 @@
 
       </v-container>
 
-      <!-- ルート遷移ローディング（薄いライン） -->
+      <!-- ルート遷移ローディング -->
       <v-progress-linear
         v-if="routeLoading"
         absolute
@@ -109,26 +145,6 @@
       />
     </v-app-bar>
 
-    <!-- PC：クイックアクション列 -->
-    <!-- 【テスト】レイアウトシフト原因調査のため一時コメントアウト -->
-    <!--
-    <v-sheet class="border-b-thin d-none d-md-block">
-      <v-container class="py-0 d-flex align-center">
-        <v-btn size="small" variant="tonal" @click="go('/admin/exit-form')">
-          <v-icon start>mdi-calculator-variant</v-icon> 簡易査定
-        </v-btn>
-        <v-btn size="small" variant="tonal" class="ml-2" @click="go('/admin/entry-form')">
-          <v-icon start>mdi-file-account</v-icon> 出店履歴書
-        </v-btn>
-        <v-btn size="small" variant="tonal" class="ml-2" @click="go('/matches')">
-          <v-icon start>mdi-handshake-outline</v-icon> マッチ一覧
-        </v-btn>
-        <v-spacer />
-        <div class="text-caption text-medium-emphasis">Ctrl + K で検索</div>
-      </v-container>
-    </v-sheet>
-    -->
-
     <!-- モバイル：右ドロワー -->
     <v-navigation-drawer
       v-model="mobileMenuOpen"
@@ -138,6 +154,20 @@
       width="280"
     >
       <v-list density="comfortable">
+        <!-- ユーザー情報（ログイン済み時） -->
+        <template v-if="isClientLoggedIn">
+          <v-list-item class="py-3">
+            <template #prepend>
+              <v-avatar size="36" color="primary" class="mr-3">
+                <v-icon color="white">mdi-account</v-icon>
+              </v-avatar>
+            </template>
+            <v-list-item-title class="font-weight-medium">{{ clientUserName }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">{{ clientUserEmail }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-divider class="mb-1" />
+        </template>
+
         <v-list-subheader>メニュー</v-list-subheader>
         <v-list-item
           v-for="item in mainMenu"
@@ -164,6 +194,21 @@
           <template #prepend><v-icon>mdi-handshake-outline</v-icon></template>
           <v-list-item-title>マッチ一覧</v-list-item-title>
         </v-list-item>
+
+        <!-- ログイン/ログアウト -->
+        <v-divider class="my-2" />
+        <template v-if="isClientLoggedIn">
+          <v-list-item @click="handleLogout">
+            <template #prepend><v-icon>mdi-logout</v-icon></template>
+            <v-list-item-title>ログアウト</v-list-item-title>
+          </v-list-item>
+        </template>
+        <template v-else>
+          <v-list-item @click="go('/login', true)">
+            <template #prepend><v-icon>mdi-login</v-icon></template>
+            <v-list-item-title>ログイン / 新規登録</v-list-item-title>
+          </v-list-item>
+        </template>
       </v-list>
     </v-navigation-drawer>
 
@@ -172,7 +217,7 @@
       <slot />
     </v-main>
 
-    <!-- モバイル：ボトムバー（クイックアクセス） - mypageのみ表示 -->
+    <!-- モバイル：ボトムバー（mypageのみ表示） -->
     <v-bottom-navigation
       v-if="route.path === '/mypage'"
       class="d-md-none"
@@ -209,20 +254,37 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTheme } from 'vuetify'
-// import { useAuthStore } from '@/stores/auth' // 本番はこれを使ってロール判定
+import { useClientAuth } from '~/composables/useClientAuth'
 
 const router = useRouter()
 const route = useRoute()
 const theme = useTheme()
+const {
+  isLoggedIn: isClientLoggedIn,
+  userName: clientUserName,
+  userEmail: clientUserEmail,
+  initialize: initAuth,
+  signOut,
+} = useClientAuth()
+
+// お知らせ未読数
+import { useClientNotices } from '~/composables/useClientNotices'
+const { unreadCount: clientUnreadCount, fetchNotices } = useClientNotices()
+
+// 認証初期化
+onMounted(async () => {
+  await initAuth()
+  if (isClientLoggedIn.value) {
+    fetchNotices()
+  }
+})
 
 /** モバイルドロワー制御 */
 const mobileMenuOpen = ref(false)
-// ドロワーの出る側を設定（'right' | 'left'）
 const drawerSide = ref<'right' | 'left'>('right')
 const isRight = computed(() => drawerSide.value === 'right')
 
-
-/** ルート遷移ローディング（before/afterEach で制御） */
+/** ルート遷移ローディング */
 const routeLoading = ref(false)
 router.beforeEach((_to, _from, next) => {
   routeLoading.value = true
@@ -254,31 +316,26 @@ onMounted(() => {
   }
   window.addEventListener('keydown', keyHandler)
 
-  // 起動時にテーマ読み込み
   const saved = localStorage.getItem('theme')
   if (saved) theme.global.name.value = saved
 })
 onUnmounted(() => window.removeEventListener('keydown', keyHandler))
 
-/** テーマ切替（永続化） */
+/** テーマ切替 */
 const toggleTheme = () => {
   const isDark = theme.current.value.dark
   theme.global.name.value = isDark ? 'light' : 'dark'
   localStorage.setItem('theme', theme.global.name.value as string)
 }
 
-/** ロール判定（ダミー）。本番は authStore.role を参照 */
-// const auth = useAuthStore()
-// const isStaff = computed(() => ['staff', 'admin'].includes(auth.role))
-const isStaff = computed(() => false) // ←必要に応じて接続
+/** ロール判定 */
+const isStaff = computed(() => false)
 
-/** メニュー定義 */
+/** メニュー定義（「出店登録」「メッセージ」削除済み） */
 type MenuItem = { title: string; to: string; icon: string }
 const userMenu: MenuItem[] = [
   { title: 'マイページ', to: '/mypage', icon: 'mdi-home-outline' },
-  { title: '退店査定', to: '/admin/exit-form', icon: 'mdi-store-remove-outline' },
-  { title: '出店登録', to: '/admin/entry-form', icon: 'mdi-store-plus-outline' },
-  { title: 'メッセージ', to: '/messages', icon: 'mdi-email-outline' }
+  { title: '管理者ログイン', to: '/admin/login', icon: 'mdi-shield-account' },
 ]
 const staffMenu: MenuItem[] = [
   { title: 'ダッシュボード', to: '/admin', icon: 'mdi-view-dashboard-outline' },
@@ -298,15 +355,21 @@ const go = (to: string, closeDrawer = false) => {
   router.push(to)
 }
 
-/** 現在ルートの簡易判定（prefix一致） */
+/** 新規登録ページ（signupタブ付き） */
+const goSignup = () => {
+  router.push({ path: '/login', query: { tab: 'signup' } })
+}
+
+/** 現在ルートの簡易判定 */
 const isActive = (to: string) => {
   if (to === '/') return route.path === '/'
   return route.path === to || route.path.startsWith(to + '/')
 }
 
-/** ログアウト（ダミー） */
-const logout = () => {
-  // ここで authStore.logout() 等を実装
+/** ログアウト */
+const handleLogout = async () => {
+  await signOut()
+  mobileMenuOpen.value = false
   router.push('/login')
 }
 </script>
@@ -314,11 +377,7 @@ const logout = () => {
 <style scoped>
 .border-b-thin { border-bottom: 1px solid rgba(0,0,0,.08); }
 .cursor-pointer { cursor: pointer; }
-
-/* アクティブメニューの視認性UP */
 .active-btn {
   font-weight: 600;
 }
-
-/* モバイル下部のボトムバーが重ならないよう、Vuetifyの app プロップで処理 */
 </style>
