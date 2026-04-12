@@ -9,6 +9,7 @@ export interface ClientProfile {
   name: string
   phone: string | null
   company_name: string | null
+  store_preferences: any[] | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -188,6 +189,34 @@ export const useClientAuth = () => {
     }
   }
 
+  // ─── 出店希望条件の保存 ───
+  const saveStorePreferences = async (patterns: any[]): Promise<boolean> => {
+    if (!currentUser.value) return false
+    loading.value = true
+    error.value = null
+
+    try {
+      const supabase = getSupabase()
+      const { error: updateError } = await supabase
+        .from('MIYAKO_CLIENT_USERS')
+        .update({ store_preferences: patterns })
+        .eq('id', currentUser.value.id)
+
+      if (updateError) throw updateError
+
+      if (clientProfile.value) {
+        clientProfile.value = { ...clientProfile.value, store_preferences: patterns }
+      }
+      return true
+    } catch (e: any) {
+      error.value = e.message || '出店希望条件の保存に失敗しました'
+      console.error('saveStorePreferences error:', e)
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   // ─── プロフィール更新 ───
   const updateProfile = async (updates: {
     name?: string
@@ -236,6 +265,7 @@ export const useClientAuth = () => {
     signIn,
     signOut,
     updateProfile,
+    saveStorePreferences,
     fetchProfile,
   }
 }

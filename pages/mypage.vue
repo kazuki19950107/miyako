@@ -623,6 +623,7 @@
         <v-window-item value="profile">
           <div class="pa-4 pa-md-6">
             <MypageMyProfileTab
+              :initial-patterns="userPreferencePatterns"
               @show-snackbar="(msg) => showSnackbar(msg)"
               @save-preferences="onSavePreferences"
             />
@@ -1037,7 +1038,7 @@ const { smAndDown: isMobile } = useDisplay()
 const route = useRoute()
 const router = useRouter()
 const { fetchPropertiesForMypage, loading: propertiesLoading, error: propertiesError } = useMiyakoProperties()
-const { clientProfile, userName, signOut } = useClientAuth()
+const { clientProfile, userName, signOut, saveStorePreferences } = useClientAuth()
 
 // お気に入り・問い合わせ・お知らせ
 import { useClientFavorites } from '~/composables/useClientFavorites'
@@ -1253,61 +1254,15 @@ const profile = computed(() => ({
 }))
 
 
-// ─── 出店希望条件（マイ情報から連動） ───
-const userPreferencePatterns = ref([
-  {
-    id: 1,
-    patternName: 'ブランドA - カフェ出店',
-    businessCategory: '飲食',
-    businessType: 'カフェ',
-    maxBudget: 500,
-    rentMin: 100000,
-    rentMax: 250000,
-    tsuboMin: 10,
-    tsuboMax: 20,
-    sqmMin: 33.06,
-    sqmMax: 66.12,
-    deliveryCondition: '居抜き',
-    prefectures: ['大阪府'],
-    cities: '中央区・北区・浪速区',
-    towns: '',
-    floors: ['1階路面'],
-    specialConditions: '厨房設備あり',
-    railwayLines: ['OsakaMetro御堂筋線', 'OsakaMetro中央線'],
-    stationName: '心斎橋',
-    transportMethod: '徒歩',
-    transportMinutes: 5,
-    interiorCondition: ['居抜き（無償）', '居抜き（有償）'],
-    specialRequirements: ['重飲食可（炭火以外）', '路面店'],
-    patternMemo: '',
-  },
-  {
-    id: 2,
-    patternName: 'ブランドB - バー出店',
-    businessCategory: '飲食',
-    businessType: 'バー',
-    maxBudget: 800,
-    rentMin: 200000,
-    rentMax: 400000,
-    tsuboMin: 15,
-    tsuboMax: 30,
-    sqmMin: 49.59,
-    sqmMax: 99.17,
-    deliveryCondition: '居抜き',
-    prefectures: ['大阪府'],
-    cities: '北区',
-    towns: '',
-    floors: ['2階', 'B1F'],
-    specialConditions: '防音設備',
-    railwayLines: ['OsakaMetro谷町線', 'OsakaMetro御堂筋線'],
-    stationName: '',
-    transportMethod: '徒歩',
-    transportMinutes: 10,
-    interiorCondition: ['居抜き（有償）'],
-    specialRequirements: ['深夜営業可'],
-    patternMemo: '',
-  },
-])
+// ─── 出店希望条件（DBから読み込み） ───
+const userPreferencePatterns = ref([])
+
+// clientProfileが読み込まれたらstore_preferencesを反映
+watchEffect(() => {
+  if (clientProfile.value?.store_preferences?.length) {
+    userPreferencePatterns.value = JSON.parse(JSON.stringify(clientProfile.value.store_preferences))
+  }
+})
 
 const activePreferenceFilter = ref(null)
 const preferenceChipColors = ['teal', 'deep-purple', 'amber-darken-2', 'pink']
@@ -1369,9 +1324,14 @@ const clearPreferenceFilter = () => {
   resetFilters()
 }
 
-const onSavePreferences = (patterns) => {
-  userPreferencePatterns.value = patterns
-  activePreferenceFilter.value = null
+const onSavePreferences = async (patterns) => {
+  const success = await saveStorePreferences(patterns)
+  if (success) {
+    userPreferencePatterns.value = patterns
+    activePreferenceFilter.value = null
+  } else {
+    showSnackbar('保存に失敗しました', 'error')
+  }
 }
 
 // ─── 検索・フィルタ ───

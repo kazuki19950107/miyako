@@ -15,6 +15,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // ─── 出店希望者ルート（/mypage） ───
   if (to.path === '/mypage') {
+    // Supabaseセッションは localStorage に保存されるため、サーバーサイドではスキップ
+    if (import.meta.server) return
     const { isLoggedIn, initialize } = useClientAuth()
     await initialize()
     if (!isLoggedIn.value) {

@@ -1022,6 +1022,13 @@
 <script setup>
 import { ref, reactive, watchEffect } from 'vue'
 
+const props = defineProps({
+  initialPatterns: {
+    type: Array,
+    default: () => [],
+  },
+})
+
 const emit = defineEmits(['save-profile', 'save-preferences', 'show-snackbar'])
 
 // ========================================
@@ -1147,60 +1154,14 @@ watchEffect(() => {
 // Preference patterns state
 // ========================================
 
-const preferencePatterns = ref([
-  {
-    id: 1,
-    patternName: 'ブランドA - カフェ出店',
-    businessCategory: '飲食',
-    businessType: 'カフェ',
-    maxBudget: 500,
-    rentMin: 100000,
-    rentMax: 250000,
-    tsuboMin: 10,
-    tsuboMax: 20,
-    sqmMin: 33.06,
-    sqmMax: 66.12,
-    deliveryCondition: '居抜き',
-    prefectures: ['大阪府'],
-    cities: '中央区・北区・浪速区',
-    towns: '',
-    floors: ['1階路面'],
-    specialConditions: '厨房設備あり',
-    railwayLines: ['OsakaMetro御堂筋線', 'OsakaMetro中央線'],
-    stationName: '心斎橋',
-    transportMethod: '徒歩',
-    transportMinutes: 5,
-    interiorCondition: ['居抜き（無償）', '居抜き（有償）'],
-    specialRequirements: ['重飲食可（炭火以外）', '路面店'],
-    patternMemo: '',
-  },
-  {
-    id: 2,
-    patternName: 'ブランドB - バー出店',
-    businessCategory: '飲食',
-    businessType: 'バー',
-    maxBudget: 800,
-    rentMin: 200000,
-    rentMax: 400000,
-    tsuboMin: 15,
-    tsuboMax: 30,
-    sqmMin: 49.59,
-    sqmMax: 99.17,
-    deliveryCondition: '居抜き',
-    prefectures: ['大阪府'],
-    cities: '北区',
-    towns: '',
-    floors: ['2階', 'B1F'],
-    specialConditions: '防音設備',
-    railwayLines: ['OsakaMetro谷町線', 'OsakaMetro御堂筋線'],
-    stationName: '',
-    transportMethod: '徒歩',
-    transportMinutes: 10,
-    interiorCondition: ['居抜き（有償）'],
-    specialRequirements: ['深夜営業可'],
-    patternMemo: '',
-  },
-])
+const preferencePatterns = ref([])
+
+// 親からのデータが来たら反映
+watchEffect(() => {
+  if (props.initialPatterns?.length && preferencePatterns.value.length === 0) {
+    preferencePatterns.value = JSON.parse(JSON.stringify(props.initialPatterns))
+  }
+})
 
 const editingPatterns = reactive({})
 const patternBackups = reactive({})
