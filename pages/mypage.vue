@@ -1245,12 +1245,12 @@ const notifications = computed(() =>
   }))
 )
 
-// ─── プロフィール ───
-const profile = ref({
-  name: '山本大輔',
-  email: 'yamamoto@example.com',
-  phone: '090-1234-5678',
-})
+// ─── プロフィール（DBから取得したclientProfileを使用） ───
+const profile = computed(() => ({
+  name: clientProfile.value?.name || '',
+  email: clientProfile.value?.email || '',
+  phone: clientProfile.value?.phone || '',
+}))
 
 
 // ─── 出店希望条件（マイ情報から連動） ───

@@ -89,26 +89,21 @@ export const useClientAuth = () => {
     try {
       const supabase = getSupabase()
 
-      // 1. Supabase Auth でユーザー作成
+      // Supabase Auth でユーザー作成（メタデータにname/phoneを含める）
+      // MIYAKO_CLIENT_USERS へのINSERTはDBトリガーで自動実行される
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: params.email,
         password: params.password,
+        options: {
+          data: {
+            name: params.name,
+            phone: params.phone || null,
+          },
+        },
       })
 
       if (authError) throw authError
       if (!authData.user) throw new Error('ユーザー作成に失敗しました')
-
-      // 2. MIYAKO_CLIENT_USERS にプロフィール作成
-      const { error: profileError } = await supabase
-        .from('MIYAKO_CLIENT_USERS')
-        .insert({
-          id: authData.user.id,
-          email: params.email,
-          name: params.name,
-          phone: params.phone || null,
-        })
-
-      if (profileError) throw profileError
 
       currentUser.value = authData.user
       await fetchProfile(authData.user.id)

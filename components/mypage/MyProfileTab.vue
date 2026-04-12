@@ -1020,7 +1020,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watchEffect } from 'vue'
 
 const emit = defineEmits(['save-profile', 'save-preferences', 'show-snackbar'])
 
@@ -1113,19 +1113,34 @@ const TSUBO_TO_SQM = 3.30579
 const isEditingProfile = ref(false)
 const profileBackup = ref(null)
 
+// DBからプロフィール取得
+import { useClientAuth } from '~/composables/useClientAuth'
+const { clientProfile } = useClientAuth()
+
 const profile = ref({
-  companyName: '株式会社サンプル',
-  name: '山本大輔',
-  nameKana: 'やまもとだいすけ',
-  nationality: '日本',
-  mobilePhone: '090-1234-5678',
+  companyName: '',
+  name: '',
+  nameKana: '',
+  nationality: '',
+  mobilePhone: '',
   otherPhone: '',
   fax: '',
-  loginEmail: 'yamamoto@example.com',
-  contactEmails: ['yamamoto@example.com'],
-  brandNames: ['ブランドA'],
-  storeCount: 2,
+  loginEmail: '',
+  contactEmails: [],
+  brandNames: [],
+  storeCount: 0,
   searchMemo: '',
+})
+
+// DBデータでプロフィールを初期化
+watchEffect(() => {
+  if (clientProfile.value) {
+    profile.value.name = clientProfile.value.name || ''
+    profile.value.mobilePhone = clientProfile.value.phone || ''
+    profile.value.loginEmail = clientProfile.value.email || ''
+    profile.value.contactEmails = clientProfile.value.email ? [clientProfile.value.email] : []
+    profile.value.companyName = clientProfile.value.company_name || ''
+  }
 })
 
 // ========================================
