@@ -603,12 +603,11 @@
                     </v-avatar>
                   </template>
                   <v-list-item-title class="font-weight-medium text-body-1 mb-1 d-flex align-center ga-2 flex-wrap">
+                    <v-icon v-if="notice.pinned" size="16" color="warning">mdi-pin</v-icon>
                     {{ notice.title }}
                     <v-chip v-if="!notice.isRead" size="x-small" color="error" variant="flat">NEW</v-chip>
                   </v-list-item-title>
-                  <v-list-item-subtitle class="text-body-2 text-wrap">
-                    {{ notice.message }}
-                  </v-list-item-subtitle>
+                  <v-list-item-subtitle class="text-body-2 text-wrap notice-message-body" v-html="notice.messageHtml" />
                   <template #append>
                     <span class="text-caption text-medium-emphasis text-no-wrap ml-3">{{ notice.date }}</span>
                   </template>
@@ -1233,16 +1232,27 @@ onMounted(async () => {
   }
 })
 
+// ─── Markdown レンダラ（marked + 最小サニタイズ） ───
+import { marked } from 'marked'
+marked.setOptions({ breaks: true, gfm: true })
+const renderMarkdown = (src) => {
+  const raw = marked.parse(src || '')
+  // <script>除去のみの最小サニタイズ（Vuetify環境想定）
+  return String(raw).replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+}
+
 // ─── お知らせ（DBから取得したデータをnotifications形式に変換） ───
 const notifications = computed(() =>
   dbNotices.value.map(n => ({
     id: n.id,
     title: n.title,
     message: n.message,
+    messageHtml: renderMarkdown(n.message),
     date: (n.published_at || n.created_at || '').split('T')[0],
     isRead: isNoticeRead(n.id),
     color: getNoticeColor(n.notice_type),
     icon: n.icon || 'mdi-bell',
+    pinned: !!n.pinned,
   }))
 )
 
@@ -1807,6 +1817,26 @@ const showSnackbar = (message, color = 'success') => {
 }
 .notice-unread {
   background: #f0f6ff;
+}
+.notice-message-body :deep(p) { margin: 0 0 6px 0; }
+.notice-message-body :deep(p:last-child) { margin-bottom: 0; }
+.notice-message-body :deep(a) { color: #1976d2; text-decoration: underline; }
+.notice-message-body :deep(code) {
+  background: rgba(0,0,0,0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.86em;
+}
+.notice-message-body :deep(ul),
+.notice-message-body :deep(ol) {
+  margin: 4px 0 6px 18px;
+}
+.notice-message-body :deep(strong) { font-weight: 700; }
+.notice-message-body :deep(blockquote) {
+  border-left: 3px solid rgba(0,0,0,0.15);
+  padding-left: 10px;
+  margin: 4px 0;
+  color: #555;
 }
 
 /* -- プロフィール -- */

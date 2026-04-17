@@ -12,6 +12,9 @@ export interface ClientNotice {
   target_property_id: string | null
   is_published: boolean
   published_at: string | null
+  expires_at: string | null
+  pinned: boolean
+  pinned_at: string | null
   created_at: string
 }
 
@@ -60,13 +63,24 @@ export const useClientNotices = () => {
       const supabase = getSupabase()
 
       // お知らせ取得（RLSで自分に見えるものだけ返る）
+      // ピン留め優先 → 公開日時降順
       const { data: noticesData, error: noticesError } = await supabase
         .from('MIYAKO_CLIENT_NOTICES')
         .select('*')
+        .eq('is_published', true)
+        .order('pinned', { ascending: false })
+        .order('pinned_at', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false, nullsFirst: false })
 
       if (noticesError) throw noticesError
-      notices.value = (noticesData || []) as ClientNotice[]
+
+      // 公開予約(published_at が未来) と 期限切れ(expires_at <= 現在) を除外
+      const now = new Date()
+      notices.value = ((noticesData || []) as ClientNotice[]).filter((n) => {
+        if (n.published_at && new Date(n.published_at) > now) return false
+        if (n.expires_at && new Date(n.expires_at) <= now) return false
+        return true
+      })
 
       // 既読状態取得
       const { data: readsData, error: readsError } = await supabase
