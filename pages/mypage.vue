@@ -634,8 +634,8 @@
     <!-- ===== 物件詳細ダイアログ ===== -->
     <v-dialog v-model="showDetail" :max-width="780" :fullscreen="isMobile" scrollable>
       <v-card v-if="selectedProperty" rounded="xl" class="detail-card">
-        <!-- ヘッダー画像 -->
-        <div class="detail-image d-flex align-center justify-center" :style="{ background: selectedProperty.gradient }">
+        <!-- ヘッダー画像 (未承認時はぼかし) -->
+        <div class="detail-image d-flex align-center justify-center" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }" :style="{ background: selectedProperty.gradient }">
           <v-icon size="56" color="white" style="opacity: 0.15">mdi-silverware-fork-knife</v-icon>
           <v-btn
             icon
@@ -658,9 +658,9 @@
         </div>
 
         <v-card-text class="pa-5 pa-md-6">
-          <!-- 物件名 + お気に入りボタン -->
+          <!-- 物件名 + お気に入りボタン (物件名は未承認時ぼかし) -->
           <div class="d-flex align-start justify-space-between mb-2">
-            <h2 class="text-h5 font-weight-bold" style="flex: 1; min-width: 0;">{{ selectedProperty.name }}</h2>
+            <h2 class="text-h5 font-weight-bold" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }" style="flex: 1; min-width: 0;">{{ selectedProperty.name }}</h2>
             <v-btn
               icon
               variant="text"
@@ -673,10 +673,48 @@
               </v-icon>
             </v-btn>
           </div>
-          <div class="text-body-1 text-medium-emphasis mb-4">
+          <div class="text-body-1 text-medium-emphasis mb-4" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
             <v-icon size="16" class="mr-1">mdi-map-marker</v-icon>
             {{ getLocation(selectedProperty) }}
           </div>
+
+          <!-- 申請ステータスバナー (申請中 / 却下) -->
+          <v-alert
+            v-if="!canViewFullDetails(selectedProperty.id) && getApprovalStatus(selectedProperty.id) === 'pending'"
+            type="info"
+            variant="tonal"
+            density="comfortable"
+            class="mb-3"
+            rounded="lg"
+          >
+            <template #prepend><v-icon>mdi-clock-outline</v-icon></template>
+            詳細閲覧の申請を受け付けました。承認まで今しばらくお待ちください。
+          </v-alert>
+          <v-alert
+            v-else-if="!canViewFullDetails(selectedProperty.id) && getApprovalStatus(selectedProperty.id) === 'rejected'"
+            type="error"
+            variant="tonal"
+            density="comfortable"
+            class="mb-3"
+            rounded="lg"
+          >
+            <template #prepend><v-icon>mdi-close-circle</v-icon></template>
+            前回の申請は承認されませんでした。再申請いただけます。
+          </v-alert>
+
+          <!-- Section: 物件PR (ぼかさず常時表示) -->
+          <div v-if="selectedProperty.prText" class="detail-section">
+            <div class="detail-section-header">
+              <div class="section-accent mr-2"></div>
+              <v-icon size="18" class="mr-2" color="primary">mdi-bullhorn</v-icon>
+              物件PR
+            </div>
+            <v-card color="blue-lighten-5" rounded="lg" flat class="pa-4 mb-2">
+              <div class="property-pr-body" v-html="renderMarkdown(selectedProperty.prText)" />
+            </v-card>
+          </div>
+
+          <v-divider v-if="selectedProperty.prText" class="my-1" />
 
           <!-- Section: 物件概要 -->
           <div class="detail-section">
@@ -743,7 +781,7 @@
                     <div class="text-caption text-medium-emphasis">{{ st.railway }}</div>
                     <div class="text-body-1 font-weight-bold">{{ st.station }}駅</div>
                   </div>
-                  <v-chip size="default" variant="flat" color="primary">
+                  <v-chip size="default" variant="flat" color="primary" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
                     <v-icon start size="16">mdi-walk</v-icon>
                     {{ st.transportMethod }}{{ st.transportMinutes }}分
                   </v-chip>
@@ -773,11 +811,11 @@
                 </v-col>
                 <v-col cols="4">
                   <div class="text-caption text-medium-emphasis">種別</div>
-                  <div class="text-body-1 font-weight-bold">{{ selectedProperty.propertyType }}</div>
+                  <div class="text-body-1 font-weight-bold" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">{{ selectedProperty.propertyType }}</div>
                 </v-col>
               </v-row>
             </v-card>
-            <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 mb-3">
+            <v-card color="grey-lighten-5" rounded="lg" flat class="pa-3 mb-3" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
               <v-row dense>
                 <v-col cols="4">
                   <div class="text-caption text-medium-emphasis">構造</div>
@@ -823,7 +861,7 @@
               <v-icon size="18" class="mr-2" color="primary">mdi-store</v-icon>
               可能業態
             </div>
-            <div class="d-flex flex-wrap ga-2">
+            <div class="d-flex flex-wrap ga-2" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
               <v-chip
                 v-for="biz in selectedProperty.allowedBusinessTypes"
                 :key="biz"
@@ -845,7 +883,7 @@
               <v-icon size="18" class="mr-2" color="primary">mdi-toolbox-outline</v-icon>
               設備・特殊条件
             </div>
-            <div class="d-flex flex-wrap ga-2">
+            <div class="d-flex flex-wrap ga-2" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
               <v-chip
                 v-for="cond in selectedProperty.specialConditions"
                 :key="cond"
@@ -879,7 +917,7 @@
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.deposit ? formatRent(selectedProperty.deposit) : 'なし' }}</div>
                   <div v-if="selectedProperty.depositDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.depositDetail }}</div>
                 </v-col>
-                <v-col cols="6" sm="4" class="mb-2">
+                <v-col cols="6" sm="4" class="mb-2" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
                   <div class="text-caption text-medium-emphasis">解約引/敷引</div>
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.penalty ? formatRent(selectedProperty.penalty) : 'なし' }}</div>
                   <div v-if="selectedProperty.penaltyDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.penaltyDetail }}</div>
@@ -889,7 +927,7 @@
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.keyMoney ? formatRent(selectedProperty.keyMoney) : 'なし' }}</div>
                   <div v-if="selectedProperty.keyMoneyDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.keyMoneyDetail }}</div>
                 </v-col>
-                <v-col cols="6" sm="4" class="mb-2">
+                <v-col cols="6" sm="4" class="mb-2" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
                   <div class="text-caption text-medium-emphasis">仲介手数料</div>
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.brokerageFee ? formatRent(selectedProperty.brokerageFee) : 'なし' }}</div>
                   <div v-if="selectedProperty.brokerageDetail" class="text-caption text-medium-emphasis">{{ selectedProperty.brokerageDetail }}</div>
@@ -912,16 +950,28 @@
                   <div class="text-caption text-medium-emphasis">造作譲渡</div>
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.transferDisplay }}</div>
                 </v-col>
-                <v-col v-if="selectedProperty.transferAskedPrice" cols="4">
+                <v-col v-if="selectedProperty.transferAskedPrice" cols="4" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
                   <div class="text-caption text-medium-emphasis">依頼額</div>
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.transferAskedPrice }}万円</div>
                 </v-col>
-                <v-col v-if="selectedProperty.transferListPrice" cols="4">
+                <v-col v-if="selectedProperty.transferListPrice" cols="4" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }">
                   <div class="text-caption text-medium-emphasis">募集額</div>
                   <div class="text-body-2 font-weight-bold">{{ selectedProperty.transferListPrice }}万円</div>
                 </v-col>
               </v-row>
             </v-card>
+          </div>
+
+          <!-- 未承認時の有料記事風 CTA (v-card-text内に配置してスクロール可能に) -->
+          <div v-if="!canViewFullDetails(selectedProperty.id) && selectedProperty.status !== 'closed'" class="paywall-cta">
+            <div class="paywall-overlay"></div>
+            <div class="paywall-content">
+              <v-icon size="32" color="primary" class="mb-2">mdi-lock-open-outline</v-icon>
+              <div class="text-h6 font-weight-bold mb-1">物件詳細を知りたい方はこちら</div>
+              <div class="text-body-2 text-medium-emphasis">
+                物件名・住所・徒歩時間など詳細情報は申請後にご覧いただけます
+              </div>
+            </div>
           </div>
         </v-card-text>
 
@@ -939,7 +989,7 @@
             募集終了
           </v-btn>
           <v-btn
-            v-else-if="isInquiredProperty(selectedProperty.id)"
+            v-else-if="canViewFullDetails(selectedProperty.id)"
             variant="outlined"
             color="success"
             rounded="lg"
@@ -948,7 +998,19 @@
             disabled
           >
             <v-icon start>mdi-check-circle</v-icon>
-            問い合わせ済み
+            閲覧承認済み
+          </v-btn>
+          <v-btn
+            v-else-if="getApprovalStatus(selectedProperty.id) === 'pending'"
+            variant="outlined"
+            color="info"
+            rounded="lg"
+            block
+            size="large"
+            disabled
+          >
+            <v-icon start>mdi-clock-outline</v-icon>
+            申請中
           </v-btn>
           <v-btn
             v-else
@@ -959,42 +1021,47 @@
             @click="openInquiryDialog(selectedProperty)"
           >
             <v-icon start>mdi-email-fast</v-icon>
-            問い合わせる
+            {{ getApprovalStatus(selectedProperty.id) === 'rejected' ? '再申請する' : '詳細を申請する' }}
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- ===== 問い合わせダイアログ ===== -->
-    <v-dialog v-model="showInquiry" max-width="500" persistent>
+    <!-- ===== 問い合わせダイアログ（詳細閲覧申請） ===== -->
+    <v-dialog v-model="showInquiry" max-width="520" persistent>
       <v-card rounded="xl">
         <v-card-title class="pa-4">
           <div class="d-flex align-center">
             <v-icon color="primary" class="mr-2">mdi-email-fast</v-icon>
-            物件への問い合わせ
+            物件詳細閲覧の申請
           </div>
         </v-card-title>
         <v-divider />
         <v-card-text class="pa-4">
           <div class="text-body-2 text-medium-emphasis mb-3">
-            「{{ inquiryTarget?.name }}」への問い合わせ
+            ご希望内容を選んで送信してください。承認後、すべての項目をご覧いただけます。
           </div>
-          <v-select
-            v-model="inquiryType"
-            :items="['一般', '内見希望', '資料請求']"
-            label="問い合わせ種別"
-            variant="outlined"
-            density="comfortable"
-            rounded="lg"
-            class="mb-3"
+
+          <div class="text-subtitle-2 mb-2 font-weight-bold">ご希望（複数選択可）</div>
+          <v-checkbox
+            v-for="opt in requestTypeOptions"
+            :key="opt.value"
+            v-model="requestTypes"
+            :value="opt.value"
+            :label="opt.label"
+            density="compact"
+            hide-details
+            class="mb-1"
           />
+
           <v-textarea
             v-model="inquiryMessage"
-            label="メッセージ（任意）"
+            label="お問い合わせ内容（任意）"
             variant="outlined"
             rounded="lg"
-            rows="4"
+            rows="3"
             placeholder="ご質問やご要望があればご記入ください"
+            class="mt-4"
           />
         </v-card-text>
         <v-divider />
@@ -1026,6 +1093,12 @@ import { useDisplay } from 'vuetify'
 import { useMiyakoProperties } from '~/composables/useMiyakoProperties'
 import { useClientAuth } from '~/composables/useClientAuth'
 
+// SSR無効化: Supabase認証ベースで完全クライアント駆動のため。
+// Vuetify自動採番IDのhydration mismatch警告も解消される。
+definePageMeta({
+  ssr: false,
+})
+
 useHead({
   title: 'マイページ - みやこ不動産企画',
   meta: [
@@ -1052,6 +1125,8 @@ const {
 const {
   isInquired: isInquiredProperty,
   getInquiry,
+  getApprovalStatus,
+  canViewFullDetails,
   fetchInquiries,
   submitInquiry,
   inquiries,
@@ -1174,6 +1249,7 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
     availableDate: dbProp.move_in_timing || '-',
     photos: [],
     floorPlan: null,
+    prText: dbProp.pr_text || '',
     allowedBusinessTypes: dbProp.allowed_business_types || (dbProp.business_type ? [dbProp.business_type] : []),
     specialConditions: [
       ...(dbProp.new_conditions ? [dbProp.new_conditions] : []),
@@ -1419,45 +1495,48 @@ const selectedProperty = ref(null)
 // ─── 問い合わせダイアログ ───
 const showInquiry = ref(false)
 const inquiryTarget = ref(null)
-const inquiryType = ref('一般')
 const inquiryMessage = ref('')
+const requestTypes = ref([])
 const inquirySubmitting = ref(false)
+
+const requestTypeOptions = [
+  { value: 'document',     label: '資料だけ欲しい' },
+  { value: 'consultation', label: '担当者に話を聞きたい' },
+  { value: 'viewing',      label: '内見・現地確認がしたい' },
+  { value: 'contract',     label: '契約に向けて進めたい' },
+]
 
 const openInquiryDialog = (property) => {
   inquiryTarget.value = property
-  inquiryType.value = '一般'
   inquiryMessage.value = ''
+  // 既存の申請があれば、その選択肢を初期値に
+  const existing = getInquiry(property.id)
+  requestTypes.value = existing?.request_types ? [...existing.request_types] : []
+  if (existing?.message) inquiryMessage.value = existing.message
   showInquiry.value = true
 }
 
 const handleSubmitInquiry = async () => {
   if (!inquiryTarget.value) return
+  if (requestTypes.value.length === 0) {
+    showSnackbar('ご希望を1つ以上選択してください', 'warning')
+    return
+  }
   inquirySubmitting.value = true
 
   const success = await submitInquiry({
     propertyId: inquiryTarget.value.id,
     message: inquiryMessage.value || undefined,
-    inquiryType: inquiryType.value,
+    requestTypes: requestTypes.value,
   })
 
   inquirySubmitting.value = false
 
   if (success) {
-    // ローカル状態を更新
-    const property = allProperties.value.find(p => p.id === inquiryTarget.value.id)
-    if (property) {
-      property.isInquired = true
-      property.inquiryDate = new Date().toISOString().split('T')[0]
-      property.inquiryStatus = '未対応'
-    }
-    if (selectedProperty.value?.id === inquiryTarget.value.id) {
-      selectedProperty.value = { ...selectedProperty.value, isInquired: true }
-    }
     showInquiry.value = false
-    showDetail.value = false
-    showSnackbar('問い合わせを送信しました')
+    showSnackbar('閲覧申請を送信しました。承認をお待ちください')
   } else {
-    showSnackbar('問い合わせの送信に失敗しました', 'error')
+    showSnackbar('申請の送信に失敗しました', 'error')
   }
 }
 
@@ -1843,6 +1922,64 @@ const showSnackbar = (message, color = 'success') => {
 .profile-section {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
+
+/* -- 物件PR本文 (Markdownレンダリング) -- */
+.property-pr-body {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: #1e293b;
+  white-space: normal;
+}
+.property-pr-body :deep(p) { margin: 0 0 8px 0; }
+.property-pr-body :deep(p:last-child) { margin-bottom: 0; }
+.property-pr-body :deep(strong) { font-weight: 700; color: #1e40af; }
+.property-pr-body :deep(em) { font-style: normal; background: rgba(255, 235, 59, 0.4); padding: 1px 4px; border-radius: 3px; }
+.property-pr-body :deep(ul),
+.property-pr-body :deep(ol) { margin: 6px 0 8px 18px; }
+.property-pr-body :deep(li) { margin-bottom: 3px; }
+.property-pr-body :deep(a) { color: #1976d2; text-decoration: underline; }
+.property-pr-body :deep(blockquote) {
+  border-left: 3px solid #93c5fd;
+  padding-left: 10px;
+  margin: 8px 0;
+  color: #475569;
+}
+.property-pr-body :deep(code) {
+  background: rgba(0,0,0,0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.86em;
+}
+
+/* -- ぼかし: 未承認時の項目マスク -- */
+.locked-blur {
+  filter: blur(5px);
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .locked-blur { filter: blur(4px); }
+}
+
+/* -- 有料記事風 申請CTA -- */
+.paywall-cta {
+  position: relative;
+  margin-top: 16px;
+  padding: 28px 20px 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #eef2ff 40%, #eef2ff 100%);
+  border-radius: 12px;
+  text-align: center;
+}
+.paywall-overlay {
+  position: absolute;
+  top: -32px;
+  left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #eef2ff 100%);
+  pointer-events: none;
+}
+.paywall-content { position: relative; }
 
 /* -- 詳細ダイアログ -- */
 .detail-image {

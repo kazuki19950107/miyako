@@ -913,6 +913,7 @@ export const useMiyakoProperties = () => {
           property_strengths,
           business_type,
           seats_count,
+          pr_text,
           created_at,
           updated_at
         `)
