@@ -354,13 +354,9 @@
 
                   <v-card-text class="pa-4 flex-grow-1">
                     <h3 class="text-subtitle-1 font-weight-bold mb-1 card-title-truncate">{{ property.name }}</h3>
-                    <div v-if="!property.isLimited && getLocation(property)" class="text-body-2 text-medium-emphasis mb-1">
-                      <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
+                    <div v-if="getLocation(property)" class="text-body-2 text-medium-emphasis mb-1">
+                      <v-icon size="14" class="mr-1">{{ property.isLimited ? 'mdi-map-marker-outline' : 'mdi-map-marker' }}</v-icon>
                       {{ getLocation(property) }}
-                    </div>
-                    <div v-else-if="property.isLimited" class="text-body-2 text-medium-emphasis mb-1" style="font-style: italic;">
-                      <v-icon size="14" class="mr-1">mdi-lock-outline</v-icon>
-                      所在地は申請後に開示
                     </div>
                     <div class="text-caption text-medium-emphasis mb-2 d-flex align-center">
                       <v-icon size="12" class="mr-1">mdi-train</v-icon>
@@ -475,13 +471,9 @@
                           <v-icon color="#b85450" size="20">mdi-heart</v-icon>
                         </v-btn>
                       </div>
-                      <div v-if="!property.isLimited && getLocation(property)" class="text-body-2 text-medium-emphasis mb-2">
-                        <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
+                      <div v-if="getLocation(property)" class="text-body-2 text-medium-emphasis mb-2">
+                        <v-icon size="14" class="mr-1">{{ property.isLimited ? 'mdi-map-marker-outline' : 'mdi-map-marker' }}</v-icon>
                         {{ getLocation(property) }}
-                      </div>
-                      <div v-else-if="property.isLimited" class="text-body-2 text-medium-emphasis mb-2" style="font-style: italic;">
-                        <v-icon size="14" class="mr-1">mdi-lock-outline</v-icon>
-                        所在地は申請後に開示
                       </div>
                       <div class="d-flex align-center ga-3 mb-3 flex-wrap">
                         <span class="text-body-2">{{ property.tsubo }}坪</span>
@@ -578,14 +570,9 @@
                         </v-chip>
                       </div>
                       <div class="text-body-2 text-medium-emphasis mb-2">
-                        <template v-if="!property.isLimited && getLocation(property)">
-                          <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
+                        <template v-if="getLocation(property)">
+                          <v-icon size="14" class="mr-1">{{ property.isLimited ? 'mdi-map-marker-outline' : 'mdi-map-marker' }}</v-icon>
                           {{ getLocation(property) }}
-                          <span class="mx-2">|</span>
-                        </template>
-                        <template v-else-if="property.isLimited">
-                          <v-icon size="14" class="mr-1">mdi-lock-outline</v-icon>
-                          <span style="font-style: italic;">所在地は申請後に開示</span>
                           <span class="mx-2">|</span>
                         </template>
                         {{ property.tsubo }}坪
@@ -1217,7 +1204,12 @@ const tabs = computed(() => [
 ])
 
 // ─── ロケーション表示ヘルパー ───
-const getLocation = (p) => `${p.prefecture}${p.city}${p.town}${p.chome}`
+// 未承認時は publicAddress (DB生成済み公開レベル適用済みの文字列)を使う
+// 承認済みは prefecture+city+town+chome (フル) を使う
+const getLocation = (p) => {
+  if (p.isLimited) return p.publicAddress || ''
+  return `${p.prefecture || ''}${p.city || ''}${p.town || ''}${p.chome || ''}`
+}
 
 // ─── 物件データ ───
 const allProperties = ref([])
@@ -1301,11 +1293,15 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
     floorDisplay: floorInfo.display,
     floorSearch: floorInfo.search,
     roomNumber: dbProp.room_number || '',
+    // publicAddress: 未承認時に表示する住所(DB生成済み)
+    publicAddress: dbProp.public_address || '',
+    addressPublicLevel: dbProp.address_public_level || 'city',
+    // prefecture/city/town/chomeは承認済み物件でのみ存在(未承認時はundefined)
     prefecture: dbProp.prefecture || '',
     city: dbProp.city || '',
-    town: dbProp.address || '',
-    chome: '',
-    banchi: '',
+    town: dbProp.address_town || dbProp.address || '',
+    chome: dbProp.address_chome ? `${dbProp.address_chome}丁目` : '',
+    banchi: dbProp.address_banchi || '',
     go: '',
     tsubo: dbProp.floor_space_tsubo || 0,
     sqm: dbProp.floor_space_sqm || 0,

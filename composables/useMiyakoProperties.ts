@@ -886,10 +886,13 @@ export const useMiyakoProperties = () => {
 
       // ===== ステップ1: 安全項目のみ全件取得 =====
       // 公開OK: 物件ID, 賃料, 管理費, 面積, 敷金/礼金, 駅名, 階, 現況, PR, 造作有無, 入居時期
+      // public_address: DBで生成された公開レベル適用済みの住所文字列(prefecture/city/addressは直接取らない)
       const safeFields = `
         id,
         lifecycle_stage,
         master_status,
+        public_address,
+        address_public_level,
         nearest_station,
         floor,
         floor_space_tsubo,
