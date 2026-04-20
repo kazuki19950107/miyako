@@ -863,73 +863,98 @@ export const useMiyakoProperties = () => {
   // ============================================================
   // 水面下物件一覧取得（マイページ表示用）
   // ============================================================
+  /**
+   * mypage用の物件データを取得 (二段階フェッチでセキュリティ担保)
+   *
+   * ステップ1: 全物件を「安全な項目のみ」で取得
+   *   - 物件名・住所・徒歩時間・業態・設備・構造などの機密項目は取得しない
+   * ステップ2: 承認済み(MIYAKO_CLIENT_INQUIRIES.status='approved')物件のIDを取得
+   * ステップ3: 承認済み物件だけ全項目で再取得、マージ
+   *
+   * 未承認ユーザーはそもそも機密項目をNetworkに受け取らないため、
+   * devtoolsで見てもデータが存在しない。
+   */
   const fetchPropertiesForMypage = async (options?: {
     limit?: number
+    userId?: string
   }) => {
     loading.value = true
     error.value = null
 
     try {
       const supabase = getSupabase()
-      let query = supabase
+
+      // ===== ステップ1: 安全項目のみ全件取得 =====
+      // 公開OK: 物件ID, 賃料, 管理費, 面積, 敷金/礼金, 駅名, 階, 現況, PR, 造作有無, 入居時期
+      const safeFields = `
+        id,
+        lifecycle_stage,
+        master_status,
+        nearest_station,
+        floor,
+        floor_space_tsubo,
+        floor_space_sqm,
+        rent,
+        management_fee,
+        deposit,
+        deposit_amount,
+        key_money,
+        key_money_amount,
+        handover_condition,
+        move_in_timing,
+        pr_text,
+        created_at,
+        updated_at
+      `
+      let safeQuery = supabase
         .from('MIYAKO_PROPERTIES')
-        .select(`
-          id,
-          shop_name,
-          property_type,
-          property_category,
-          lifecycle_stage,
-          master_status,
-          auto_distribution,
-          prefecture,
-          city,
-          address,
-          building_name,
-          room_number,
-          floor,
-          total_floors,
-          structure,
-          built_year,
-          nearest_station,
-          station_distance_minutes,
-          access_info,
-          floor_space_tsubo,
-          floor_space_sqm,
-          rent,
-          management_fee,
-          deposit,
-          deposit_amount,
-          key_money,
-          key_money_amount,
-          contract_period,
-          skeleton_or_furnished,
-          handover_condition,
-          handover_amount,
-          valuation_amount,
-          move_in_timing,
-          previous_usage,
-          allowed_business_types,
-          new_conditions,
-          property_strengths,
-          business_type,
-          seats_count,
-          pr_text,
-          created_at,
-          updated_at
-        `)
+        .select(safeFields)
         .eq('lifecycle_stage', 'property')
         .in('master_status', ['募集中', '商談中'])
         .order('created_at', { ascending: false })
 
       if (options?.limit) {
-        query = query.limit(options.limit)
+        safeQuery = safeQuery.limit(options.limit)
       }
 
-      const { data, error: fetchError } = await query
+      const { data: safeData, error: safeError } = await safeQuery
+      if (safeError) throw safeError
+      const safeProps = (safeData || []) as any[]
 
-      if (fetchError) throw fetchError
+      // ===== ステップ2: 承認済み物件IDの取得 =====
+      const approvedIds = new Set<string>()
+      if (options?.userId) {
+        const { data: approvedData } = await supabase
+          .from('MIYAKO_CLIENT_INQUIRIES')
+          .select('property_id')
+          .eq('user_id', options.userId)
+          .eq('status', 'approved')
+        for (const row of (approvedData || []) as any[]) {
+          approvedIds.add(row.property_id)
+        }
+      }
 
-      return data || []
+      // ===== ステップ3: 承認済みのみ全項目で再取得 =====
+      const fullMap = new Map<string, any>()
+      if (approvedIds.size > 0) {
+        const { data: fullData, error: fullError } = await supabase
+          .from('MIYAKO_PROPERTIES')
+          .select('*')
+          .in('id', Array.from(approvedIds))
+        if (fullError) throw fullError
+        for (const p of (fullData || []) as any[]) {
+          fullMap.set(p.id, p)
+        }
+      }
+
+      // ===== マージ =====
+      return safeProps.map((s) => {
+        const full = fullMap.get(s.id)
+        if (full) {
+          return { ...full, _isApproved: true, _isLimited: false }
+        }
+        return { ...s, _isApproved: false, _isLimited: true }
+      })
     } catch (e: any) {
       error.value = e.message || '水面下物件の取得に失敗しました'
       console.error('fetchPropertiesForMypage error:', e)

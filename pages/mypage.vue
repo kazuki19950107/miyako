@@ -273,6 +273,17 @@
               </span>
             </div>
 
+            <!-- 承認状態フィルタ (チップ) -->
+            <v-chip-group v-model="approvalFilter" mandatory selected-class="text-primary" class="mb-3">
+              <v-chip value="all" filter variant="outlined" size="small">すべて</v-chip>
+              <v-chip value="approved" filter variant="outlined" size="small" color="success">
+                <v-icon start size="14">mdi-lock-open</v-icon>閲覧可能
+              </v-chip>
+              <v-chip value="pending" filter variant="outlined" size="small" color="warning">
+                <v-icon start size="14">mdi-clock-outline</v-icon>申請中
+              </v-chip>
+            </v-chip-group>
+
             <!-- 物件グリッド -->
             <v-row v-if="filteredProperties.length > 0" dense class="mx-n1">
               <v-col
@@ -318,17 +329,45 @@
                     >
                       {{ property.availableDate }}
                     </v-chip>
+                    <!-- 承認状態バッジ -->
+                    <v-chip
+                      v-if="getApprovalStatus(property.id) === 'approved'"
+                      color="success"
+                      size="x-small"
+                      variant="flat"
+                      class="approval-badge"
+                    >
+                      <v-icon start size="11">mdi-lock-open</v-icon>
+                      閲覧可能
+                    </v-chip>
+                    <v-chip
+                      v-else-if="getApprovalStatus(property.id) === 'pending'"
+                      color="warning"
+                      size="x-small"
+                      variant="flat"
+                      class="approval-badge"
+                    >
+                      <v-icon start size="11">mdi-clock-outline</v-icon>
+                      申請中
+                    </v-chip>
                   </div>
 
                   <v-card-text class="pa-4 flex-grow-1">
                     <h3 class="text-subtitle-1 font-weight-bold mb-1 card-title-truncate">{{ property.name }}</h3>
-                    <div class="text-body-2 text-medium-emphasis mb-1">
+                    <div v-if="!property.isLimited && getLocation(property)" class="text-body-2 text-medium-emphasis mb-1">
                       <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
                       {{ getLocation(property) }}
                     </div>
+                    <div v-else-if="property.isLimited" class="text-body-2 text-medium-emphasis mb-1" style="font-style: italic;">
+                      <v-icon size="14" class="mr-1">mdi-lock-outline</v-icon>
+                      所在地は申請後に開示
+                    </div>
                     <div class="text-caption text-medium-emphasis mb-2 d-flex align-center">
                       <v-icon size="12" class="mr-1">mdi-train</v-icon>
-                      {{ property.nearestStations[0].station }}駅 {{ property.nearestStations[0].transportMethod }}{{ property.nearestStations[0].transportMinutes }}分
+                      {{ property.nearestStations[0].station }}駅
+                      <template v-if="!property.isLimited && property.nearestStations[0].transportMinutes">
+                        {{ property.nearestStations[0].transportMethod }}{{ property.nearestStations[0].transportMinutes }}分
+                      </template>
                       <v-chip v-if="property.nearestStations.length > 1" size="x-small" variant="tonal" color="primary" class="ml-1">+{{ property.nearestStations.length - 1 }}駅</v-chip>
                     </div>
                     <div class="text-h6 font-weight-bold text-primary mb-2">
@@ -344,7 +383,7 @@
                       </span>
                     </div>
                     <div class="d-flex flex-wrap ga-1">
-                      <v-chip size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
+                      <v-chip v-if="property.allowedBusinessTypes && property.allowedBusinessTypes[0]" size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
                       <v-chip v-if="property.floorDisplay" size="x-small" variant="tonal">{{ property.floorDisplay }}</v-chip>
                     </div>
                     <!-- 希望条件マッチバッジ -->
@@ -423,21 +462,31 @@
                     </div>
                     <!-- 情報 -->
                     <div class="flex-grow-1 pa-4">
-                      <div class="d-flex align-center mb-1">
+                      <div class="d-flex align-center mb-1 ga-2 flex-wrap">
                         <h3 class="text-subtitle-1 font-weight-bold">{{ property.name }}</h3>
+                        <v-chip v-if="getApprovalStatus(property.id) === 'approved'" color="success" size="x-small" variant="flat">
+                          <v-icon start size="11">mdi-lock-open</v-icon>閲覧可能
+                        </v-chip>
+                        <v-chip v-else-if="getApprovalStatus(property.id) === 'pending'" color="warning" size="x-small" variant="flat">
+                          <v-icon start size="11">mdi-clock-outline</v-icon>申請中
+                        </v-chip>
                         <v-spacer />
                         <v-btn icon variant="text" size="small" @click.stop="toggleFavorite(property.id)">
                           <v-icon color="#b85450" size="20">mdi-heart</v-icon>
                         </v-btn>
                       </div>
-                      <div class="text-body-2 text-medium-emphasis mb-2">
+                      <div v-if="!property.isLimited && getLocation(property)" class="text-body-2 text-medium-emphasis mb-2">
                         <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
                         {{ getLocation(property) }}
+                      </div>
+                      <div v-else-if="property.isLimited" class="text-body-2 text-medium-emphasis mb-2" style="font-style: italic;">
+                        <v-icon size="14" class="mr-1">mdi-lock-outline</v-icon>
+                        所在地は申請後に開示
                       </div>
                       <div class="d-flex align-center ga-3 mb-3 flex-wrap">
                         <span class="text-body-2">{{ property.tsubo }}坪</span>
                         <span class="text-subtitle-2 font-weight-bold text-primary">{{ formatRent(property.rent) }}/月</span>
-                        <v-chip size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
+                        <v-chip v-if="property.allowedBusinessTypes && property.allowedBusinessTypes[0]" size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
                       </div>
                       <!-- お気に入り専用情報 -->
                       <div class="d-flex ga-3 flex-wrap">
@@ -508,12 +557,14 @@
                     <div class="flex-grow-1 pa-4">
                       <div class="d-flex align-center mb-1 flex-wrap ga-2">
                         <h3 class="text-subtitle-1 font-weight-bold">{{ property.name }}</h3>
-                        <v-chip
-                          size="x-small"
-                          :color="getInquiryStatusColor(property.inquiryStatus)"
-                          variant="flat"
-                        >
-                          {{ property.inquiryStatus }}
+                        <v-chip v-if="getApprovalStatus(property.id) === 'approved'" color="success" size="x-small" variant="flat">
+                          <v-icon start size="11">mdi-lock-open</v-icon>閲覧可能
+                        </v-chip>
+                        <v-chip v-else-if="getApprovalStatus(property.id) === 'pending'" color="warning" size="x-small" variant="flat">
+                          <v-icon start size="11">mdi-clock-outline</v-icon>申請中
+                        </v-chip>
+                        <v-chip v-else-if="getApprovalStatus(property.id) === 'rejected'" color="error" size="x-small" variant="flat">
+                          <v-icon start size="11">mdi-close-circle-outline</v-icon>却下
                         </v-chip>
                         <v-chip
                           v-if="property.documentStatus"
@@ -527,9 +578,16 @@
                         </v-chip>
                       </div>
                       <div class="text-body-2 text-medium-emphasis mb-2">
-                        <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
-                        {{ getLocation(property) }}
-                        <span class="mx-2">|</span>
+                        <template v-if="!property.isLimited && getLocation(property)">
+                          <v-icon size="14" class="mr-1">mdi-map-marker</v-icon>
+                          {{ getLocation(property) }}
+                          <span class="mx-2">|</span>
+                        </template>
+                        <template v-else-if="property.isLimited">
+                          <v-icon size="14" class="mr-1">mdi-lock-outline</v-icon>
+                          <span style="font-style: italic;">所在地は申請後に開示</span>
+                          <span class="mx-2">|</span>
+                        </template>
                         {{ property.tsubo }}坪
                         <span class="mx-2">|</span>
                         {{ formatRent(property.rent) }}/月
@@ -595,7 +653,7 @@
                 <v-list-item
                   :class="{ 'notice-unread': !notice.isRead }"
                   class="py-4 px-4"
-                  @click="markAsRead(notice.id)"
+                  @click="onNoticeClick(notice)"
                 >
                   <template #prepend>
                     <v-avatar :color="notice.color" size="40" class="mr-3">
@@ -634,8 +692,8 @@
     <!-- ===== 物件詳細ダイアログ ===== -->
     <v-dialog v-model="showDetail" :max-width="780" :fullscreen="isMobile" scrollable>
       <v-card v-if="selectedProperty" rounded="xl" class="detail-card">
-        <!-- ヘッダー画像 (未承認時はぼかし) -->
-        <div class="detail-image d-flex align-center justify-center" :class="{ 'locked-blur': !canViewFullDetails(selectedProperty.id) }" :style="{ background: selectedProperty.gradient }">
+        <!-- ヘッダー画像 (装飾のみ・閉じるボタン操作のためぼかしなし) -->
+        <div class="detail-image d-flex align-center justify-center" :style="{ background: selectedProperty.gradient }">
           <v-icon size="56" color="white" style="opacity: 0.15">mdi-silverware-fork-knife</v-icon>
           <v-btn
             icon
@@ -1215,16 +1273,31 @@ const parseNearestStations = (stationStr, minutes, accessInfo) => {
 }
 
 const mapDbPropertyToDisplay = (dbProp, index) => {
+  const limited = !!dbProp._isLimited
   const floorInfo = parseFloorDisplay(dbProp.floor)
-  const stations = parseNearestStations(dbProp.nearest_station, dbProp.station_distance_minutes, dbProp.access_info)
+  // 未承認時は徒歩時間を0扱い(UIで非表示)、承認済みは実際の分数
+  const stations = parseNearestStations(
+    dbProp.nearest_station,
+    limited ? 0 : dbProp.station_distance_minutes,
+    limited ? null : dbProp.access_info,
+  )
   const rent = dbProp.rent || 0
   const depositAmt = dbProp.deposit_amount || 0
   const keyMoneyAmt = dbProp.key_money_amount || 0
   const handoverAmt = dbProp.handover_amount || 0
 
+  // 未承認時の表示用タイトル: 最寄り駅エリア + 階
+  const stationName = dbProp.nearest_station || ''
+  const limitedTitle = stationName
+    ? `${stationName}エリア ${floorInfo.display || ''}`.trim()
+    : `物件 #${(dbProp.id || '').slice(0, 4)}`
+
   return {
     id: dbProp.id,
-    name: dbProp.shop_name || dbProp.previous_usage || '物件',
+    isLimited: limited,
+    name: limited
+      ? limitedTitle
+      : (dbProp.shop_name || dbProp.previous_usage || dbProp.building_name || '物件'),
     floorDisplay: floorInfo.display,
     floorSearch: floorInfo.search,
     roomNumber: dbProp.room_number || '',
@@ -1240,7 +1313,7 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
     floorsAbove: parseInt(dbProp.total_floors) || 0,
     floorsBelow: 0,
     structure: dbProp.structure || '',
-    propertyType: dbProp.property_type || '店舗',
+    propertyType: dbProp.property_type || '',
     contractPeriod: dbProp.contract_period || '',
     nearestStations: stations,
     currentStatus: dbProp.master_status || '',
@@ -1255,7 +1328,8 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
       ...(dbProp.new_conditions ? [dbProp.new_conditions] : []),
       ...(Array.isArray(dbProp.property_strengths) ? dbProp.property_strengths : []),
     ].filter(Boolean),
-    transferDisplay: handoverAmt > 0 ? 'あり' : 'なし',
+    transferDisplay: (dbProp.handover_condition === 'あり（要協議）' || handoverAmt > 0)
+      ? 'あり' : (dbProp.handover_condition || 'なし'),
     transferAskedPrice: handoverAmt > 0 ? Math.round(handoverAmt / 10000) : null,
     transferListPrice: dbProp.valuation_amount ? Math.round(dbProp.valuation_amount / 10000) : null,
     rent: rent,
@@ -1285,9 +1359,9 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
 
 // ─── DB から物件データ + お気に入り + 問い合わせ取得 ───
 onMounted(async () => {
-  // 並行取得
+  // 並行取得 (物件取得時に承認済みID突合するため user.id を渡す)
   const [data] = await Promise.all([
-    fetchPropertiesForMypage(),
+    fetchPropertiesForMypage({ userId: clientProfile.value?.id }),
     fetchFavorites(),
     fetchInquiries(),
     fetchNotices(),
@@ -1329,6 +1403,7 @@ const notifications = computed(() =>
     color: getNoticeColor(n.notice_type),
     icon: n.icon || 'mdi-bell',
     pinned: !!n.pinned,
+    targetPropertyId: n.target_property_id || null,
   }))
 )
 
@@ -1434,6 +1509,7 @@ const filterRailway = ref(null)
 const filterStation = ref('')
 const filterWalkMinutes = ref(null)
 const filterInterior = ref(null)
+const approvalFilter = ref('all') // all / approved / pending
 const filterFloor = ref(null)
 const filterLocation = ref(null)
 const filterSpecial = ref(null)
@@ -1630,6 +1706,12 @@ const filteredProperties = computed(() => {
     result = result.filter(p => p.specialConditions && p.specialConditions.includes(filterEquipment.value))
   }
 
+  // 承認状態フィルタ
+  if (approvalFilter.value === 'approved') {
+    result = result.filter(p => getApprovalStatus(p.id) === 'approved')
+  } else if (approvalFilter.value === 'pending') {
+    result = result.filter(p => getApprovalStatus(p.id) === 'pending')
+  }
 
   switch (sortBy.value) {
     case 'rent_asc': result.sort((a, b) => a.rent - b.rent); break
@@ -1744,6 +1826,21 @@ const markAsRead = async (id) => {
   await markNoticeAsRead(id)
 }
 
+// お知らせクリック: 既読化 + (target_property_id があれば) 物件タブ + 詳細モーダルへ遷移
+const onNoticeClick = async (notice) => {
+  await markNoticeAsRead(notice.id)
+  if (notice.targetPropertyId) {
+    const property = allProperties.value.find(p => p.id === notice.targetPropertyId)
+    if (property) {
+      activeTab.value = 'search'
+      // モーダル展開
+      openDetail(property)
+    } else {
+      showSnackbar('対象の物件は現在公開されていません', 'warning')
+    }
+  }
+}
+
 const markAllAsRead = async () => {
   await markAllNoticesAsRead()
   showSnackbar('すべて既読にしました')
@@ -1855,6 +1952,13 @@ const showSnackbar = (message, color = 'success') => {
 .status-badge {
   position: absolute;
   top: 10px;
+  left: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.approval-badge {
+  position: absolute;
+  bottom: 10px;
   left: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
