@@ -122,6 +122,29 @@ export const useClientNotices = () => {
     }
   }
 
+  // ─── 未読に戻す（既読レコードを削除） ───
+  const markAsUnread = async (noticeId: string): Promise<boolean> => {
+    if (!currentUser.value) return false
+    if (!readNoticeIds.value.has(noticeId)) return true // 既に未読
+
+    try {
+      const supabase = getSupabase()
+      const { error: deleteError } = await supabase
+        .from('MIYAKO_CLIENT_NOTICE_READS')
+        .delete()
+        .eq('user_id', currentUser.value.id)
+        .eq('notice_id', noticeId)
+
+      if (deleteError) throw deleteError
+
+      readNoticeIds.value.delete(noticeId)
+      return true
+    } catch (e: any) {
+      console.error('markAsUnread error:', e)
+      return false
+    }
+  }
+
   // ─── 全て既読にする ───
   const markAllAsRead = async (): Promise<boolean> => {
     if (!currentUser.value) return false
@@ -160,6 +183,7 @@ export const useClientNotices = () => {
     getNoticeColor,
     fetchNotices,
     markAsRead,
+    markAsUnread,
     markAllAsRead,
   }
 }

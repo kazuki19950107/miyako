@@ -638,7 +638,7 @@
             <v-card rounded="xl" flat class="notice-list">
               <template v-for="(notice, i) in notifications" :key="notice.id">
                 <v-list-item
-                  :class="{ 'notice-unread': !notice.isRead }"
+                  :class="{ 'notice-unread': !notice.isRead, 'notice-hover-row': true }"
                   class="py-4 px-4"
                 >
                   <template #prepend>
@@ -649,6 +649,16 @@
                   <v-list-item-title class="font-weight-medium text-body-1 mb-1 d-flex align-center ga-2 flex-wrap">
                     {{ notice.title }}
                     <v-chip v-if="!notice.isRead" size="x-small" color="error" variant="flat">NEW</v-chip>
+                    <v-btn
+                      class="notice-toggle-btn"
+                      variant="text"
+                      size="x-small"
+                      density="comfortable"
+                      :prepend-icon="notice.isRead ? 'mdi-email-mark-as-unread' : 'mdi-check'"
+                      @click="toggleNoticeRead(notice)"
+                    >
+                      {{ notice.isRead ? '未読に戻す' : '既読にする' }}
+                    </v-btn>
                   </v-list-item-title>
                   <v-list-item-subtitle class="text-body-2 text-wrap notice-message-body" v-html="notice.messageHtml" />
                   <template #append>
@@ -1193,6 +1203,7 @@ const {
   getNoticeColor,
   fetchNotices,
   markAsRead: markNoticeAsRead,
+  markAsUnread: markNoticeAsUnread,
   markAllAsRead: markAllNoticesAsRead,
 } = useClientNotices()
 
@@ -1829,6 +1840,15 @@ const markAsRead = async (id) => {
   await markNoticeAsRead(id)
 }
 
+// お知らせの既読/未読切替（ホバーで現れるボタン用）
+const toggleNoticeRead = async (notice) => {
+  if (notice.isRead) {
+    await markNoticeAsUnread(notice.id)
+  } else {
+    await markNoticeAsRead(notice.id)
+  }
+}
+
 // お知らせ内の「この物件を見る」CTA: 既読化 + 物件タブ + 詳細モーダルへ遷移
 const onNoticeClick = async (notice) => {
   await markNoticeAsRead(notice.id)
@@ -2001,6 +2021,24 @@ const showSnackbar = (message, color = 'success') => {
 }
 .notice-unread {
   background: #f0f6ff;
+}
+/* ホバー時のみ表示される既読/未読トグルボタン */
+.notice-hover-row .notice-toggle-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.notice-hover-row:hover .notice-toggle-btn,
+.notice-hover-row:focus-within .notice-toggle-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* タッチデバイスでは常時表示（ホバーが使えないため） */
+@media (hover: none) {
+  .notice-hover-row .notice-toggle-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .notice-message-body :deep(p) { margin: 0 0 6px 0; }
 .notice-message-body :deep(p:last-child) { margin-bottom: 0; }
