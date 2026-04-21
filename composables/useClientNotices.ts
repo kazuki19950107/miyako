@@ -63,13 +63,11 @@ export const useClientNotices = () => {
       const supabase = getSupabase()
 
       // お知らせ取得（RLSで自分に見えるものだけ返る）
-      // ピン留め優先 → 公開日時降順
+      // 公開日時降順
       const { data: noticesData, error: noticesError } = await supabase
         .from('MIYAKO_CLIENT_NOTICES')
         .select('*')
         .eq('is_published', true)
-        .order('pinned', { ascending: false })
-        .order('pinned_at', { ascending: false, nullsFirst: false })
         .order('published_at', { ascending: false, nullsFirst: false })
 
       if (noticesError) throw noticesError

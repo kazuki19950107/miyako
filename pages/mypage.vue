@@ -640,7 +640,6 @@
                 <v-list-item
                   :class="{ 'notice-unread': !notice.isRead }"
                   class="py-4 px-4"
-                  @click="onNoticeClick(notice)"
                 >
                   <template #prepend>
                     <v-avatar :color="notice.color" size="40" class="mr-3">
@@ -648,13 +647,24 @@
                     </v-avatar>
                   </template>
                   <v-list-item-title class="font-weight-medium text-body-1 mb-1 d-flex align-center ga-2 flex-wrap">
-                    <v-icon v-if="notice.pinned" size="16" color="warning">mdi-pin</v-icon>
                     {{ notice.title }}
                     <v-chip v-if="!notice.isRead" size="x-small" color="error" variant="flat">NEW</v-chip>
                   </v-list-item-title>
                   <v-list-item-subtitle class="text-body-2 text-wrap notice-message-body" v-html="notice.messageHtml" />
                   <template #append>
-                    <span class="text-caption text-medium-emphasis text-no-wrap ml-3">{{ notice.date }}</span>
+                    <div class="d-flex align-center ga-3">
+                      <v-btn
+                        v-if="notice.targetPropertyId"
+                        variant="tonal"
+                        color="primary"
+                        size="small"
+                        prepend-icon="mdi-home-search"
+                        @click="onNoticeClick(notice)"
+                      >
+                        この物件を見る
+                      </v-btn>
+                      <span class="text-caption text-medium-emphasis text-no-wrap">{{ notice.date }}</span>
+                    </div>
                   </template>
                 </v-list-item>
                 <v-divider v-if="i < notifications.length - 1" />
@@ -1278,18 +1288,16 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
   const keyMoneyAmt = dbProp.key_money_amount || 0
   const handoverAmt = dbProp.handover_amount || 0
 
-  // 未承認時の表示用タイトル: 最寄り駅エリア + 階
+  // 一覧タイトル: 承認前後とも「最寄り駅エリア + 階」で統一表示
   const stationName = dbProp.nearest_station || ''
-  const limitedTitle = stationName
+  const areaTitle = stationName
     ? `${stationName}エリア ${floorInfo.display || ''}`.trim()
     : `物件 #${(dbProp.id || '').slice(0, 4)}`
 
   return {
     id: dbProp.id,
     isLimited: limited,
-    name: limited
-      ? limitedTitle
-      : (dbProp.shop_name || dbProp.previous_usage || dbProp.building_name || '物件'),
+    name: areaTitle,
     floorDisplay: floorInfo.display,
     floorSearch: floorInfo.search,
     roomNumber: dbProp.room_number || '',
@@ -1398,7 +1406,6 @@ const notifications = computed(() =>
     isRead: isNoticeRead(n.id),
     color: getNoticeColor(n.notice_type),
     icon: n.icon || 'mdi-bell',
-    pinned: !!n.pinned,
     targetPropertyId: n.target_property_id || null,
   }))
 )
@@ -1822,18 +1829,16 @@ const markAsRead = async (id) => {
   await markNoticeAsRead(id)
 }
 
-// お知らせクリック: 既読化 + (target_property_id があれば) 物件タブ + 詳細モーダルへ遷移
+// お知らせ内の「この物件を見る」CTA: 既読化 + 物件タブ + 詳細モーダルへ遷移
 const onNoticeClick = async (notice) => {
   await markNoticeAsRead(notice.id)
-  if (notice.targetPropertyId) {
-    const property = allProperties.value.find(p => p.id === notice.targetPropertyId)
-    if (property) {
-      activeTab.value = 'search'
-      // モーダル展開
-      openDetail(property)
-    } else {
-      showSnackbar('対象の物件は現在公開されていません', 'warning')
-    }
+  if (!notice.targetPropertyId) return
+  const property = allProperties.value.find(p => p.id === notice.targetPropertyId)
+  if (property) {
+    activeTab.value = 'search'
+    openDetail(property)
+  } else {
+    showSnackbar('対象の物件は現在公開されていません', 'warning')
   }
 }
 
