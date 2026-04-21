@@ -664,7 +664,7 @@
                   <template #append>
                     <div class="d-flex align-center ga-3">
                       <v-btn
-                        v-if="notice.targetPropertyId"
+                        v-if="isNoticePropertyViewable(notice)"
                         variant="tonal"
                         color="primary"
                         size="small"
@@ -1214,8 +1214,14 @@ const handleLogout = async () => {
 }
 
 // ─── タブ設定 ───
-const initialTab = route.query.tab === 'profile' ? 'profile' : 'search'
+const VALID_TABS = ['search', 'favorites', 'inquired', 'notices', 'profile']
+const initialTab = VALID_TABS.includes(route.query.tab) ? route.query.tab : 'search'
 const activeTab = ref(initialTab)
+// タブ切替時にURLクエリに反映 → リロード・共有時も同じタブで復元される
+watch(activeTab, (newTab) => {
+  if (route.query.tab === newTab) return
+  router.replace({ query: { ...route.query, tab: newTab } })
+})
 const tabs = computed(() => [
   { key: 'search', title: '物件を探す', icon: 'mdi-store-search', badge: null },
   { key: 'favorites', title: 'お気に入り', icon: 'mdi-heart', badge: null },
@@ -1838,6 +1844,12 @@ const resetFilters = () => {
 
 const markAsRead = async (id) => {
   await markNoticeAsRead(id)
+}
+
+// お知らせのリンク先物件が現在閲覧可能か（成約・削除・未公開は不可）
+const isNoticePropertyViewable = (notice) => {
+  if (!notice?.targetPropertyId) return false
+  return allProperties.value.some(p => p.id === notice.targetPropertyId)
 }
 
 // お知らせの既読/未読切替（ホバーで現れるボタン用）
