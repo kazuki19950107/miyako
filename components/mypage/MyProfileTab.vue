@@ -1016,6 +1016,87 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ================================ -->
+    <!-- Section 3: アカウント              -->
+    <!-- ================================ -->
+    <v-card rounded="xl" flat class="mt-5 profile-section">
+      <v-card-title class="d-flex align-center pa-4 pb-2">
+        <v-icon start color="grey-darken-1" size="22">mdi-account-cog-outline</v-icon>
+        <span class="text-h6 font-weight-bold">アカウント</span>
+      </v-card-title>
+
+      <v-card-text class="pa-4 pt-2">
+        <div class="d-flex align-start ga-3 flex-wrap">
+          <div class="flex-grow-1">
+            <div class="text-body-2 font-weight-medium mb-1">アカウントの削除</div>
+            <div class="text-caption text-medium-emphasis">
+              出店物件が決まり、本サービスを今後利用しない場合はアカウントを削除できます。<br>
+              削除後はログイン不可となります。同じメールアドレス・電話番号での再登録はできなくなります（再開ご希望の場合はサポートまで）。
+            </div>
+          </div>
+          <v-btn
+            variant="outlined"
+            color="error"
+            rounded="lg"
+            size="small"
+            @click="openAccountDeleteDialog"
+          >
+            <v-icon start size="16">mdi-account-remove-outline</v-icon>
+            アカウントを削除
+          </v-btn>
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <!-- アカウント削除ダイアログ -->
+    <v-dialog v-model="showAccountDeleteDialog" max-width="420" persistent>
+      <v-card rounded="xl">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon start color="error" size="24">mdi-alert-circle</v-icon>
+          <span class="text-h6 font-weight-bold">アカウントを削除しますか？</span>
+        </v-card-title>
+        <v-card-text class="pa-4 pt-0">
+          <div class="text-body-2 mb-3">
+            この操作を実行すると、すぐにログアウトされ、再ログインができなくなります。<br>
+            同じメールアドレス・電話番号での新規登録もブロックされます。<br>
+            アカウントの復元をご希望の場合はサポートまでお問い合わせください。
+          </div>
+          <v-textarea
+            v-model="accountDeleteReason"
+            label="削除の理由（任意）"
+            placeholder="例: 物件が決まったため など"
+            variant="outlined"
+            density="comfortable"
+            rounded="lg"
+            rows="2"
+            auto-grow
+            hide-details
+          />
+        </v-card-text>
+        <v-card-actions class="pa-4 pt-0">
+          <v-spacer />
+          <v-btn
+            variant="text"
+            rounded="lg"
+            :disabled="accountDeleteLoading"
+            @click="closeAccountDeleteDialog"
+          >
+            キャンセル
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="flat"
+            rounded="lg"
+            :loading="accountDeleteLoading"
+            @click="executeAccountDelete"
+          >
+            <v-icon start size="16">mdi-account-remove</v-icon>
+            アカウントを削除する
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -1122,7 +1203,41 @@ const profileBackup = ref(null)
 
 // DBからプロフィール取得
 import { useClientAuth } from '~/composables/useClientAuth'
-const { clientProfile } = useClientAuth()
+const { clientProfile, deleteAccount } = useClientAuth()
+const router = useRouter()
+
+// アカウント削除用 state
+const showAccountDeleteDialog = ref(false)
+const accountDeleteReason = ref('')
+const accountDeleteLoading = ref(false)
+
+function openAccountDeleteDialog() {
+  accountDeleteReason.value = ''
+  showAccountDeleteDialog.value = true
+}
+
+function closeAccountDeleteDialog() {
+  if (accountDeleteLoading.value) return
+  showAccountDeleteDialog.value = false
+  accountDeleteReason.value = ''
+}
+
+async function executeAccountDelete() {
+  accountDeleteLoading.value = true
+  try {
+    const ok = await deleteAccount(accountDeleteReason.value || undefined)
+    if (ok) {
+      emit('show-snackbar', 'アカウントを削除しました')
+      showAccountDeleteDialog.value = false
+      // ログアウト済みなのでトップへ
+      await router.push('/')
+    } else {
+      emit('show-snackbar', 'アカウント削除に失敗しました')
+    }
+  } finally {
+    accountDeleteLoading.value = false
+  }
+}
 
 const profile = ref({
   companyName: '',

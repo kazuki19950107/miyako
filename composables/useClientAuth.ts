@@ -11,15 +11,24 @@ export interface ClientProfile {
   company_name: string | null
   store_preferences: any[] | null
   is_active: boolean
+  deleted_at: string | null
+  deletion_reason: string | null
   created_at: string
   updated_at: string
 }
+
+// お問合せ先（削除済みアカウント案内に使用）
+export const SUPPORT_EMAIL = 'info@miyako-inuki.jp'
+
+// 認証エラーの種類（UI 側でモーダル/スナックバーを切り替えるために使用）
+export type AuthErrorType = 'deleted_account' | null
 
 // 状態をモジュールレベルで保持（シングルトン）
 const currentUser = ref<User | null>(null)
 const clientProfile = ref<ClientProfile | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const errorType = ref<AuthErrorType>(null)
 const initialized = ref(false)
 
 export const useClientAuth = () => {
@@ -86,8 +95,40 @@ export const useClientAuth = () => {
   }): Promise<boolean> => {
     loading.value = true
     error.value = null
+    errorType.value = null
 
     try {
+      // 事前チェック: 既登録 / 削除済みアカウントの判定
+      // (Supabase Auth は同一 email を再利用できないため、削除済みかどうかで案内を出し分ける)
+      try {
+        const check = await $fetch<{
+          email_exists: boolean
+          email_deleted: boolean
+          phone_exists: boolean
+          phone_deleted: boolean
+        }>('/api/check-existing-account', {
+          method: 'POST',
+          body: { email: params.email, phone: params.phone || '' },
+        })
+
+        if (check.email_deleted || check.phone_deleted) {
+          error.value = `過去に登録があります。アカウントの再開をご希望の場合は ${SUPPORT_EMAIL} までお問い合わせください。`
+          errorType.value = 'deleted_account'
+          return false
+        }
+        if (check.email_exists) {
+          error.value = 'このメールアドレスは既に登録されています'
+          return false
+        }
+        if (check.phone_exists) {
+          error.value = 'この電話番号は既に登録されています'
+          return false
+        }
+      } catch (checkErr) {
+        // チェック失敗は致命的にしない（Supabase Auth 側でも email 重複は弾ける）
+        console.warn('check-existing-account skipped:', checkErr)
+      }
+
       const supabase = getSupabase()
 
       // Supabase Auth でユーザー作成（メタデータにname/phoneを含める）
@@ -131,6 +172,7 @@ export const useClientAuth = () => {
   const signIn = async (email: string, password: string): Promise<boolean> => {
     loading.value = true
     error.value = null
+    errorType.value = null
 
     try {
       const supabase = getSupabase()
@@ -153,7 +195,17 @@ export const useClientAuth = () => {
         return false
       }
 
-      // アカウント無効チェック
+      // ユーザー自身による削除（ソフトデリート）
+      if (clientProfile.value.deleted_at) {
+        error.value = `このアカウントは削除されています。再開をご希望の場合は ${SUPPORT_EMAIL} までお問い合わせください。`
+        errorType.value = 'deleted_account'
+        await supabase.auth.signOut()
+        currentUser.value = null
+        clientProfile.value = null
+        return false
+      }
+
+      // 管理者による無効化
       if (!clientProfile.value.is_active) {
         error.value = 'このアカウントは無効になっています。お問い合わせください。'
         await supabase.auth.signOut()
@@ -250,12 +302,47 @@ export const useClientAuth = () => {
     }
   }
 
+  // ─── アカウント削除（ソフトデリート） ───
+  // データは残したまま is_active=false + deleted_at をセットしてログアウト。
+  // 同 email/phone での再登録は signUp 時にブロックされる。
+  const deleteAccount = async (reason?: string): Promise<boolean> => {
+    if (!currentUser.value) return false
+    loading.value = true
+    error.value = null
+
+    try {
+      const supabase = getSupabase()
+      const { error: updateError } = await supabase
+        .from('MIYAKO_CLIENT_USERS')
+        .update({
+          is_active: false,
+          deleted_at: new Date().toISOString(),
+          deletion_reason: reason || null,
+        })
+        .eq('id', currentUser.value.id)
+
+      if (updateError) throw updateError
+
+      await supabase.auth.signOut()
+      currentUser.value = null
+      clientProfile.value = null
+      return true
+    } catch (e: any) {
+      error.value = e.message || 'アカウント削除に失敗しました'
+      console.error('deleteAccount error:', e)
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // 状態
     currentUser: computed(() => currentUser.value),
     clientProfile: computed(() => clientProfile.value),
     loading: computed(() => loading.value),
     error,
+    errorType,
     isLoggedIn,
     userName,
     userEmail,
@@ -267,5 +354,6 @@ export const useClientAuth = () => {
     updateProfile,
     saveStorePreferences,
     fetchProfile,
+    deleteAccount,
   }
 }
