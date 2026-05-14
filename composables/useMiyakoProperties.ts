@@ -909,11 +909,16 @@ export const useMiyakoProperties = () => {
         created_at,
         updated_at
       `
+      // 水面下公開フラグが '公開中' のもののみ表示
+      // （2026-05-15 業務フロー切替：物件化 != 水面下公開 に分離）
+      // 旧フローでは publish_underground 不問だったが、新フローでは property-list 側で
+      // 明示的に「水面下に公開」ボタンを押した物件のみが mypage に出る
       let safeQuery = supabase
         .from('MIYAKO_PROPERTIES')
         .select(safeFields)
         .eq('lifecycle_stage', 'property')
         .in('master_status', ['募集中', '商談中'])
+        .eq('publish_underground', '公開中')
         .order('created_at', { ascending: false })
 
       if (options?.limit) {
