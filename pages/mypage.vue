@@ -601,6 +601,12 @@
                           本部確認中 - 許可が下りると資料を閲覧できます
                         </v-chip>
                       </div>
+                      <div v-if="getApprovalStatus(property.id) === 'pending'" class="mt-2">
+                        <v-btn size="small" variant="text" color="error" rounded="lg" @click.stop="openWithdrawDialog(property)">
+                          <v-icon start size="16">mdi-close-circle-outline</v-icon>
+                          申請を取り消す
+                        </v-btn>
+                      </div>
                     </div>
                   </div>
                 </v-card>
@@ -1065,18 +1071,34 @@
             <v-icon start>mdi-check-circle</v-icon>
             閲覧承認済み
           </v-btn>
-          <v-btn
+          <div
             v-else-if="getApprovalStatus(selectedProperty.id) === 'pending'"
-            variant="outlined"
-            color="info"
-            rounded="lg"
-            block
-            size="large"
-            disabled
+            class="w-100"
           >
-            <v-icon start>mdi-clock-outline</v-icon>
-            申請中
-          </v-btn>
+            <v-btn
+              variant="outlined"
+              color="info"
+              rounded="lg"
+              block
+              size="large"
+              disabled
+            >
+              <v-icon start>mdi-clock-outline</v-icon>
+              申請中
+            </v-btn>
+            <v-btn
+              variant="text"
+              color="error"
+              rounded="lg"
+              block
+              size="small"
+              class="mt-2"
+              @click="openWithdrawDialog(selectedProperty)"
+            >
+              <v-icon start size="16">mdi-close-circle-outline</v-icon>
+              申請を取り消す
+            </v-btn>
+          </div>
           <v-btn
             v-else
             color="primary"
@@ -1146,6 +1168,36 @@
       </v-card>
     </v-dialog>
 
+    <!-- ===== 申請取り消しの確認ダイアログ ===== -->
+    <v-dialog v-model="showWithdraw" max-width="440" persistent>
+      <v-card rounded="xl">
+        <v-card-title class="pa-4">
+          <div class="d-flex align-center">
+            <v-icon color="error" class="mr-2">mdi-close-circle-outline</v-icon>
+            申請を取り消しますか？
+          </div>
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4 text-body-2 text-medium-emphasis">
+          この物件への閲覧申請を取り消します。承認待ちの状態が解除され、必要になれば改めて申請できます。
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" rounded="lg" @click="showWithdraw = false">やめる</v-btn>
+          <v-spacer />
+          <v-btn
+            color="error"
+            rounded="lg"
+            :loading="withdrawSubmitting"
+            @click="handleWithdrawInquiry"
+          >
+            <v-icon start>mdi-close-circle-outline</v-icon>
+            申請を取り消す
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- ===== スナックバー ===== -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" rounded="lg" location="bottom" timeout="2000">
       {{ snackbar.message }}
@@ -1194,6 +1246,7 @@ const {
   canViewFullDetails,
   fetchInquiries,
   submitInquiry,
+  withdrawInquiry,
   inquiries,
 } = useClientInquiries()
 const {
@@ -1589,6 +1642,17 @@ const equipmentFilterOptions = ['換気扇有', 'ダクト有', '内階段有', 
 const showDetail = ref(false)
 const selectedProperty = ref(null)
 
+// 申請/取消の後、一覧カードの表示フィールドを composable の最新状態に揃える。
+// （リロードせずに 問い合わせ済タブ・件数・問い合わせ日 などを即時反映するため）
+const syncInquiryDisplay = (propertyId) => {
+  const prop = allProperties.value.find(p => p.id === propertyId)
+  if (!prop) return
+  const inquiry = getInquiry(propertyId)
+  prop.isInquired = isInquiredProperty(propertyId)
+  prop.inquiryStatus = inquiry ? inquiry.status : null
+  prop.inquiryDate = inquiry ? inquiry.created_at.split('T')[0] : null
+}
+
 // ─── 問い合わせダイアログ ───
 const showInquiry = ref(false)
 const inquiryTarget = ref(null)
@@ -1630,10 +1694,36 @@ const handleSubmitInquiry = async () => {
   inquirySubmitting.value = false
 
   if (success) {
+    syncInquiryDisplay(inquiryTarget.value.id)
     showInquiry.value = false
     showSnackbar('閲覧申請を送信しました。承認をお待ちください')
   } else {
     showSnackbar('申請の送信に失敗しました', 'error')
+  }
+}
+
+// ─── 閲覧申請の取り消し（確認ダイアログ → レコード削除） ───
+const showWithdraw = ref(false)
+const withdrawTarget = ref(null)
+const withdrawSubmitting = ref(false)
+
+const openWithdrawDialog = (property) => {
+  withdrawTarget.value = property
+  showWithdraw.value = true
+}
+
+const handleWithdrawInquiry = async () => {
+  if (!withdrawTarget.value) return
+  withdrawSubmitting.value = true
+  const targetId = withdrawTarget.value.id
+  const success = await withdrawInquiry(targetId)
+  withdrawSubmitting.value = false
+  if (success) {
+    syncInquiryDisplay(targetId)
+    showWithdraw.value = false
+    showSnackbar('申請を取り消しました')
+  } else {
+    showSnackbar('申請の取り消しに失敗しました', 'error')
   }
 }
 
@@ -1745,7 +1835,8 @@ const filteredProperties = computed(() => {
 })
 
 const favoriteProperties = computed(() => allProperties.value.filter(p => p.isFavorite))
-const inquiredProperties = computed(() => allProperties.value.filter(p => p.isInquired))
+// 静的な p.isInquired ではなく composable の状態を直接参照（申請/取消が即反映される）
+const inquiredProperties = computed(() => allProperties.value.filter(p => isInquiredProperty(p.id)))
 
 const stats = computed(() => [
   {

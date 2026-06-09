@@ -119,6 +119,41 @@ export const useClientInquiries = () => {
     }
   }
 
+  // 閲覧申請の取り消し（会員主導）。レコードごと削除し、会員・承認画面の双方から消す。
+  const withdrawInquiry = async (propertyId: string): Promise<boolean> => {
+    if (!currentUser.value) return false
+    loading.value = true
+    error.value = null
+
+    try {
+      const supabase = getSupabase()
+      // .select() を付けて削除された行を受け取り、0件＝RLS等で実際は消えていない
+      // ケースを「成功」と誤判定しないようにする。
+      const { data: deleted, error: deleteError } = await supabase
+        .from('MIYAKO_CLIENT_INQUIRIES')
+        .delete()
+        .eq('user_id', currentUser.value.id)
+        .eq('property_id', propertyId)
+        .select()
+
+      if (deleteError) throw deleteError
+      if (!deleted || deleted.length === 0) {
+        throw new Error('取り消し対象が見つからない、または権限がありません')
+      }
+
+      // ローカルキャッシュからも除去
+      const idx = inquiries.value.findIndex(i => i.property_id === propertyId)
+      if (idx >= 0) inquiries.value.splice(idx, 1)
+      return true
+    } catch (e: any) {
+      error.value = e.message || '申請の取り消しに失敗しました'
+      console.error('withdrawInquiry error:', e)
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     inquiries,
     loading,
@@ -130,5 +165,6 @@ export const useClientInquiries = () => {
     canViewFullDetails,
     fetchInquiries,
     submitInquiry,
+    withdrawInquiry,
   }
 }
