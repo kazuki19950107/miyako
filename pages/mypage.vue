@@ -1231,12 +1231,9 @@ const tabs = computed(() => [
 ])
 
 // ─── ロケーション表示ヘルパー ───
-// 未承認時は publicAddress (DB生成済み公開レベル適用済みの文字列)を使う
-// 承認済みは prefecture+city+town+chome (フル) を使う
-const getLocation = (p) => {
-  if (p.isLimited) return p.publicAddress || ''
-  return `${p.prefecture || ''}${p.city || ''}${p.town || ''}${p.chome || ''}`
-}
+// 公開範囲(public_address)を承認・未承認を問わず唯一の住所表示に統一する。
+// 物件ごとの公開範囲（町名まで／何丁目まで／フル）を、承認後も超えて住所を出さない。
+const getLocation = (p) => p.publicAddress || ''
 
 // ─── 物件データ ───
 const allProperties = ref([])
@@ -1307,9 +1304,13 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
 
   // 一覧タイトル: 承認前後とも「最寄り駅エリア + 階」で統一表示
   const stationName = dbProp.nearest_station || ''
+  // 物件番号（自動採番）。未採番の旧データは UUID 先頭4桁にフォールバック。常に頭に付ける。
+  const propNo = (dbProp.property_number != null)
+    ? `#${dbProp.property_number}`
+    : `#${(dbProp.id || '').slice(0, 4)}`
   const areaTitle = stationName
-    ? `${stationName}エリア ${floorInfo.display || ''}`.trim()
-    : `物件 #${(dbProp.id || '').slice(0, 4)}`
+    ? `${propNo} ${stationName}エリア ${floorInfo.display || ''}`.trim()
+    : propNo
 
   return {
     id: dbProp.id,

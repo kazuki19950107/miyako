@@ -889,6 +889,7 @@ export const useMiyakoProperties = () => {
       // public_address: DBで生成された公開レベル適用済みの住所文字列(prefecture/city/addressは直接取らない)
       const safeFields = `
         id,
+        property_number,
         lifecycle_stage,
         master_status,
         public_address,
@@ -951,6 +952,12 @@ export const useMiyakoProperties = () => {
           .in('id', Array.from(approvedIds))
         if (fullError) throw fullError
         for (const p of (fullData || []) as any[]) {
+          // 住所は公開レベル適用済みの public_address を正とし、レベルを超える生住所は
+          // 承認者にもクライアントへ渡さない（表示は mypage 側で public_address に統一）。
+          const lvl = p.address_public_level || 'town'
+          delete p.address // 旧フル住所文字列は常に隠す
+          if (lvl !== 'chome' && lvl !== 'full') delete p.address_chome
+          if (lvl !== 'full') delete p.address_banchi
           fullMap.set(p.id, p)
         }
       }
