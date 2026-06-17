@@ -1694,6 +1694,7 @@ const handleSubmitInquiry = async () => {
   inquirySubmitting.value = false
 
   if (success) {
+    await fetchInquiries()        // 申請データを真実の状態に再同期（部分更新の取りこぼし防止）
     syncInquiryDisplay(inquiryTarget.value.id)
     showInquiry.value = false
     showSnackbar('閲覧申請を送信しました。承認をお待ちください')
@@ -1719,6 +1720,7 @@ const handleWithdrawInquiry = async () => {
   const success = await withdrawInquiry(targetId)
   withdrawSubmitting.value = false
   if (success) {
+    await fetchInquiries()        // 申請データを真実の状態に再同期（部分更新の取りこぼし防止）
     syncInquiryDisplay(targetId)
     showWithdraw.value = false
     showSnackbar('申請を取り消しました')
