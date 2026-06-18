@@ -400,10 +400,17 @@
 
                   <v-divider />
                   <v-card-actions class="px-4 py-3">
-                    <span class="text-caption text-medium-emphasis">
-                      <v-icon size="12" class="mr-1">mdi-account-group</v-icon>
-                      問い合わせ {{ property.inquiryCount }}件
-                    </span>
+                    <div class="d-flex ga-3 flex-wrap align-center text-caption">
+                      <span v-if="property.favoriteCount >= SOCIAL_PROOF_MIN" class="text-medium-emphasis">
+                        <v-icon size="13" color="#b85450" class="mr-1">mdi-heart</v-icon>{{ property.favoriteCount }}人が気になる
+                      </span>
+                      <span
+                        v-if="property.inquiryCount >= SOCIAL_PROOF_MIN"
+                        :class="property.inquiryCount >= SOCIAL_PROOF_HOT ? 'text-warning font-weight-bold' : 'text-medium-emphasis'"
+                      >
+                        <v-icon size="13" class="mr-1">{{ property.inquiryCount >= SOCIAL_PROOF_HOT ? 'mdi-fire' : 'mdi-account-group' }}</v-icon>{{ property.inquiryCount }}人が問い合わせ
+                      </span>
+                    </div>
                     <v-spacer />
                     <v-btn variant="tonal" color="primary" size="small" rounded="lg" @click.stop="openDetail(property)">
                       詳細
@@ -483,11 +490,21 @@
                       <!-- お気に入り専用情報 -->
                       <div class="d-flex ga-3 flex-wrap">
                         <v-chip
+                          v-if="property.favoriteCount >= SOCIAL_PROOF_MIN"
                           size="small"
-                          :color="property.inquiryCount >= 5 ? 'warning' : 'info'"
+                          color="#b85450"
                           variant="tonal"
                         >
-                          <v-icon start size="14">mdi-account-group</v-icon>
+                          <v-icon start size="14">mdi-heart</v-icon>
+                          {{ property.favoriteCount }}人が気になる
+                        </v-chip>
+                        <v-chip
+                          v-if="property.inquiryCount >= SOCIAL_PROOF_MIN"
+                          size="small"
+                          :color="property.inquiryCount >= SOCIAL_PROOF_HOT ? 'warning' : 'info'"
+                          variant="tonal"
+                        >
+                          <v-icon start size="14">{{ property.inquiryCount >= SOCIAL_PROOF_HOT ? 'mdi-fire' : 'mdi-account-group' }}</v-icon>
                           {{ property.inquiryCount }}人が問い合わせ中
                         </v-chip>
                         <v-chip
@@ -908,8 +925,11 @@
                   <v-icon size="14" class="mr-1" color="grey">mdi-account-group</v-icon>
                   <span class="text-caption text-medium-emphasis">問い合わせ</span>
                   <span class="text-body-2 font-weight-bold ml-1">
-                    {{ selectedProperty.inquiryCount }}件
-                    <v-icon v-if="selectedProperty.inquiryCount >= 5" size="14" color="warning">mdi-fire</v-icon>
+                    <template v-if="selectedProperty.inquiryCount >= SOCIAL_PROOF_MIN">
+                      {{ selectedProperty.inquiryCount }}件
+                      <v-icon v-if="selectedProperty.inquiryCount >= SOCIAL_PROOF_HOT" size="14" color="warning">mdi-fire</v-icon>
+                    </template>
+                    <template v-else>—</template>
                   </span>
                 </div>
               </v-col>
@@ -1283,6 +1303,12 @@ const tabs = computed(() => [
   { key: 'profile', title: 'マイ情報', icon: 'mdi-account-cog', badge: null },
 ])
 
+// ソーシャルプルーフ表示の閾値（旅行サイト風「N人が…」）。
+// 会員数がまだ少ないため低めに設定。MIN 以上で表示、HOT 以上で🔥強調。
+// 1人は「自分だけ」に見えて逆効果なので 2 をフロアにする。
+const SOCIAL_PROOF_MIN = 2
+const SOCIAL_PROOF_HOT = 5
+
 // ─── ロケーション表示ヘルパー ───
 // 公開範囲(public_address)を承認・未承認を問わず唯一の住所表示に統一する。
 // 物件ごとの公開範囲（町名まで／何丁目まで／フル）を、承認後も超えて住所を出さない。
@@ -1422,7 +1448,8 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
     status: dbProp.master_status === '成約' ? 'closed' : 'active',
     isFavorite: false,
     isInquired: false,
-    inquiryCount: 0,
+    inquiryCount: dbProp.inquiry_count || 0,
+    favoriteCount: dbProp.favorite_count || 0,
     inquiryDate: null,
     inquiryStatus: null,
     closedDate: null,

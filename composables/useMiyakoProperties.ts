@@ -963,13 +963,35 @@ export const useMiyakoProperties = () => {
       }
 
       // ===== マージ =====
-      return safeProps.map((s) => {
+      const merged = safeProps.map((s) => {
         const full = fullMap.get(s.id)
         if (full) {
           return { ...full, _isApproved: true, _isLimited: false }
         }
         return { ...s, _isApproved: false, _isLimited: true }
       })
+
+      // ===== ソーシャルプルーフ用カウント（お気に入り数・問い合わせ数）=====
+      // 会員は RLS で自分の行しか読めないため、集計のみ返す RPC で横断カウントする。
+      // RPC 未適用などで失敗してもカウント 0 扱いにし、表示は閾値で自然に非表示になる。
+      const ids = merged.map((p) => p.id)
+      if (ids.length > 0) {
+        const { data: counts, error: countErr } = await supabase
+          .rpc('miyako_property_social_counts', { p_ids: ids })
+        if (countErr) {
+          console.warn('social counts RPC failed:', countErr.message)
+        } else if (counts) {
+          const cmap = new Map<string, any>()
+          for (const c of counts as any[]) cmap.set(c.property_id, c)
+          for (const p of merged) {
+            const c = cmap.get(p.id)
+            p.favorite_count = c ? Number(c.favorite_count) : 0
+            p.inquiry_count = c ? Number(c.inquiry_count) : 0
+          }
+        }
+      }
+
+      return merged
     } catch (e: any) {
       error.value = e.message || '水面下物件の取得に失敗しました'
       console.error('fetchPropertiesForMypage error:', e)
