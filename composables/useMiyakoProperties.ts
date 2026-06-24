@@ -886,7 +886,10 @@ export const useMiyakoProperties = () => {
 
       // ===== ステップ1: 安全項目のみ全件取得 =====
       // 公開OK: 物件ID, 賃料, 管理費, 面積, 敷金/礼金, 駅名, 階, 現況, PR, 造作有無, 入居時期
-      // public_address: DBで生成された公開レベル適用済みの住所文字列(prefecture/city/addressは直接取らない)
+      // public_address: DBで生成された公開レベル適用済みの住所文字列
+      // prefecture/city: 都道府県・市区は開示レベル(町名/丁目/フル)より上＝常に開示範囲なのでマッチング用に公開可。
+      //                  町名/丁目/番地(address_town/chome/banchi)はここでは取らない（承認済みのみ）。
+      // allowed_business_types/business_type: 許可業態は物件の売り＝公開可。マッチング(業態)に使う。
       const safeFields = `
         id,
         property_number,
@@ -894,6 +897,8 @@ export const useMiyakoProperties = () => {
         master_status,
         public_address,
         address_public_level,
+        prefecture,
+        city,
         nearest_station,
         floor,
         floor_space_tsubo,
@@ -906,6 +911,8 @@ export const useMiyakoProperties = () => {
         key_money_amount,
         handover_condition,
         move_in_timing,
+        allowed_business_types,
+        business_type,
         pr_text,
         created_at,
         updated_at

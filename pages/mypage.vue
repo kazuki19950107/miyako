@@ -382,18 +382,27 @@
                       <v-chip v-if="property.allowedBusinessTypes && property.allowedBusinessTypes[0]" size="x-small" variant="tonal" color="primary">{{ property.allowedBusinessTypes[0] }}</v-chip>
                       <v-chip v-if="property.floorDisplay" size="x-small" variant="tonal">{{ property.floorDisplay }}</v-chip>
                     </div>
-                    <!-- 希望条件マッチバッジ -->
-                    <div v-if="getMatchingPatterns(property).length > 0" class="mt-2 d-flex flex-wrap ga-1">
+                    <!-- 希望条件マッチバッジ（ピッタリ / おしい＋理由） -->
+                    <div v-if="getMatchingPatterns(property).length > 0" class="mt-2 d-flex flex-wrap ga-1 align-center">
                       <v-chip
                         v-for="match in getMatchingPatterns(property)"
                         :key="match.id"
                         size="x-small"
                         variant="flat"
-                        :color="preferenceChipColors[match.index % preferenceChipColors.length]"
-                        class="font-weight-medium"
+                        :color="match.tier === 'pitatari' ? 'green-darken-1' : 'amber-darken-3'"
+                        class="font-weight-bold"
                       >
-                        <v-icon start size="10">mdi-check-circle</v-icon>
-                        条件{{ match.index + 1 }}に適合
+                        <v-icon start size="11">{{ match.tier === 'pitatari' ? 'mdi-target' : 'mdi-tilde' }}</v-icon>
+                        {{ match.tier === 'pitatari' ? 'ピッタリ' : 'おしい' }}・{{ match.name || ('条件' + (match.index + 1)) }}
+                      </v-chip>
+                      <v-chip
+                        v-for="(rsn, ri) in propertyOshiReasons(property)"
+                        :key="'oshi-' + ri"
+                        size="x-small"
+                        variant="tonal"
+                        color="grey-darken-1"
+                      >
+                        {{ rsn }}
                       </v-chip>
                     </div>
                   </v-card-text>
@@ -1401,7 +1410,7 @@ const mapDbPropertyToDisplay = (dbProp, index) => {
     // publicAddress: 未承認時に表示する住所(DB生成済み)
     publicAddress: dbProp.public_address || '',
     addressPublicLevel: dbProp.address_public_level || 'city',
-    // prefecture/city/town/chomeは承認済み物件でのみ存在(未承認時はundefined)
+    // prefecture/city は公開項目（マッチング用・開示レベル内）。town/chome/banchi は承認済みのみ。
     prefecture: dbProp.prefecture || '',
     city: dbProp.city || '',
     town: dbProp.address_town || dbProp.address || '',
@@ -1529,39 +1538,78 @@ watchEffect(() => {
 const activePreferenceFilter = ref(null)
 const preferenceChipColors = ['teal', 'deep-purple', 'amber-darken-2', 'pink']
 
+// 物件×希望条件パターンの突き合わせ → { tier, reasons }
+//   tier='pitatari' … 全条件一致（ピッタリ）
+//   tier='oshii'    … 除外条件には当たらないが、業態/市区/賃料(+10%)のどれかが外れる（おしい）
+//   tier=null       … 除外（都道府県外/坪数外/賃料が上限+10%超 or 下限割れ）。表示しない
+const RENT_OVER_TOLERANCE = 1.10  // 賃料は希望上限の +10% までは「おしい」
+const matchPropertyToPattern = (property, pattern) => {
+  const reasons = []
+
+  // ===== 除外条件（ハード） =====
+  // 都道府県：希望指定があり、物件の都道府県（判明している場合）が含まれない → 除外
+  if (pattern.prefectures?.length > 0 && property.prefecture) {
+    if (!pattern.prefectures.includes(property.prefecture)) return { tier: null, reasons: [] }
+  }
+  // 坪数：範囲外 → 除外
+  if (pattern.tsuboMin && property.tsubo && property.tsubo < pattern.tsuboMin) return { tier: null, reasons: [] }
+  if (pattern.tsuboMax && property.tsubo && property.tsubo > pattern.tsuboMax) return { tier: null, reasons: [] }
+  // 賃料：下限割れ or 上限の+10%超 → 除外
+  if (pattern.rentMin && property.rent && property.rent < pattern.rentMin) return { tier: null, reasons: [] }
+  if (pattern.rentMax && property.rent > pattern.rentMax * RENT_OVER_TOLERANCE) return { tier: null, reasons: [] }
+
+  // ===== 「おしい」要素（ピッタリから外れる点） =====
+  // 賃料：希望上限内ならOK、上限〜+10%は「少し上」
+  if (pattern.rentMax && property.rent > pattern.rentMax) {
+    reasons.push('賃料が希望より少し上')
+  }
+  // 市区：指定があり、物件の市区が部分一致しない → おしい
+  if (pattern.cities) {
+    const targetCities = pattern.cities.split(/[・、,]/).map(c => c.trim()).filter(Boolean)
+    const cityMatch = property.city && targetCities.some(c => property.city.includes(c))
+    if (targetCities.length > 0 && !cityMatch) reasons.push('エリア（市区）が希望と少しずれ')
+  }
+  // 業態：物件の許可業態に希望業態が含まれない → おしい（物件に業態情報が無い場合は減点しない）
+  if (pattern.businessCategory) {
+    const allowed = property.allowedBusinessTypes || []
+    if (allowed.length > 0) {
+      const bizMatch = allowed.some(b => b && (b.includes(pattern.businessCategory) || pattern.businessCategory.includes(b)))
+      if (!bizMatch) reasons.push('業態が条件外の可能性')
+    }
+  }
+
+  return { tier: reasons.length === 0 ? 'pitatari' : 'oshii', reasons }
+}
+
+// 物件にマッチする希望条件パターン一覧（tier・理由つき）
 const getMatchingPatterns = (property) => {
   const matches = []
   userPreferencePatterns.value.forEach((pattern, idx) => {
-    if (isPropertyMatchingPattern(property, pattern)) {
-      matches.push({ id: pattern.id, index: idx, name: pattern.patternName })
+    const r = matchPropertyToPattern(property, pattern)
+    if (r.tier) {
+      matches.push({ id: pattern.id, index: idx, name: pattern.patternName, tier: r.tier, reasons: r.reasons })
     }
   })
-  return matches
+  // ピッタリを前に
+  return matches.sort((a, b) => (a.tier === 'pitatari' ? 0 : 1) - (b.tier === 'pitatari' ? 0 : 1))
 }
 
-const isPropertyMatchingPattern = (property, pattern) => {
-  // 都道府県チェック
-  if (pattern.prefectures?.length > 0) {
-    if (!pattern.prefectures.includes(property.prefecture)) return false
-  }
+// 物件単位の最良ティア（ピッタリ > おしい > なし）
+const getPropertyMatchTier = (property) => {
+  const matches = getMatchingPatterns(property)
+  if (matches.some(m => m.tier === 'pitatari')) return 'pitatari'
+  if (matches.some(m => m.tier === 'oshii')) return 'oshii'
+  return null
+}
 
-  // 市区チェック（部分一致: パターン側「中央区・北区」→ 物件の city に含まれるか）
-  if (pattern.cities) {
-    const targetCities = pattern.cities.split(/[・、,]/).map(c => c.trim()).filter(Boolean)
-    const cityMatch = targetCities.some(c => property.city.includes(c))
-    if (!cityMatch) return false
-  }
-
-  // 賃料範囲チェック
-  if (pattern.rentMin && property.rent < pattern.rentMin) return false
-  if (pattern.rentMax && property.rent > pattern.rentMax) return false
-
-  // 坪数範囲チェック
-  if (pattern.tsuboMin && property.tsubo < pattern.tsuboMin) return false
-  if (pattern.tsuboMax && property.tsubo > pattern.tsuboMax) return false
-
-  // 上記の主要条件（エリア・賃料・面積）が全て通ればマッチとする
-  return true
+// 「おしい」物件の理由（重複除去・ピッタリが1つでもあれば理由は出さない）
+const propertyOshiReasons = (property) => {
+  if (getPropertyMatchTier(property) !== 'oshii') return []
+  const set = new Set()
+  getMatchingPatterns(property)
+    .filter(m => m.tier === 'oshii')
+    .forEach(m => m.reasons.forEach(r => set.add(r)))
+  return [...set]
 }
 
 const applyPreferenceFilter = (patternId) => {
@@ -1858,6 +1906,16 @@ const filteredProperties = computed(() => {
     case 'rent_desc': result.sort((a, b) => b.rent - a.rent); break
     case 'area_desc': result.sort((a, b) => b.tsubo - a.tsubo); break
     default: result.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+  }
+
+  // 希望条件パターンがあれば「ピッタリ→おしい→その他」を優先（同ティア内は上のソート順を維持＝安定ソート）
+  if (userPreferencePatterns.value.length > 0) {
+    const rank = (p) => {
+      const t = getPropertyMatchTier(p)
+      return t === 'pitatari' ? 0 : t === 'oshii' ? 1 : 2
+    }
+    const rankMap = new Map(result.map(p => [p.id, rank(p)]))
+    result.sort((a, b) => rankMap.get(a.id) - rankMap.get(b.id))
   }
 
   return result
