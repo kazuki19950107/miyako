@@ -392,8 +392,8 @@
                         :color="match.tier === 'pitatari' ? 'green-darken-1' : 'amber-darken-3'"
                         class="font-weight-bold"
                       >
-                        <v-icon start size="11">{{ match.tier === 'pitatari' ? 'mdi-target' : 'mdi-tilde' }}</v-icon>
-                        {{ match.tier === 'pitatari' ? 'ピッタリ' : 'おしい' }}・{{ match.name || ('条件' + (match.index + 1)) }}
+                        <v-icon start size="11">{{ match.tier === 'pitatari' ? 'mdi-check-circle' : 'mdi-circle-half-full' }}</v-icon>
+                        {{ match.tier === 'pitatari' ? '一致' : '部分一致' }}・{{ match.name || ('条件' + (match.index + 1)) }}
                       </v-chip>
                       <v-chip
                         v-for="(rsn, ri) in propertyOshiReasons(property)"
